@@ -1,0 +1,39 @@
+# ── Build output ──────────────────────────────────────────────────────────
+# fretless/build holds the in-tree clones of SDL, PortAudio, FreeType and
+# friends fetched by CMake: ~240 MB that any checkout regenerates.
+build/
+out/
+*.obj
+*.lib
+*.exe
+*.pdb
+*.ilk
+
+# CMake / tooling
+compile_commands.json
+.cache/
+CMakeUserPresets.json
+
+# ── Python prototype ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── Logs ──────────────────────────────────────────────────────────────────
+install_log.txt
+*.log
+
+# ── Proprietary, not redistributable ──────────────────────────────────────
+# The Steamworks SDK is under Valve's license: developers download their own.
+fretless/lib/steamworks/
+steam_appid.txt
+
+# ── Editors and OS ────────────────────────────────────────────────────────
+.vs/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
