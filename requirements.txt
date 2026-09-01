@@ -1,5 +1,0 @@
-music21>=9.0
-aubio>=0.4.9
-sounddevice>=0.4.6
-PyQt6>=6.6
-verovio>=4.0   # requer: pip install swig antes de instalar

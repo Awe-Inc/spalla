@@ -3,8 +3,9 @@
 A custom C++20 engine for practising the violin: it listens to you play, reads
 the score, and judges every note on intonation and timing.
 
-Rebuild of the Python/PyQt6 prototype (`../core`, `../ui`) as a native engine
-with a realtime audio path, a GPU renderer and no web stack.
+A ground-up rewrite of an earlier Python/PyQt6 prototype, as a native engine
+with a realtime audio path, a GPU renderer and no web stack. The comparisons
+below are against that prototype; it is no longer in the tree.
 
 ```bash
 build.bat            # configure + build (uses the CMake/Ninja in VS Build Tools)

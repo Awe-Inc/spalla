@@ -1,1 +1,0 @@
-"""Violin Hero — módulo UI."""
