@@ -92,9 +92,12 @@ export function BoasVindasPage() {
   const isLast = step === STEPS.length - 1;
 
   async function finish() {
-    await setDailyGoal(goalXp);
-    settings.completeOnboarding();
-    await navigate("/", { replace: true });
+    try {
+      await setDailyGoal(goalXp);
+    } finally {
+      settings.completeOnboarding();
+      await navigate("/", { replace: true });
+    }
   }
 
   return (

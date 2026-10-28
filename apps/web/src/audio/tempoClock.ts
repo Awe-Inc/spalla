@@ -41,6 +41,8 @@ export class TempoClock {
   readonly #output: GainNode;
   #settings: TempoClockSettings;
   #timer: ReturnType<typeof setInterval> | null = null;
+  #isStarting = false;
+  #isDisposed = false;
   #nextTickSec = 0;
   #beatIndex = 0;
   #tick = 0;
@@ -76,8 +78,14 @@ export class TempoClock {
   }
 
   async start(): Promise<void> {
-    if (this.#timer !== null) return;
-    await this.#context.resume();
+    if (this.#timer !== null || this.#isStarting || this.#isDisposed) return;
+    this.#isStarting = true;
+    try {
+      await this.#context.resume();
+    } finally {
+      this.#isStarting = false;
+    }
+    if (this.#isDisposed) return;
     this.#beatIndex = 0;
     this.#tick = 0;
     this.#measureIndex = 0;
@@ -93,6 +101,7 @@ export class TempoClock {
   }
 
   async dispose(): Promise<void> {
+    this.#isDisposed = true;
     this.stop();
     await this.#context.close();
   }

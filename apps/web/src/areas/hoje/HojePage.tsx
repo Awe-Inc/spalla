@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import { SESSION_COMPLETE_XP } from "@/data/gamification";
 import type { PlannedBlock } from "@/data/planner";
-import { grantSessionBonus, useFreezer } from "@/data/progress";
+import { freezeDay, grantSessionBonus } from "@/data/progress";
 import { BLOCK_LABELS } from "@/data/routines";
 import { Button, Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
 
@@ -82,7 +82,7 @@ export function HojePage() {
               {today.todayMinutes} min hoje · {today.stats.resinas} resinas
             </p>
             {today.stats.freezers > 0 && !frozenToday && today.todayXp < today.stats.dailyGoalXp ? (
-              <Button variant="ghost" onClick={() => void useFreezer(today.today)}>
+              <Button variant="ghost" onClick={() => void freezeDay(today.today)}>
                 Congelar hoje ({today.stats.freezers})
               </Button>
             ) : null}

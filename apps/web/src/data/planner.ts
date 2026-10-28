@@ -23,6 +23,7 @@ export interface PlannerInput {
   best: ReadonlyMap<string, ExerciseResult>;
   latest: ReadonlyMap<string, ExerciseResult>;
   lessonTasks: readonly LessonTask[];
+  playedToday: ReadonlySet<string>;
   now: number;
   day: string;
 }
@@ -95,9 +96,13 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
     const lessonExercise = lessonTask ? input.exercises.find((exercise) => exercise.id === lessonTask.itemId) : undefined;
     const candidates = input.exercises.filter((exercise) => BLOCK_KINDS[block.type].includes(exercise.kind) && withinReach(exercise, level));
 
+    const playedExercise = candidates.find((exercise) => input.playedToday.has(exercise.id) && !used.has(exercise.id));
+
     const pick = lessonExercise
       ? { exercise: lessonExercise, reason: `Da aula: ${lessonTask?.text ?? ""}`.trim() }
-      : block.type === "revisao"
+      : playedExercise
+        ? { exercise: playedExercise, reason: "Já tocado hoje." }
+        : block.type === "revisao"
         ? pickReview(candidates, input, used)
         : block.type === "peca-nova"
           ? pickNew(candidates, input, used)

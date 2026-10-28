@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { bestResultsByExercise, currentStreak, localDayKey, starsFor, type ExerciseResult } from "./db";
+import { bestResultsByExercise, currentStreak, db, localDayKey, starsFor, type ExerciseResult } from "./db";
 
 function result(exerciseId: string, stars: 0 | 1 | 2 | 3, accuracyPct: number): ExerciseResult {
   return { exerciseId, stars, accuracyPct, playedAt: 0, meanSignedCents: 0, bpm: 60, durationSeconds: 30 };
 }
+
+describe("schema", () => {
+  it("indexes every key the pages order or filter by", () => {
+    expect(Object.keys(db.pieces.schema.idxByName)).toEqual(expect.arrayContaining(["fileName", "importedAt"]));
+    expect(Object.keys(db.results.schema.idxByName)).toEqual(expect.arrayContaining(["exerciseId", "playedAt"]));
+  });
+});
 
 describe("starsFor", () => {
   it("gives three stars only at written tempo with 95% or more", () => {

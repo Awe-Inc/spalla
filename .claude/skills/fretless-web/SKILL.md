@@ -162,3 +162,18 @@ in Configurações; the sepia palette is `[data-accent="sepia"]` overrides in to
   fresh object every store read and React re-renders forever. `useAccompaniment` is the example.
 - **Streak uses the local calendar day.** `localDayKey` in `db.ts`; `toISOString().slice(0, 10)` is UTC and breaks
   the streak for anyone practising after 21:00 in Brazil.
+- **Every `orderBy`/`where` key needs a Dexie index.** `/musicas` crashed with "KeyPath importedAt on object store
+  pieces is not indexed" because the page ordered by a field the schema never declared. Adding an index is a new
+  `version(n).stores()` (v3 added `importedAt` to `pieces`), never an edit of an older version; `db.test.ts` ("indexes
+  every key the pages order or filter by") checks `schema.idxByName` for the keys the pages use.
+- **The day plan pins what was played.** `planSession` recomputes from the results on every change, so after a run
+  the ranking changed, the block swapped to another exercise and the session could never complete. `playedToday`
+  (the `doneToday` set) is an input and an exercise already played today claims the first block that accepts its
+  kind before any other pick (`planner.test.ts`, "keeps an exercise played today in its block").
+- **The drone is created one render after the mic starts.** `begin()` calls `startDrone()` right after
+  `await startMic()`, when `droneRef` is still null, so the pedal was silent on the first run. `useAccompaniment`
+  remembers the request (`droneWantedRef`) and the effect that creates the `Drone` starts it; `stopDrone` clears the
+  flag (`useAccompaniment.test.tsx`).
+- **`TempoClock.start()` awaits `resume()` before setting its timer.** Two clicks before the context resumed
+  created two intervals and `dispose()` during the await left one running on a closed context; `#isStarting` and
+  `#isDisposed` guard both (`tempoClock.test.ts`, fake `AudioContext`/`GainNode` + `vi.getTimerCount()`).

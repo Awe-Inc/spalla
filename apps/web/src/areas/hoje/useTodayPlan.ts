@@ -39,17 +39,18 @@ export function useTodayPlan(): TodayPlan {
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
 
   const routine = routines.find((item) => item.id === routineId) ?? routines[1] ?? routines[0]!;
-  const exercises = core.status === "ready" ? core.core.exercises : [];
+  const loadedCore = core.status === "ready" ? core.core : null;
+  const exercises = useMemo(() => loadedCore?.exercises ?? [], [loadedCore]);
+
+  const startOfDay = new Date(`${today}T00:00:00`).getTime();
+  const doneToday = useMemo(() => new Set(results.filter((result) => result.playedAt >= startOfDay).map((result) => result.exerciseId)), [results, startOfDay]);
 
   const plan = useMemo(() => {
     if (exercises.length === 0) return [];
     const best = bestResultsByExercise(results);
     const latest = latestResultsByExercise(results);
-    return planSession({ routine, exercises, best, latest, lessonTasks, now: Date.now(), day: today });
-  }, [exercises, results, routine, lessonTasks, today]);
-
-  const startOfDay = new Date(`${today}T00:00:00`).getTime();
-  const doneToday = useMemo(() => new Set(results.filter((result) => result.playedAt >= startOfDay).map((result) => result.exerciseId)), [results, startOfDay]);
+    return planSession({ routine, exercises, best, latest, lessonTasks, playedToday: doneToday, now: Date.now(), day: today });
+  }, [exercises, results, routine, lessonTasks, doneToday, today]);
   const todayRecord = days.find((day) => day.day === today);
 
   return {

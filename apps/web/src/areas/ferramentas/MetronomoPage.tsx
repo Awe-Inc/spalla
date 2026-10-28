@@ -17,6 +17,14 @@ const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
 const DEFAULT_PLAN: ProgressivePlan = { fromBpm: 60, toBpm: 90, stepBpm: 4, everyMeasures: 8 };
 const FIELD_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 text-body";
 
+const MAX_EVERY_MEASURES = 64;
+
+function clampPlanField(key: keyof ProgressivePlan, raw: number): number {
+  if (key === "everyMeasures") return Math.min(MAX_EVERY_MEASURES, Math.max(1, Math.round(raw) || 1));
+  if (key === "stepBpm") return Math.max(1, Math.round(raw) || 1);
+  return clampBpm(raw || TEMPO_MIN_BPM);
+}
+
 function pillClass(active: boolean): string {
   return `inline-flex h-10 items-center rounded-pill px-4 font-medium transition-colors ${active ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink-muted hover:text-ink"}`;
 }
@@ -134,9 +142,9 @@ export function MetronomoPage() {
                     className={FIELD_CLASS}
                     value={plan[key]}
                     min={key === "everyMeasures" || key === "stepBpm" ? 1 : TEMPO_MIN_BPM}
-                    max={key === "everyMeasures" ? 64 : TEMPO_MAX_BPM}
+                    max={key === "everyMeasures" ? MAX_EVERY_MEASURES : TEMPO_MAX_BPM}
                     onChange={(event) => {
-                      const next = { ...plan, [key]: Math.max(1, Number(event.target.value) || 1) };
+                      const next = { ...plan, [key]: clampPlanField(key, Number(event.target.value)) };
                       setPlan(next);
                       if (isProgressive) patch({ progressive: next });
                     }}

@@ -134,6 +134,9 @@ export class FretlessDatabase extends Dexie {
       lessonTasks: "++id, createdAt, doneAt",
       pieces: "++id, fileName, title, composer, genre, level",
     });
+    this.version(3).stores({
+      pieces: "++id, fileName, title, composer, genre, level, importedAt",
+    });
   }
 }
 

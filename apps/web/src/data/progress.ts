@@ -64,8 +64,10 @@ export async function saveRun(input: RunInput): Promise<RunOutcome> {
 }
 
 export async function recordLoopCompleted(): Promise<void> {
-  const stats = await readUserStats();
-  await db.userStats.put({ ...stats, loopsCompleted: stats.loopsCompleted + 1 });
+  await db.transaction("rw", db.userStats, async () => {
+    const stats = await readUserStats();
+    await db.userStats.put({ ...stats, loopsCompleted: stats.loopsCompleted + 1 });
+  });
 }
 
 export async function grantSessionBonus(day: string): Promise<boolean> {
@@ -80,7 +82,7 @@ export async function grantSessionBonus(day: string): Promise<boolean> {
   });
 }
 
-export async function useFreezer(day: string): Promise<boolean> {
+export async function freezeDay(day: string): Promise<boolean> {
   return db.transaction("rw", db.userStats, async () => {
     const stats = await readUserStats();
     if (stats.freezers <= 0 || stats.frozenDays.includes(day)) return false;
@@ -106,6 +108,8 @@ export async function buyItem(itemId: string, price: number): Promise<boolean> {
 }
 
 export async function setDailyGoal(dailyGoalXp: number): Promise<void> {
-  const stats = await readUserStats();
-  await db.userStats.put({ ...stats, dailyGoalXp });
+  await db.transaction("rw", db.userStats, async () => {
+    const stats = await readUserStats();
+    await db.userStats.put({ ...stats, dailyGoalXp });
+  });
 }

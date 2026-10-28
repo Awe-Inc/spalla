@@ -28,6 +28,7 @@ export function useAccompaniment({ input, isListening, score, leadInSeconds, dro
   const droneRef = useRef<Drone | null>(null);
   const droneMidiRef = useRef(droneMidi);
   droneMidiRef.current = droneMidi;
+  const droneWantedRef = useRef(false);
   const prefs = useSettings(
     useShallow((state) => ({
       metronomeOn: state.metronomeOn,
@@ -45,6 +46,7 @@ export function useAccompaniment({ input, isListening, score, leadInSeconds, dro
     const drone = new Drone(context, prefs.droneVolume);
     metronomeRef.current = metronome;
     droneRef.current = drone;
+    if (droneWantedRef.current && droneMidiRef.current !== null) drone.start(droneMidiRef.current);
     return () => {
       metronome.dispose();
       drone.dispose();
@@ -75,7 +77,7 @@ export function useAccompaniment({ input, isListening, score, leadInSeconds, dro
     const drone = droneRef.current;
     if (!drone) return;
     if (droneMidi === null) drone.stop();
-    else if (drone.midi !== null) drone.start(droneMidi);
+    else if (droneWantedRef.current) drone.start(droneMidi);
   }, [droneMidi]);
 
   return useMemo<Accompaniment>(
@@ -83,10 +85,14 @@ export function useAccompaniment({ input, isListening, score, leadInSeconds, dro
       sync: (songTimeSec) => metronomeRef.current?.sync(songTimeSec),
       rewind: (songTimeSec) => metronomeRef.current?.rewind(songTimeSec),
       startDrone: () => {
+        droneWantedRef.current = true;
         const midi = droneMidiRef.current;
         if (midi !== null) droneRef.current?.start(midi);
       },
-      stopDrone: () => droneRef.current?.stop(),
+      stopDrone: () => {
+        droneWantedRef.current = false;
+        droneRef.current?.stop();
+      },
     }),
     [],
   );

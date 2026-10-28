@@ -30,12 +30,20 @@ const exercises = [
 
 const routine = defaultRoutines().find((item) => item.durationMinutes === 25)!;
 
-function plan(results: ExerciseResult[], lessonTasks: Parameters<typeof planSession>[0]["lessonTasks"] = []) {
+function plan(results: ExerciseResult[], lessonTasks: Parameters<typeof planSession>[0]["lessonTasks"] = [], playedToday = new Set<string>()) {
   const best = new Map(results.map((item) => [item.exerciseId, item]));
-  return planSession({ routine, exercises, best, latest: best, lessonTasks, now, day: "2026-10-28" });
+  return planSession({ routine, exercises, best, latest: best, lessonTasks, playedToday, now, day: "2026-10-28" });
 }
 
 describe("planSession", () => {
+  it("keeps an exercise played today in its block even after the result improves", () => {
+    const results = [result("piece-1", 3, 98, 0), result("piece-2", 2, 90, 3)];
+    const planned = plan(results, [], new Set(["piece-1"]));
+    const review = planned.find((item) => item.block.type === "revisao");
+    expect(review?.exercise?.id).toBe("piece-1");
+    expect(sessionProgress(planned, new Set(["piece-1"])).done).toBe(1);
+  });
+
   it("fills every block of the routine with a distinct exercise and never repeats a type", () => {
     const planned = plan([]);
     expect(planned).toHaveLength(routine.blocks.length);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useSettings } from "@/app/settings";
-import { Drone, type DroneTimbre } from "@/audio/drone";
+import { Drone, type DroneTimbre, midiToHz } from "@/audio/drone";
 import { useCore } from "@/core/useCore";
 import { Button, Card, HeadphoneNotice, PageTitle } from "@/design/components";
 import { displayNoteName } from "@/music/noteNames";
@@ -85,7 +85,7 @@ export function PedalPage() {
         <Card className="grid place-items-center gap-5">
           <div className="grid place-items-center gap-1">
             <span className="font-display text-display">{noteLabel}</span>
-            <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(440 * 2 ** ((midi - 69) / 12))} Hz</span>
+            <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(midiToHz(midi))} Hz</span>
           </div>
           <Button variant="primary" onClick={toggle}>
             {isOn ? "Parar" : "Soar"}

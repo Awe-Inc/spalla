@@ -74,9 +74,14 @@ export function MusicasPage() {
     event.target.value = "";
     if (!file || core.status !== "ready") return;
     setIsImporting(true);
-    const outcome = await importPieceFile(core.core, file);
-    setIsImporting(false);
-    setError(outcome.ok ? null : outcome.error);
+    try {
+      const outcome = await importPieceFile(core.core, file);
+      setError(outcome.ok ? null : outcome.error);
+    } catch {
+      setError("Tente outro arquivo MusicXML (.xml, .musicxml ou .mxl).");
+    } finally {
+      setIsImporting(false);
+    }
   }
 
   return (

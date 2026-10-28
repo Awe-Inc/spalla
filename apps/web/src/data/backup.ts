@@ -44,6 +44,8 @@ export function backupFileName(now = new Date()): string {
   return `fretless-backup-${now.toISOString().slice(0, 10)}.json`;
 }
 
+const REVOKE_URL_DELAY_MS = 10_000;
+
 export function downloadText(fileName: string, text: string): void {
   const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -51,7 +53,7 @@ export function downloadText(fileName: string, text: string): void {
   anchor.href = url;
   anchor.download = fileName;
   anchor.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), REVOKE_URL_DELAY_MS);
 }
 
 export async function exportBackup(): Promise<void> {

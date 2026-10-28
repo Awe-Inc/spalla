@@ -1,7 +1,6 @@
 import { localDayKey, type PracticeDay } from "./db";
 
 export const HEATMAP_WEEKS = 12;
-const DAY_MS = 86_400_000;
 
 export interface HeatmapCell {
   day: string;
@@ -26,7 +25,7 @@ export function heatmapWeeks(days: readonly PracticeDay[], today: Date, weeks = 
   firstWeek.setDate(firstWeek.getDate() - (weeks - 1) * 7);
   return Array.from({ length: weeks }, (_, weekIndex) =>
     Array.from({ length: 7 }, (_, weekday) => {
-      const date = new Date(firstWeek.getTime() + (weekIndex * 7 + weekday) * DAY_MS);
+      const date = new Date(firstWeek.getFullYear(), firstWeek.getMonth(), firstWeek.getDate() + weekIndex * 7 + weekday);
       const key = localDayKey(date);
       const record = byDay.get(key);
       return {

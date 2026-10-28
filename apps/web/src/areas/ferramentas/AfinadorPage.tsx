@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { useSettings } from "@/app/settings";
-import { Drone } from "@/audio/drone";
+import { Drone, midiToHz } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
 import { Button, InlineError, STRING_NAMES, StringChip } from "@/design/components";
@@ -107,7 +107,7 @@ export function AfinadorPage() {
                   onClick={() => toggleReference(midi)}
                 >
                   <span className="text-heading">{STRING_NAMES[index]}</span>
-                  <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(440 * 2 ** ((midi - 69) / 12))} Hz</span>
+                  <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(midiToHz(midi))} Hz</span>
                 </button>
               );
             })}
