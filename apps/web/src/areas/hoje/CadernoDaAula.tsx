@@ -6,7 +6,10 @@ import { useCore } from "@/core/useCore";
 import { db, type BlockKind, type LessonTask } from "@/data/db";
 import { addLessonTask, nextLessonSentence, removeLessonTask, splitTasks, toggleLessonTask, WEEKDAY_NAMES } from "@/data/lessons";
 import { BLOCK_KINDS, BLOCK_LABELS, ROUTINE_ORDER } from "@/data/routines";
+import { weekSummary, weekWindow } from "@/data/weekSummary";
 import { Button, Card } from "@/design/components";
+
+import { ResumoDaSemana } from "./ResumoDaSemana";
 
 const TASK_BLOCKS: BlockKind[] = [...ROUTINE_ORDER, "livre"];
 const SELECT_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 text-body";
@@ -35,6 +38,8 @@ function TaskRow({ task, exerciseTitle }: { task: LessonTask; exerciseTitle: str
 export function CadernoDaAula() {
   const core = useCore();
   const tasks = useLiveQuery(() => db.lessonTasks.toArray(), []) ?? [];
+  const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
+  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
   const lessonWeekday = useSettings((state) => state.lessonWeekday);
   const setLessonWeekday = useSettings((state) => state.setLessonWeekday);
   const [text, setText] = useState("");
@@ -45,6 +50,7 @@ export function CadernoDaAula() {
   const exercises = core.status === "ready" ? core.core.exercises.filter((exercise) => exercise.playable) : [];
   const linkable = exercises.filter((exercise) => BLOCK_KINDS[blockType].includes(exercise.kind));
   const titleOf = (id: string | null) => (id ? exercises.find((exercise) => exercise.id === id)?.title ?? null : null);
+  const summary = weekSummary({ window: weekWindow(lessonWeekday, new Date()), days, results, tasks });
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -113,6 +119,7 @@ export function CadernoDaAula() {
           ) : null}
         </div>
       ) : null}
+      <ResumoDaSemana summary={summary} titleOf={titleOf} />
     </Card>
   );
 }

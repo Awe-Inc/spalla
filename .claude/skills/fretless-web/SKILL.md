@@ -84,7 +84,9 @@ apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDay
                                  pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
                                  estudo/dominada, filtros), importPiece.ts (MusicXML → `db.pieces`, 8 MB, mesmo
                                  fileName substitui), lessons.ts (caderno da aula: CRUD de `lessonTasks`,
-                                 `nextLessonSentence` a partir de `settings.lessonWeekday`) — todos os .ts puros
+                                 `nextLessonSentence` a partir de `settings.lessonWeekday`), weekSummary.ts (janela
+                                 desde a última aula, totais, exercício mais fraco, tendência ±5 cents, linhas PT-BR
+                                 para a professora) — todos os .ts puros
                                  têm teste ao lado
 apps/web/src/areas/musicas/      MusicasPage (catálogo + importadas com PieceFiltersBar); música importada toca em
                                  `/tocar/musica/:pieceId` e grava resultado como `musica:<fileName>`; MusicasTabs
@@ -112,7 +114,8 @@ apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia s
 apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia; `runsToday` e
                                  `useBlockGoal(exerciseId)` para o Tocar), HojePage (pontos + "n de 3 limpas
                                  seguidas" em cada bloco com meta),
-                                 CadernoDaAula (tarefas da professora; aberta + bloco combinando vira "Da aula")
+                                 CadernoDaAula (tarefas da professora; aberta + bloco combinando vira "Da aula"),
+                                 ResumoDaSemana (dentro do caderno; copia o texto para a área de transferência)
 apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela cheia; corda provável = corda solta
                                  mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage
                                  (TempoClock; três sons livres), PedalPage (Drone próprio, nota/oitava/timbre),
