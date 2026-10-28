@@ -31,7 +31,7 @@ O que roda agora, verificado nesta data:
 | Core C++ nativo (`build.bat`, `test.bat`) | 100 testes, 0 falhas |
 | Core em WASM (`pnpm build:core`) | os mesmos 99 casos passam no Node (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
-| `apps/web` | 154 testes vitest em 28 arquivos, typecheck limpo, `vite build` gera a PWA (210 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática |
+| `apps/web` | 159 testes vitest em 30 arquivos, typecheck limpo, `vite build` gera a PWA (211 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática |
 | CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`; deploy no Pages desligado (ver §11, item 6) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
 | Afinador no AudioWorklet | WASM carrega dentro do worklet e detecta 440,02 Hz de um oscilador com confiança 0,99999 (testado sem microfone) |
@@ -168,7 +168,7 @@ escolha).
 | Fase | Status | Falta |
 |---|---|---|
 | 0. Spike de latência | **quase**: pipeline funciona, teste pronto | medir no PC/tablet: meta ≤ 30 ms, jitter < 5 ms, ≤ 1 cent nas 4 cordas; reprovou → Capacitor/Tauri com a mesma UI |
-| 1. Fundação | **feita**: monorepo, core nos dois mundos, tokens em código, 5 áreas, PWA, Dexie | página de componentes com todos os tokens; conferir o app aberto offline |
+| 1. Fundação | **feita**: monorepo, core nos dois mundos, tokens em código, 5 áreas, PWA, Dexie, página `/componentes` com todos os tokens e componentes (28/10) | conferir o app aberto offline |
 | 2. Tocar | **feita (28/10)**: pauta rolando, metrônomo com subdivisão e 3 sons, drone, andamento ±5, loop A-B, mapa de compassos, "repetir os difíceis", XP e maestria por execução | highway como modo alternativo, auto-slowdown, e2e com jogador sintético |
 | 3. Praticar | **feita (28/10)**: rotinas padrão 15/25/45 e rotinas próprias, blocos ↔ tipo de exercício, planejador do dia com revisão espaçada e semente diária, filtros por módulo, contador de repetições limpas (≥ 90%, erro zera, bloco fecha com 3 seguidas; 3 séries em dias diferentes pedem andamento novo), editor de rotina com blocos arrastáveis (ou Subir/Descer no teclado), minutos e meta por bloco, edição das rotinas próprias, histórico por exercício | — |
 | 4. Hoje, onboarding, Progresso | **feita (28/10)**: onboarding em 5 passos, sessão do dia na Hoje, nível e XP, heatmap de 12 semanas, histórico de precisão, conquistas, loja (congelador, sons, paleta sépia); configurações com teste de microfone, sensibilidade, tamanho da partitura, backup `.json`, limpar cache, resetar | migração do `progress.txt` do app nativo |

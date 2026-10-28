@@ -69,6 +69,13 @@ export function ConfiguracoesPage() {
               </p>
             ) : null}
           </div>
+          <p className="text-caption text-ink-subtle">
+            Quer ver as cores, as fontes e os componentes do app?{" "}
+            <Link to="/componentes" className="font-semibold text-primary">
+              Componentes e tokens
+            </Link>
+            .
+          </p>
         </Card>
         <Card title="Nome das notas">
           <RadioGroup name="naming" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />

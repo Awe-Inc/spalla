@@ -43,6 +43,9 @@ apps/web/src/design/fonts.css    Fontsource imports (Fraunces Variable, Figtree 
 apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, GoalDots (pontos da série de repetições),
                                  AccuracyBars (barras de precisão por execução, cor por faixa),
                                  ProgressRing, HeadphoneNotice, …
+apps/web/src/design/tokenCatalog.ts nomes e papéis de todos os tokens (cores por grupo, fontes, escala de texto,
+                                 raios, sombras, durações, easing, layout, temas); o teste lê tokens.css e falha
+                                 se um token do `@theme inline` ficar de fora do catálogo ou sobrar nele
 apps/web/src/app/                Shell (sidebar ≥ lg, bottom bar below), router, settings store
 apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, ferramentas, progresso,
                                  configuracoes, tocar (fullscreen, forced dark), boas-vindas (fullscreen
@@ -98,6 +101,10 @@ apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afina
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
                                  Conquistas, Loja
+apps/web/src/areas/componentes/  ComponentesPage em /componentes (link em Configurações › Aparência): TokensSection
+                                 (cores com swatch e papel, prévia dos 4 temas via `data-theme`/`data-accent` na
+                                 subárvore, tipografia, raio/sombra/movimento/layout) + ComponentesSection (cada
+                                 componente de components.tsx em todas as variantes, mais o campo de formulário)
 apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da
                                  partitura `staffScale`, meta diária) + MicrofoneCard (teste ao vivo, sensibilidade
                                  → `PitchInput.setGain` → worklet "gain") + DadosCard
