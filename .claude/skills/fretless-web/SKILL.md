@@ -264,3 +264,8 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
   em `TocarPage`, mas só quando `import.meta.env.VITE_JOGADOR_SINTETICO === "1"`; o `webServer` do Playwright é quem
   liga isso. Sem a flag a URL é ignorada, então um build normal nunca toca sozinho. Em modo sintético `isListening`
   vem do hook e o contexto de áudio do mic é nulo: metrônomo e drone ficam mudos de propósito.
+- **Fixture com timestamp à meia-noite UTC muda de dia conforme o fuso.** `nativeProgress.test.ts` passava aqui
+  (UTC−3) e quebrava o CI (UTC): `1793145600` é 28/10 00:00Z, que vira 27/10 à noite no Brasil e 28/10 em Londres,
+  e `practiceDaysFromNative` agrupa por dia local. Todo timestamp de teste que vira dia local fica ao meio-dia UTC
+  (`Date.UTC(ano, mês, dia, 12) / 1000`), que cai no mesmo dia em qualquer fuso entre −11 e +11. Para reproduzir o
+  CI: `TZ=UTC pnpm --filter @fretless/web exec vitest run <arquivo>` no Git Bash.
