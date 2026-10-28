@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { BlockGoal } from "@/areas/hoje/useTodayPlan";
 import { ACHIEVEMENTS, MASTERY_LEVELS, type MasteryLevel } from "@/data/gamification";
+import { driftSentence } from "@/data/history";
 import type { RunOutcome } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
 import { Button, GoalDots, Stars } from "@/design/components";
@@ -32,12 +33,6 @@ const toneClass: Record<ReturnType<typeof measureTone>, string> = {
   shaky: "bg-close-soft text-close",
   hard: "bg-off-soft text-off",
 };
-
-function driftSentence(meanSignedCents: number): string {
-  if (meanSignedCents > 3) return `Tendência de ${Math.round(meanSignedCents)} cents alto.`;
-  if (meanSignedCents < -3) return `Tendência de ${Math.round(-meanSignedCents)} cents baixo.`;
-  return "Afinação centrada.";
-}
 
 function headline(stats: GameStats, outcome: RunOutcome | null): string {
   if (outcome && outcome.mastery > outcome.masteryBefore) return "Subiu de nível!";

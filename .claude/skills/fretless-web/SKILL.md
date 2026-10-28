@@ -41,6 +41,7 @@ apps/web/src/design/fonts.css    Fontsource imports (Fraunces Variable, Figtree 
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
                                  variable DEPLOY_PAGES is "true" (private repo on the free plan has no Pages)
 apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, GoalDots (pontos da série de repetições),
+                                 AccuracyBars (barras de precisão por execução, cor por faixa),
                                  ProgressRing, HeadphoneNotice, …
 apps/web/src/app/                Shell (sidebar ≥ lg, bottom bar below), router, settings store
 apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, ferramentas, progresso,
@@ -66,7 +67,9 @@ apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDay
                                  blocos ↔ ExerciseKind, variações, `goalFor`: escalas/tecnica/estudo nascem com
                                  meta de 3 repetições limpas, o resto "uma-vez"; moveBlock/addBlock/removeBlock/
                                  setBlockMinutes/setBlockGoal/goalSummary: helpers puros do editor de rotina,
-                                 testados em routines.test.ts), repetitions.ts (limpa = ≥ 90%;
+                                 testados em routines.test.ts), history.ts (`exerciseHistory`: runs, dias, melhor, última,
+                                 andamento com ≥ 80%, deriva média, tendência, séries fechadas; frases PT-BR e
+                                 `driftSentence`, usada também no ResultScreen), repetitions.ts (limpa = ≥ 90%;
                                  `cleanStreak` conta do fim e um erro zera; `goalProgress` por tipo de meta;
                                  `closedSeriesDays`/`shouldRaiseTempo`: 3 séries fechadas em dias diferentes pedem
                                  andamento novo), planner.ts (planSession: monta a sessão do dia;
@@ -106,7 +109,10 @@ apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela ch
                                  mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage
                                  (TempoClock; som gated pela loja), PedalPage (Drone próprio, nota/oitava/timbre),
                                  LatenciaPage
-apps/web/src/areas/praticar/     RoutinePicker (escolher/criar/editar/apagar rotina; rotinas padrão têm id
+apps/web/src/areas/praticar/     PraticarPage (módulos e exercícios; botão "Histórico" em cada exercício já tocado),
+                                 HistoricoExercicio (painel: vezes/dias, última vez, melhor resultado, barras das
+                                 últimas 12 execuções, tendência, andamento, deriva, séries fechadas),
+                                 RoutinePicker (escolher/criar/editar/apagar rotina; rotinas padrão têm id
                                  negativo e não se editam), RoutineEditor (lista ordenada de blocos: arrastar
                                  com HTML5 drag-and-drop ou Subir/Descer no teclado, minutos e meta por bloco,
                                  adicionar/tirar bloco, aviso de vizinhos iguais; testado em RoutinePicker.test.tsx)

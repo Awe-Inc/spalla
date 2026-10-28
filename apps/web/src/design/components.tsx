@@ -80,6 +80,34 @@ export function GoalDots({ recentClean, total, label }: { recentClean: readonly 
   );
 }
 
+export function accuracyToneClass(accuracyPct: number): string {
+  if (accuracyPct >= 90) return "bg-in-tune";
+  if (accuracyPct >= 70) return "bg-close";
+  return "bg-off";
+}
+
+export interface AccuracyBar {
+  key: string | number;
+  accuracyPct: number;
+  bpm: number;
+}
+
+export function AccuracyBars({ bars, label, className = "h-32" }: { bars: readonly AccuracyBar[]; label: string; className?: string }) {
+  return (
+    <ol className={`flex items-end gap-2 ${className}`} aria-label={label}>
+      {bars.map((bar) => (
+        <li key={bar.key} className="flex flex-1 flex-col items-center gap-1">
+          <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(bar.accuracyPct)}</span>
+          <div className="flex w-full flex-1 items-end">
+            <div className={`w-full rounded-sm ${accuracyToneClass(bar.accuracyPct)}`} style={{ height: `${Math.max(4, bar.accuracyPct)}%` }} aria-label={`${Math.round(bar.accuracyPct)}% a ${bar.bpm} bpm`} />
+          </div>
+          <span className="font-mono text-caption text-ink-subtle tabular">{bar.bpm}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 interface ProgressRingProps {
   value: number;
   max: number;

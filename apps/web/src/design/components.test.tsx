@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { Button, GoalDots, HeadphoneNotice, ProgressRing, Stars, StringChip } from "./components";
+import { AccuracyBars, accuracyToneClass, Button, GoalDots, HeadphoneNotice, ProgressRing, Stars, StringChip } from "./components";
 
 describe("Stars", () => {
   it("announces the count out of three", () => {
@@ -25,6 +25,19 @@ describe("GoalDots", () => {
     expect(dots[0]?.className).toContain("bg-in-tune");
     expect(dots[1]?.className).toContain("bg-off");
     expect(dots[2]?.className).toContain("bg-hairline-strong");
+  });
+});
+
+describe("AccuracyBars", () => {
+  it("draws one bar per run, coloured by accuracy, with the tempo underneath", () => {
+    render(<AccuracyBars bars={[{ key: 1, accuracyPct: 96, bpm: 60 }, { key: 2, accuracyPct: 75, bpm: 72 }, { key: 3, accuracyPct: 40, bpm: 80 }]} label="Precisão por execução" />);
+    const list = screen.getByRole("list", { name: "Precisão por execução" });
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(list.textContent).toContain("72");
+    expect(screen.getByLabelText("96% a 60 bpm").className).toContain("bg-in-tune");
+    expect(screen.getByLabelText("75% a 72 bpm").className).toContain("bg-close");
+    expect(screen.getByLabelText("40% a 80 bpm").className).toContain("bg-off");
+    expect(accuracyToneClass(90)).toBe("bg-in-tune");
   });
 });
 

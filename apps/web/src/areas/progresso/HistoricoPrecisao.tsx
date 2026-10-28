@@ -4,7 +4,7 @@ import type { Exercise } from "@fretless/core";
 
 import { accuracyTrend } from "@/data/calendar";
 import type { ExerciseResult } from "@/data/db";
-import { Card } from "@/design/components";
+import { AccuracyBars, Card } from "@/design/components";
 
 const HISTORY_POINTS = 12;
 
@@ -15,12 +15,6 @@ interface HistoricoPrecisaoProps {
 
 function titleFor(exerciseId: string, exercises: readonly Exercise[]): string {
   return exercises.find((exercise) => exercise.id === exerciseId)?.title ?? exerciseId.replace(/^musica:/, "");
-}
-
-function barClass(accuracyPct: number): string {
-  if (accuracyPct >= 90) return "bg-in-tune";
-  if (accuracyPct >= 70) return "bg-close";
-  return "bg-off";
 }
 
 export function HistoricoPrecisao({ results, exercises }: HistoricoPrecisaoProps) {
@@ -53,17 +47,7 @@ export function HistoricoPrecisao({ results, exercises }: HistoricoPrecisaoProps
           </option>
         ))}
       </select>
-      <ol className="flex h-32 items-end gap-2" aria-label="Precisão por execução">
-        {points.map((point) => (
-          <li key={point.playedAt} className="flex flex-1 flex-col items-center gap-1">
-            <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(point.accuracyPct)}</span>
-            <div className="flex w-full flex-1 items-end">
-              <div className={`w-full rounded-sm ${barClass(point.accuracyPct)}`} style={{ height: `${Math.max(4, point.accuracyPct)}%` }} aria-label={`${Math.round(point.accuracyPct)}% a ${point.bpm} bpm`} />
-            </div>
-            <span className="font-mono text-caption text-ink-subtle tabular">{point.bpm}</span>
-          </li>
-        ))}
-      </ol>
+      <AccuracyBars bars={points.map((point) => ({ key: point.playedAt, accuracyPct: point.accuracyPct, bpm: point.bpm }))} label="Precisão por execução" />
       <p className="text-caption text-ink-subtle">
         {trend ? (trend.delta >= 0 ? `Subiu ${trend.delta} pontos de precisão desde a primeira vez.` : `Caiu ${Math.abs(trend.delta)} pontos desde a primeira vez; tente mais devagar.`) : "Toque mais uma vez para ver a tendência."}
         {" "}Número de baixo é o andamento.
