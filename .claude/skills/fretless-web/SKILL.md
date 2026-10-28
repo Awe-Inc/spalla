@@ -54,7 +54,11 @@ apps/web/src/data/               db.ts (Dexie v2: results, routines, practiceDay
                                  dia), progress.ts (saveRun: resultado + XP + conquistas; bônus de sessão,
                                  congelador, loja, setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
                                  de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
-                                 library.ts — todos os .ts puros têm teste ao lado
+                                 pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
+                                 estudo/dominada, filtros), importPiece.ts (MusicXML → `db.pieces`, 8 MB, mesmo
+                                 fileName substitui) — todos os .ts puros têm teste ao lado
+apps/web/src/areas/musicas/      MusicasPage (catálogo + importadas com PieceFiltersBar); música importada toca em
+                                 `/tocar/musica/:pieceId` e grava resultado como `musica:<fileName>`
 apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
                                  Conquistas, Loja
 apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da

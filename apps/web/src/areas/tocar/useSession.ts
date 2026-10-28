@@ -2,7 +2,9 @@ import type { Exercise, MeasureRange, PracticeSession, Score } from "@fretless/c
 import { useCallback, useEffect, useState } from "react";
 
 import { useCore } from "@/core/useCore";
-import { useLibrary } from "@/data/library";
+import { useLiveQuery } from "dexie-react-hooks";
+
+import { db } from "@/data/db";
 
 import { clampBpm, tempoLimits, tempoScaleFor, type TempoLimits } from "./tempo";
 
@@ -21,9 +23,11 @@ export interface SessionHandle {
   setLoop: (range: MeasureRange | null) => void;
 }
 
-export function useSession(exerciseId: string | undefined): SessionHandle & { coreStatus: ReturnType<typeof useCore> } {
+export function useSession(exerciseId: string | undefined, pieceId: string | undefined): SessionHandle & { coreStatus: ReturnType<typeof useCore> } {
   const core = useCore();
-  const piece = useLibrary((state) => state.selected);
+  const storedId = pieceId === undefined ? Number.NaN : Number(pieceId);
+  const piece = useLiveQuery(async () => (Number.isFinite(storedId) ? ((await db.pieces.get(storedId)) ?? null) : null), [storedId]);
+  const isPieceLoading = pieceId !== undefined && piece === undefined;
   const [session, setSession] = useState<PracticeSession | null>(null);
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [score, setScore] = useState<Score | null>(null);
@@ -32,7 +36,7 @@ export function useSession(exerciseId: string | undefined): SessionHandle & { co
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (core.status !== "ready" || !exerciseId) return;
+    if (core.status !== "ready" || isPieceLoading || (!exerciseId && !pieceId)) return;
     const next = core.core.createSession();
     next.setLeadInSeconds(LEAD_IN_SECONDS);
     const fail = (message: string) => {
@@ -43,13 +47,13 @@ export function useSession(exerciseId: string | undefined): SessionHandle & { co
       setLimits(null);
     };
     let found: Exercise | null = null;
-    if (exerciseId === "musica") {
-      if (!piece) return fail("Escolha uma música em Músicas antes de tocar.");
+    if (pieceId !== undefined) {
+      if (!piece) return fail("Essa música não está mais na biblioteca. Escolha outra em Músicas.");
       const parsed = next.loadMusicXml(piece.bytes, { expandRepeats: true, trimSilentIntro: true, mergeTies: true });
       if (!parsed.ok) return fail(parsed.error);
     } else {
-      found = core.core.findExercise(exerciseId) ?? null;
-      if (!found || !next.loadExercise(exerciseId, Date.now() >>> 0)) return fail("Esse exercício não existe.");
+      found = exerciseId ? (core.core.findExercise(exerciseId) ?? null) : null;
+      if (!found || !exerciseId || !next.loadExercise(exerciseId, Date.now() >>> 0)) return fail("Esse exercício não existe.");
     }
     const loaded = next.score;
     setExercise(found);
@@ -62,7 +66,7 @@ export function useSession(exerciseId: string | undefined): SessionHandle & { co
       next.dispose();
       setSession(null);
     };
-  }, [core, exerciseId, piece]);
+  }, [core, exerciseId, pieceId, piece, isPieceLoading]);
 
   const setBpm = useCallback(
     (requested: number) => {

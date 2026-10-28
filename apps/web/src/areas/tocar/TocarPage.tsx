@@ -41,9 +41,9 @@ function readSnapshot(session: PracticeSession): Snapshot {
 }
 
 export function TocarPage() {
-  const { exerciseId } = useParams();
+  const { exerciseId, pieceId } = useParams();
   const navigate = useNavigate();
-  const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId);
+  const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId, pieceId);
   const mic = usePitchInput();
   const { takeFrames, stop: stopMic, start: startMic } = mic;
   const isListening = mic.status.status === "listening";

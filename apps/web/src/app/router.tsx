@@ -24,6 +24,7 @@ export const router = createBrowserRouter([
       { path: "ferramentas/latencia", Component: LatenciaPage },
       { path: "progresso", Component: ProgressoPage },
       { path: "configuracoes", Component: ConfiguracoesPage },
+      { path: "tocar/musica/:pieceId", Component: TocarPage },
       { path: "tocar/:exerciseId", Component: TocarPage },
       { path: "boas-vindas", Component: BoasVindasPage },
     ],
