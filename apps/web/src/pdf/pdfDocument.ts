@@ -1,9 +1,12 @@
 import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy, type RenderTask } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
+import { pdfjsAssetUrls } from "./assets";
 import { cappedPixelRatio, pageScaleFor, type Box, type PageFit } from "./fit";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+const assetUrls = pdfjsAssetUrls(import.meta.env.BASE_URL);
 
 export type PdfDocument = PDFDocumentProxy;
 
@@ -21,7 +24,7 @@ function abortedError(): Error {
 }
 
 export async function openPdf(bytes: Uint8Array): Promise<PdfDocument> {
-  return getDocument({ data: bytes.slice() }).promise;
+  return getDocument({ data: bytes.slice(), ...assetUrls }).promise;
 }
 
 export async function closePdf(document: PdfDocument): Promise<void> {

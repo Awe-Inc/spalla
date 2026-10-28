@@ -76,7 +76,9 @@ apps/web/src/areas/estante/      modo estante, sem nota nem XP: EstantePage (lis
                                  pedal compactos, cada um com seu áudio). Rotas carregadas com `lazy` para o
                                  pdf.js ficar fora do bundle principal
 apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/countPdfPages/renderPdfPage, worker
-                                 via `?url`), fit.ts (escala por ajuste, toque → página; testado)
+                                 via `?url`), fit.ts (escala por ajuste, toque → página; testado), assets.ts (URLs
+                                 de cMaps, fontes padrão, wasm e ICC em `<base>/pdfjs/`, servidos pelo plugin
+                                 `fretless:pdfjs-assets` do vite.config; testado)
 apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
@@ -196,6 +198,13 @@ in Configurações; the sepia palette is `[data-accent="sepia"]` overrides in to
 - **Asset `.mjs` precisa estar no `globPatterns` do workbox.** O worker do pdf.js sai como `assets/pdf.worker.min-*.mjs`
   e o padrão antigo (`{js,css,html,wasm,svg,woff2}`) não o incluía: offline, o PDF não abria. Qualquer extensão nova
   em `dist/assets` entra no padrão em `vite.config.ts`.
+- **pdf.js sem `cMapUrl`/`standardFontDataUrl`/`wasmUrl` renderiza fonte não embutida e JPX/JBIG2 errado, e offline
+  nem tenta.** Os ~190 arquivos (`cmaps/*.bcmap`, `standard_fonts/*.pfb|ttf`, `wasm/*`, `iccs/*.icc`, ~3,9 MB) não
+  vêm de `public/`: o plugin `fretless:pdfjs-assets` em `vite.config.ts` os emite em `dist/pdfjs/` no `generateBundle`
+  (antes do service worker ser gerado) e os serve de `node_modules` no dev; `pdfjsAssetUrls(import.meta.env.BASE_URL)`
+  monta as URLs com barra final, que o pdf.js só concatena. Nomes mudam entre versões do pdfjs-dist (a 6 não tem mais
+  `Identity-H.bcmap` nem `FoxitSans.pfb`); ao atualizar, conferir `ls node_modules/pdfjs-dist/{cmaps,standard_fonts}`.
+  `quickjs-eval.*` (sandbox de scripts) fica de fora.
 - **Troca rápida de página com pdf.js: cancelar pelo efeito, não só pelo canvas.** `getPage` de uma página fora do
   cache resolve depois do `getPage` da seguinte; sem `AbortSignal` conferido depois do `await`, a página antiga
   desenhava por cima da nova. `PaginaPdf` aborta no cleanup e `renderPdfPage` checa o sinal após `getPage`.
