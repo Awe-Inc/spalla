@@ -265,25 +265,14 @@ void StaffView::draw(render::Renderer2D& renderer,
     }
 
     // ── Barlines ──────────────────────────────────────────────────────────
-    if (score.beatsPerMinute > 0.0) {
-        const double secondsPerMeasure =
-            60.0 / score.beatsPerMinute * score.beatsPerMeasure * 4.0 / score.beatUnit;
-        if (secondsPerMeasure > 0.05) {
-            const double leftTime = songTime - (cursorX - bounds_.x) / pps;
-            int measureIndex = static_cast<int>(std::floor(leftTime / secondsPerMeasure));
-            for (double t = measureIndex * secondsPerMeasure;
-                 t <= songTime + kSecondsVisible;
-                 t += secondsPerMeasure, ++measureIndex) {
-                if (t < 0.0) {
-                    continue;
-                }
-                const float x = cursorX + static_cast<float>(t - songTime) * pps;
-                if (x < bounds_.x || x > bounds_.right()) {
-                    continue;
-                }
-                renderer.drawRect(x, staffTop, 1.2f, spacing * 4.0f, ink.withAlpha(0.45f));
-            }
+    score.barlinesInWindow(songTime - (cursorX - bounds_.x) / pps,
+                           songTime + kSecondsVisible, barlines_);
+    for (const double t : barlines_) {
+        const float x = cursorX + static_cast<float>(t - songTime) * pps;
+        if (x < bounds_.x || x > bounds_.right()) {
+            continue;
         }
+        renderer.drawRect(x, staffTop, 1.2f, spacing * 4.0f, ink.withAlpha(0.45f));
     }
 
     // ── Notes ─────────────────────────────────────────────────────────────

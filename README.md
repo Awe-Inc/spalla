@@ -99,6 +99,14 @@ headphones** — a drone through speakers is heard by the microphone, and the
 pitch detector will happily grade the drone. The UI says so on every exercise
 that uses one.
 
+Barlines and the click follow the score bar by bar. The parser records every
+played bar with its own meter and its length in seconds, so a pickup, a
+tempo change or a switch from 4/4 to 3/4 moves the staff's barlines, the
+highway's grid, the beat dots and the accented click together. A piece that
+opens with a one-beat pickup in 3/4 starts its click on beat three, not on an
+accented downbeat. `--test-score` lists the pickup and every bar where the
+meter or the click rate changes.
+
 ---
 
 ## The score library
@@ -131,7 +139,7 @@ Attribution and the full list land in `assets/songs/community/ATTRIBUTION.md`.
 | Pitch accuracy | untested | **≤1 cent** on all four open strings (measured through the sound card) |
 | Notation | Verovio → SVG → embedded Chromium | native OpenGL primitives |
 | Judgement | once per 11 ms audio block | **once per note** |
-| Tests | none | 85 cases, incl. a concurrent queue stress test |
+| Tests | none | 94 cases, incl. a concurrent queue stress test |
 
 The judgement change is the important one. Grading every audio block meant a
 whole note counted about 85 times and a sixteenth counted twice: "accuracy" was
@@ -348,7 +356,7 @@ both: this one reproduces the printed fingering note for note.
 test.bat
 ```
 
-85 cases, no external test framework (a test dependency is a dependency CI can
+94 cases, no external test framework (a test dependency is a dependency CI can
 fail to fetch). Notable coverage:
 
 - **`ring_buffer_is_correct_under_concurrent_producer_and_consumer`** — 200 000
@@ -387,6 +395,11 @@ fail to fetch). Notable coverage:
   sixteenth gets two beams while the shorter triplet eighth gets one. The
   grouping is computed in quarters, so moving the tempo control never
   regroups the staff.
+- **`a_pickup_measure_starts_the_first_full_bar_after_it`**,
+  **`a_tempo_change_moves_every_later_barline`** and
+  **`a_time_signature_change_is_kept_per_measure`** — barlines used to be a
+  grid from the first tempo and the first meter, which put them in the wrong
+  place in a third of the bundled songs.
 - **`a_streak_counts_days_of_practice_not_exercises_last_touched`** — a real
   bug: only the last attempt per exercise was stored, so practising the same
   warm-up every morning read as a streak of one, forever.
@@ -467,8 +480,8 @@ forgetting it is the classic reason achievements "sometimes" fail to unlock.
 - **A drone through speakers is heard by the microphone** and the detector will
   grade it. The UI asks for headphones; it cannot enforce them.
 - **The click and the notes run on different clocks** — the sound card's and
-  SDL's performance counter. They are aligned at the end of the count-in and
-  will drift apart by a few milliseconds over several minutes. Inaudible in a
+  SDL's performance counter. They are aligned at the end of the count-in, and
+  again wherever the meter or the tempo changes, and in between will drift apart by a few milliseconds over several minutes. Inaudible in a
   practice session, wrong for a recording.
 - **Only Book 1's Twinkle variations are playable** in the Suzuki module. The
   printed editions are copyrighted, so books 1–10 ship as a study path — what

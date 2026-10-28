@@ -309,6 +309,17 @@ struct RawEvent {
     char   noteName[5]      = {};
 };
 
+/// One played bar, still in quarters. `beats`/`beatUnit` are the meter in
+/// force when it was read; the time signature can change at any bar.
+struct RawMeasure {
+    double startQuarters = 0.0;
+    double endQuarters   = 0.0;
+    int    number        = 0;
+    int    playedMeasure = 0;
+    int    beats         = 4;
+    int    beatUnit      = 4;
+};
+
 /// Integrates the tempo map to convert a quarter-note position into seconds.
 class TempoIntegrator {
 public:
@@ -337,6 +348,48 @@ private:
     double      lastQuarters_ = 0.0;
     double      currentBpm_   = 120.0;
 };
+
+// ── Measure map ─────────────────────────────────────────────────────────────
+/// Fills `score.measures` from the played bars. Needs the sorted tempo map
+/// and `score.beatsPerMinute`, so it runs once the walk is over.
+void buildMeasureMap(const std::vector<RawMeasure>& raw, Score& score) {
+    score.measures.clear();
+    score.measures.reserve(raw.size());
+    TempoIntegrator integrator(score.tempoMap, score.beatsPerMinute);
+    for (const auto& bar : raw) {
+        MeasureMark mark;
+        mark.startQuarters  = bar.startQuarters;
+        mark.lengthQuarters = bar.endQuarters - bar.startQuarters;
+        mark.startSeconds   = integrator.toSeconds(bar.startQuarters);
+        mark.endSeconds     = integrator.toSeconds(bar.endQuarters);
+        mark.number         = bar.number;
+        mark.beats          = bar.beats;
+        mark.beatUnit       = bar.beatUnit;
+        score.measures.push_back(mark);
+    }
+    if (score.measures.empty()) {
+        return;
+    }
+    // Only the opening bar can be a pickup. A short bar later on is the
+    // second half of one split around a repeat sign, or the closing bar
+    // that completes the pickup, and both start on a downbeat.
+    MeasureMark& first = score.measures.front();
+    const double fullQuarters = first.beats * 4.0 / first.beatUnit;
+    const double missing      = fullQuarters - first.lengthQuarters;
+    if (missing > kOnsetEpsilon) {
+        first.beatOffset = missing * first.beatUnit / 4.0;
+    }
+}
+
+/// 1-based beat of a position, in the meter of its own bar.
+[[nodiscard]] float beatInMeasure(const Score& score, int measureIndex, double quarters) {
+    if (measureIndex < 0 || static_cast<std::size_t>(measureIndex) >= score.measures.size()) {
+        return 1.0f;
+    }
+    const MeasureMark& bar = score.measures[static_cast<std::size_t>(measureIndex)];
+    return static_cast<float>(bar.beatOffset +
+                              (quarters - bar.startQuarters) * bar.beatUnit / 4.0 + 1.0);
+}
 
 // ── .mxl (zipped MusicXML) ────────────────────────────────────────────────
 #if FRETLESS_HAS_MINIZ
@@ -532,6 +585,9 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     int    measureNumber       = 0;
     bool   sawTimeSignature    = false;
     bool   sawKey              = false;
+    int    currentBeats        = 4;
+    int    currentBeatUnit     = 4;
+    std::vector<RawMeasure> rawMeasures;
 
     std::vector<pugi::xml_node> measures;
     for (const auto measure : part.children("measure")) {
@@ -555,6 +611,10 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
         // looks for on the page; a measure heard twice reports it twice.
         measureNumber = measure.attribute("number").as_int(static_cast<int>(measureIndex) + 1);
         const double measureStart = quarterCursor;
+        // A bar lasts as long as its longest voice. The cursor after the
+        // last element is wherever the last voice stopped, which for a
+        // second voice written without trailing rests is short of the bar.
+        double measureFurthest = quarterCursor;
 
         for (const auto element : measure.children()) {
             const char* name = element.name();
@@ -566,10 +626,16 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                         divisions = value;
                     }
                 }
-                if (const auto time = element.child("time"); time && !sawTimeSignature) {
-                    score.beatsPerMeasure = time.child("beats").text().as_int(4);
-                    score.beatUnit        = time.child("beat-type").text().as_int(4);
-                    sawTimeSignature      = true;
+                if (const auto time = element.child("time")) {
+                    currentBeats    = std::max(1, time.child("beats").text().as_int(4));
+                    currentBeatUnit = std::max(1, time.child("beat-type").text().as_int(4));
+                    // The score-level meter stays the opening one: it names
+                    // the piece in the library and sizes the tempo control.
+                    if (!sawTimeSignature) {
+                        score.beatsPerMeasure = currentBeats;
+                        score.beatUnit        = currentBeatUnit;
+                        sawTimeSignature      = true;
+                    }
                 }
                 if (const auto key = element.child("key"); key && !sawKey) {
                     score.keyFifths = key.child("fifths").text().as_int(0);
@@ -596,6 +662,7 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
 
             if (std::strcmp(name, "forward") == 0) {
                 quarterCursor += element.child("duration").text().as_double(0.0) / divisions;
+                measureFurthest = std::max(measureFurthest, quarterCursor);
                 continue;
             }
 
@@ -647,12 +714,17 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                 lastOnsetQuarters    = quarterCursor;
                 lastDurationQuarters = durQuarters;
                 quarterCursor       += durQuarters;
+                measureFurthest      = std::max(measureFurthest, quarterCursor);
             }
         }
 
         // A measure that ended short (pickup, or a voice that stopped early)
         // must not drag the next measure backwards.
-        quarterCursor = std::max(quarterCursor, measureStart);
+        quarterCursor = std::max(quarterCursor, measureFurthest);
+        if (quarterCursor > measureStart + kOnsetEpsilon) {
+            rawMeasures.push_back({measureStart, quarterCursor, measureNumber, playedMeasure,
+                                   currentBeats, currentBeatUnit});
+        }
     }
 
     if (raw.empty()) {
@@ -720,27 +792,25 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     score.beatsPerMinute = score.tempoMap.empty() ? 120.0
                                                   : score.tempoMap.front().beatsPerMinute;
 
-    TempoIntegrator integrator(score.tempoMap, score.beatsPerMinute);
-    const double beatsPerQuarter = static_cast<double>(score.beatUnit) / 4.0;
+    buildMeasureMap(rawMeasures, score);
+    std::vector<int> measureOfPlayed(static_cast<std::size_t>(playedMeasure) + 1, -1);
+    for (std::size_t i = 0; i < rawMeasures.size(); ++i) {
+        measureOfPlayed[static_cast<std::size_t>(rawMeasures[i].playedMeasure)] =
+            static_cast<int>(i);
+    }
 
+    TempoIntegrator integrator(score.tempoMap, score.beatsPerMinute);
     score.events.reserve(merged.size());
-    double measureStartQuarters = 0.0;
-    int    currentMeasure       = -1;
 
     for (const auto& event : merged) {
-        if (event.playedMeasure != currentMeasure) {
-            currentMeasure       = event.playedMeasure;
-            measureStartQuarters = event.startQuarters;
-        }
-
         ScoreEvent out;
         out.startQuarters   = event.startQuarters;
         out.startSeconds    = integrator.toSeconds(event.startQuarters);
         out.durationSeconds = integrator.toSeconds(event.startQuarters + event.durationQuarters)
                               - out.startSeconds;
         out.measure         = event.measure;
-        out.beat            = static_cast<float>(
-            (event.startQuarters - measureStartQuarters) * beatsPerQuarter + 1.0);
+        out.measureIndex    = measureOfPlayed[static_cast<std::size_t>(event.playedMeasure)];
+        out.beat            = beatInMeasure(score, out.measureIndex, event.startQuarters);
         out.isRest          = event.isRest;
         out.midi            = event.midi;
 

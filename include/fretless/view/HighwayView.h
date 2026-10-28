@@ -66,6 +66,7 @@ private:
     std::deque<Flash> flashes_;
     std::deque<Popup> popups_;
     std::vector<std::size_t> visible_;
+    std::vector<double>      barlines_;
     std::size_t lastJudgementCount_ = 0;
     float       hitLinePulse_       = 0.0f;
 };

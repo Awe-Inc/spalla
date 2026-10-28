@@ -206,9 +206,11 @@ void ToneEngine::renderBlock(float* output, unsigned long frameCount) noexcept {
     if (resync != seenResync_) {
         seenResync_ = resync;
         // Put the next click exactly on the first frame of this block, and
-        // start the bar again from its downbeat.
+        // on the beat the caller asked for. The click advances the counter
+        // before sounding, so park it one beat earlier.
+        const int bar = std::max(1, beatsPerBar);
         clickPhase_ = beatSeconds;
-        beatInBar_  = beatsPerBar - 1;
+        beatInBar_  = (resyncBeat_.load(std::memory_order_relaxed) % bar + bar - 1) % bar;
     }
 
     for (unsigned long i = 0; i < frameCount; ++i) {

@@ -79,7 +79,11 @@ struct ScoreEvent {
     double       startQuarters   = 0.0;   ///< position in quarter notes
     float        frequencyHz     = 0.0f;  ///< 0 for rests
     int          midi            = -1;    ///< -1 for rests
-    int          measure         = 0;     ///< 1-based
+    int          measure         = 0;     ///< 1-based, as printed
+    /// Into `Score::measures`, which is in performance order: a repeated bar
+    /// has one printed number and two entries there. -1 when the score
+    /// carries no measure map.
+    int          measureIndex    = -1;
     float        beat            = 1.0f;  ///< position within the measure
     bool         isRest          = false;
     bool         isTiedFrom      = false; ///< continuation of a previous note
@@ -102,6 +106,35 @@ struct TempoMark {
     double beatsPerMinute  = 120.0;
 };
 
+/// One bar as it is played. Barlines and the metronome used to be derived
+/// from the first tempo and the first time signature, which put every
+/// barline in the wrong place after a pickup, a tempo change or a meter
+/// change — a third of the bundled songs. Each bar now says where it is.
+struct MeasureMark {
+    double startQuarters  = 0.0;
+    double startSeconds   = 0.0;
+    double endSeconds     = 0.0;
+    double lengthQuarters = 0.0;
+    int    number         = 0;     ///< as printed
+    int    beats          = 4;
+    int    beatUnit       = 4;
+    /// Beats (0-based, in `beatUnit`) already gone when the bar starts. Only
+    /// a pickup has one: a one-beat anacrusis in 3/4 starts two beats in, so
+    /// its note reads as beat 3 and the count-in lands on the downbeat.
+    double beatOffset     = 0.0;
+
+    /// Metronome rate across this bar, in its own beat unit. Derived from
+    /// the bar's length rather than from a tempo mark, so a tempo change in
+    /// the middle of a bar averages instead of being missed.
+    [[nodiscard]] double clicksPerMinute() const noexcept {
+        const double seconds = endSeconds - startSeconds;
+        if (seconds <= 0.0 || beatUnit <= 0) {
+            return 0.0;
+        }
+        return lengthQuarters / seconds * 60.0 * static_cast<double>(beatUnit) / 4.0;
+    }
+};
+
 struct Score {
     std::string title;
     std::string composer;
@@ -115,6 +148,20 @@ struct Score {
 
     std::vector<ScoreEvent> events;   ///< sorted by startSeconds
     std::vector<TempoMark>  tempoMap;
+    std::vector<MeasureMark> measures; ///< performance order, contiguous
+
+    /// The bar sounding at `timeSeconds`, or `measures.size()` outside the
+    /// piece (before the first bar or after the last one ends).
+    [[nodiscard]] std::size_t measureIndexAt(double timeSeconds) const noexcept;
+
+    /// 0-based beat at `timeSeconds` within its bar, counting a pickup from
+    /// where it would have started; -1 outside the piece.
+    [[nodiscard]] int beatAt(double timeSeconds) const noexcept;
+
+    /// Times of the barlines in [from, to]: the start of every bar except a
+    /// pickup (nothing is printed before an anacrusis), and the end of the
+    /// last one. Empty when the score has no measure map.
+    void barlinesInWindow(double from, double to, std::vector<double>& out) const;
 
     [[nodiscard]] double durationSeconds() const noexcept {
         return events.empty() ? 0.0 : events.back().endSeconds();

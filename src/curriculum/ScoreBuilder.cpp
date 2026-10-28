@@ -89,6 +89,23 @@ score::Score ScoreBuilder::build() const {
     const double barQuarters = static_cast<double>(beats_) * 4.0 /
                                static_cast<double>(beatUnit_);
 
+    // Generated exercises have one tempo and one meter, so the bars are a
+    // plain grid. The last bar is cut where the material ends; fillBar()
+    // is what makes it whole.
+    if (barQuarters > 0.0) {
+        for (double start = 0.0; start < cursorQuarters_ - 1e-6; start += barQuarters) {
+            score::MeasureMark mark;
+            mark.startQuarters  = start;
+            mark.lengthQuarters = std::min(barQuarters, cursorQuarters_ - start);
+            mark.startSeconds   = start * secondsPerQuarter;
+            mark.endSeconds     = (start + mark.lengthQuarters) * secondsPerQuarter;
+            mark.number         = static_cast<int>(out.measures.size()) + 1;
+            mark.beats          = beats_;
+            mark.beatUnit       = beatUnit_;
+            out.measures.push_back(mark);
+        }
+    }
+
     out.events.reserve(events_.size());
     for (const auto& entry : events_) {
         score::ScoreEvent event;
@@ -100,6 +117,9 @@ score::Score ScoreBuilder::build() const {
 
         const double bar = (barQuarters > 0.0) ? entry.start / barQuarters : 0.0;
         event.measure = static_cast<int>(std::floor(bar)) + 1;
+        if (static_cast<std::size_t>(event.measure) <= out.measures.size()) {
+            event.measureIndex = event.measure - 1;
+        }
         event.beat    = static_cast<float>(
             (entry.start - std::floor(bar) * barQuarters) *
             static_cast<double>(beatUnit_) / 4.0 + 1.0);

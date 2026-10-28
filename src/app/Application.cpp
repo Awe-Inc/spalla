@@ -24,6 +24,24 @@ constexpr double kStatusDuration = 3.0;
 constexpr double kStatusFadeSec  = 0.6;
 constexpr std::size_t kMaxFramesPerTick = 64;
 
+/// Two click rates closer than this are the same tempo; re-syncing for a
+/// rounding difference would only add jitter at the barline.
+constexpr double kClickRateTolerance = 0.005;
+
+/// Dots the tempo control has to fit: the longest bar, not the first one.
+[[nodiscard]] int widestBar(const score::Score& score) noexcept {
+    int widest = score.beatsPerMeasure;
+    for (const auto& bar : score.measures) {
+        widest = std::max(widest, bar.beats);
+    }
+    return widest;
+}
+
+[[nodiscard]] bool barIsShort(const score::MeasureMark& bar) noexcept {
+    const double full = bar.beats * 4.0 / std::max(1, bar.beatUnit);
+    return bar.beatOffset <= 0.0 && bar.lengthQuarters < full - 1e-3;
+}
+
 }  // namespace
 
 Application::Application() = default;
@@ -474,6 +492,58 @@ double Application::metronomeClicksPerMinute() const noexcept {
     return static_cast<double>(targetBpm_) * static_cast<double>(beatUnit) / 4.0;
 }
 
+void Application::startMetronomeAt(double songTime) {
+    if (!score_.has_value()) {
+        return;
+    }
+    const auto& measures = score_->measures;
+    if (measures.empty()) {
+        tone_.setMetronome(metronomeClicksPerMinute(), score_->beatsPerMeasure);
+        tone_.resyncMetronome();
+        metronomeBar_ = static_cast<std::size_t>(-1);
+        return;
+    }
+    std::size_t index = score_->measureIndexAt(songTime);
+    if (index >= measures.size()) {
+        index = songTime < measures.front().startSeconds ? 0 : measures.size() - 1;
+    }
+    const score::MeasureMark& bar = measures[index];
+    const int beat = songTime < bar.startSeconds
+                         ? static_cast<int>(std::lround(bar.beatOffset))
+                         : std::max(0, score_->beatAt(songTime));
+    tone_.setMetronome(bar.clicksPerMinute(), bar.beats);
+    tone_.resyncMetronome(beat);
+    metronomeBar_ = index;
+}
+
+void Application::followMetronomeBar() {
+    if (!score_.has_value() || !tone_.metronomeRunning() ||
+        game_.state() != game::GameState::Playing) {
+        return;
+    }
+    const auto&       measures = score_->measures;
+    const std::size_t index    = score_->measureIndexAt(game_.songTime());
+    if (index >= measures.size() || index == metronomeBar_) {
+        return;
+    }
+    const bool follows = metronomeBar_ < measures.size() && index == metronomeBar_ + 1;
+    if (follows) {
+        const score::MeasureMark& previous = measures[metronomeBar_];
+        const score::MeasureMark& current  = measures[index];
+        const double rate = previous.clicksPerMinute();
+        const bool   same = current.beats == previous.beats &&
+                          current.beatUnit == previous.beatUnit && rate > 0.0 &&
+                          std::abs(current.clicksPerMinute() - rate) <= rate * kClickRateTolerance;
+        // A free-running click carries a steady bar on its own; touching it
+        // at every barline would add a callback's worth of jitter for nothing.
+        if (same && !barIsShort(previous)) {
+            metronomeBar_ = index;
+            return;
+        }
+    }
+    startMetronomeAt(game_.songTime());
+}
+
 void Application::applyAccompaniment() {
     if (!tone_.available()) {
         return;
@@ -491,8 +561,7 @@ void Application::applyAccompaniment() {
     // The click follows the tempo the player chose, not the one written in the
     // exercise: a metronome that disagrees with the notes is worse than none.
     if (exercise != nullptr && exercise->metronome && score_.has_value()) {
-        tone_.setMetronome(metronomeClicksPerMinute(), score_->beatsPerMeasure);
-        tone_.resyncMetronome();
+        startMetronomeAt(game_.songTime());
     } else {
         tone_.clearMetronome();
     }
@@ -663,7 +732,7 @@ void Application::layout() {
 
     hud_.setHeader({0.0f, 0.0f, w, headerHeight});
     tempo_.setBounds(hud_.tempoSlot(
-        view::TempoControl::preferredWidth(score_.has_value() ? score_->beatsPerMeasure : 4)));
+        view::TempoControl::preferredWidth(score_.has_value() ? widestBar(*score_) : 4)));
 
     highway_.setBounds({0.0f, highwayTop, w, highwayBottom - highwayTop});
     if (showStaff_) {
@@ -870,7 +939,9 @@ void Application::handleEvents() {
                             runReported_  = false;
                             runCommitted_ = false;
                             game_.start();
-                            tone_.resyncMetronome();
+                            if (tone_.metronomeRunning()) {
+                                startMetronomeAt(game_.songTime());
+                            }
                         }
                         break;
                     }
@@ -933,10 +1004,7 @@ void Application::handleEvents() {
                                 tone_.clearMetronome();
                                 statusMessage_ = "Metrônomo desligado";
                             } else if (score_.has_value()) {
-                                tone_.setMetronome(
-                                    metronomeClicksPerMinute(),
-                                    score_->beatsPerMeasure);
-                                tone_.resyncMetronome();
+                                startMetronomeAt(game_.songTime());
                                 statusMessage_ = "Metrônomo ligado";
                             }
                             statusExpiry_ = elapsedTotal_ + kStatusDuration;
@@ -1008,7 +1076,11 @@ void Application::update(double deltaSeconds) {
     // count-in ends is the only one where both agree on where beat one is.
     if (stateBefore == game::GameState::Countdown &&
         game_.state() == game::GameState::Playing) {
-        tone_.resyncMetronome();
+        if (tone_.metronomeRunning()) {
+            startMetronomeAt(game_.songTime());
+        }
+    } else {
+        followMetronomeBar();
     }
 
     if (game_.state() == game::GameState::Finished &&
@@ -1049,18 +1121,16 @@ void Application::update(double deltaSeconds) {
     } else {
         // Drive the metronome from the song clock, so the beat dots and the
         // notes crossing the hit line are the same event.
-        int beat = -1;
-        if (score_.has_value() && game_.state() == game::GameState::Playing &&
-            score_->beatsPerMinute > 0.0) {
-            const double secondsPerBeat =
-                60.0 / score_->beatsPerMinute * 4.0 / score_->beatUnit;
-            if (secondsPerBeat > 0.0 && game_.songTime() >= 0.0) {
-                const auto elapsedBeats =
-                    static_cast<long long>(game_.songTime() / secondsPerBeat);
-                beat = static_cast<int>(elapsedBeats % score_->beatsPerMeasure);
+        int beat        = -1;
+        int beatsPerBar = score_.has_value() ? score_->beatsPerMeasure : 4;
+        if (score_.has_value() && game_.state() == game::GameState::Playing) {
+            const std::size_t bar = score_->measureIndexAt(game_.songTime());
+            if (bar < score_->measures.size()) {
+                beat        = score_->beatAt(game_.songTime());
+                beatsPerBar = score_->measures[bar].beats;
             }
         }
-        tempo_.setBeat(beat, score_.has_value() ? score_->beatsPerMeasure : 4);
+        tempo_.setBeat(beat, beatsPerBar);
         tempo_.update(deltaSeconds);
     }
 
@@ -1202,8 +1272,7 @@ void Application::applyTempo(int bpm) {
     // The click has to follow, or the tempo control silently means two
     // different things depending on whether you can hear it.
     if (tone_.metronomeRunning() && score_.has_value()) {
-        tone_.setMetronome(metronomeClicksPerMinute(), score_->beatsPerMeasure);
-        tone_.resyncMetronome();
+        startMetronomeAt(game_.songTime());
     }
 }
 

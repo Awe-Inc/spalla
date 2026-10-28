@@ -44,6 +44,7 @@ private:
     render::Rect bounds_{};
     std::vector<std::size_t> visible_;
     std::vector<score::BeamGroup> beams_;
+    std::vector<double> barlines_;
 };
 
 }  // namespace fretless::view

@@ -13,6 +13,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -187,6 +188,35 @@ void printMeasureOrder(const fretless::score::Score& s) {
     std::printf("measures   : %s\n", runs.c_str());
 }
 
+/// Every bar where the meter or the click rate differs from the bar before,
+/// plus a pickup: exactly what the barlines and the click follow.
+void printMeterChanges(const fretless::score::Score& s) {
+    if (s.measures.empty()) {
+        return;
+    }
+    const auto& first = s.measures.front();
+    if (first.beatOffset > 0.0) {
+        std::printf("pickup     : starts %.2f beats into a %d/%d bar\n",
+                    first.beatOffset, first.beats, first.beatUnit);
+    }
+    for (std::size_t i = 0; i < s.measures.size(); ++i) {
+        const auto& bar = s.measures[i];
+        if (i > 0) {
+            const auto& previous  = s.measures[i - 1];
+            const bool  sameMeter = bar.beats == previous.beats &&
+                                    bar.beatUnit == previous.beatUnit;
+            const bool  sameRate  =
+                std::abs(bar.clicksPerMinute() - previous.clicksPerMinute()) < 0.5;
+            if (sameMeter && sameRate) {
+                continue;
+            }
+        }
+        std::printf("  bar %-3d t=%7.3f  %d/%d  %.1f clicks/min\n",
+                    bar.number, bar.startSeconds, bar.beats, bar.beatUnit,
+                    bar.clicksPerMinute());
+    }
+}
+
 int testScore(const char* path) {
     std::string error;
     const auto score = fretless::score::parseMusicXml(path, &error);
@@ -204,6 +234,7 @@ int testScore(const char* path) {
                 s.events.size(), s.noteCount(), s.events.size() - s.noteCount());
     std::printf("duration   : %.2f s\n", s.durationSeconds());
     printMeasureOrder(s);
+    printMeterChanges(s);
     std::printf("\n");
 
     const std::size_t limit = s.events.size() < 40 ? s.events.size() : 40;

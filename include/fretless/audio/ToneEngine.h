@@ -78,7 +78,12 @@ public:
     /// Puts the next click on the next callback, so the count-in and the first
     /// note of the score agree. Without this the click free-runs and lands
     /// wherever the stream happened to start.
-    void resyncMetronome() noexcept {
+    ///
+    /// `beat` is the 0-based beat that click falls on. A piece that opens
+    /// with a pickup starts mid-bar, and accenting its first note would
+    /// teach the player the wrong downbeat.
+    void resyncMetronome(int beat = 0) noexcept {
+        resyncBeat_.store(beat < 0 ? 0 : beat, std::memory_order_relaxed);
         resyncRequest_.fetch_add(1, std::memory_order_release);
     }
 
@@ -109,6 +114,7 @@ private:
     std::atomic<int>    metronomeBeats_{4};
     std::atomic<float>  metronomeGain_{0.5f};
     std::atomic<float>  volume_{0.7f};
+    std::atomic<int>    resyncBeat_{0};
     std::atomic<std::uint32_t> resyncRequest_{0};
     static_assert(std::atomic<float>::is_always_lock_free,
                   "Parameter atomics must be lock-free or the RT thread can block.");

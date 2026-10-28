@@ -117,6 +117,12 @@ private:
     /// Clicks per minute for the loaded score at the chosen tempo. Not the
     /// same number as the tempo whenever the beat is not a quarter note.
     [[nodiscard]] double metronomeClicksPerMinute() const noexcept;
+    /// Starts the click at the rate, meter and beat of the bar sounding at
+    /// `songTime` (the first bar during the count-in).
+    void startMetronomeAt(double songTime);
+    /// Follows the click into a new bar when the meter or the tempo changes
+    /// there, or when the bar before it was cut short.
+    void followMetronomeBar();
     void handleHomeAction(view::HomeAction action);
     void handleModuleAction(view::ModuleAction action);
     void enterHome();
@@ -201,6 +207,9 @@ private:
     /// Target BPM chosen by the player; the score timeline is rescaled to it.
     int    targetBpm_   = 120;
     double originalBpm_ = 120.0;
+    /// Bar the click was last set for; `score_->measures.size()` or more
+    /// means none yet.
+    std::size_t metronomeBar_ = static_cast<std::size_t>(-1);
 
     std::string statusMessage_;
     double      statusExpiry_ = 0.0;

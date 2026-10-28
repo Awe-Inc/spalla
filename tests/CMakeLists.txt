@@ -8,6 +8,7 @@ add_executable(fretless_tests
     test_mxl.cpp
     test_repeats.cpp
     test_beaming.cpp
+    test_measures.cpp
     test_game_engine.cpp
     test_curriculum.cpp
 )

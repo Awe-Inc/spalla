@@ -136,6 +136,53 @@ void Score::notesInWindow(double from, double to, std::vector<std::size_t>& out)
     }
 }
 
+std::size_t Score::measureIndexAt(double timeSeconds) const noexcept {
+    const auto it = std::upper_bound(
+        measures.begin(), measures.end(), timeSeconds,
+        [](double t, const MeasureMark& m) { return t < m.startSeconds; });
+    if (it == measures.begin()) {
+        return measures.size();
+    }
+    const auto index = static_cast<std::size_t>(it - measures.begin()) - 1;
+    return timeSeconds < measures[index].endSeconds ? index : measures.size();
+}
+
+int Score::beatAt(double timeSeconds) const noexcept {
+    const std::size_t index = measureIndexAt(timeSeconds);
+    if (index >= measures.size()) {
+        return -1;
+    }
+    const MeasureMark& m = measures[index];
+    const double seconds = m.endSeconds - m.startSeconds;
+    if (seconds <= 0.0 || m.lengthQuarters <= 0.0) {
+        return 0;
+    }
+    // Interpolating within the bar is exact for a steady tempo and a fair
+    // approximation for the rare tempo mark placed in the middle of a bar.
+    const double quarters = (timeSeconds - m.startSeconds) / seconds * m.lengthQuarters;
+    const double beat = m.beatOffset + quarters * static_cast<double>(m.beatUnit) / 4.0;
+    return std::clamp(static_cast<int>(std::floor(beat + 1e-9)), 0, std::max(0, m.beats - 1));
+}
+
+void Score::barlinesInWindow(double from, double to, std::vector<double>& out) const {
+    out.clear();
+    if (measures.empty() || to < from) {
+        return;
+    }
+    auto it = std::lower_bound(
+        measures.begin(), measures.end(), from,
+        [](const MeasureMark& m, double t) { return m.startSeconds < t; });
+    for (; it != measures.end() && it->startSeconds <= to; ++it) {
+        if (it->beatOffset <= 0.0) {
+            out.push_back(it->startSeconds);
+        }
+    }
+    const double last = measures.back().endSeconds;
+    if (last >= from && last <= to) {
+        out.push_back(last);
+    }
+}
+
 void Score::applyTempoScale(double scale) {
     // Wide enough to cover the whole range of the tempo control against the
     // slowest and fastest written tempos in the curriculum. A tighter clamp
@@ -150,6 +197,10 @@ void Score::applyTempoScale(double scale) {
     for (auto& e : events) {
         e.startSeconds    *= factor;
         e.durationSeconds *= factor;
+    }
+    for (auto& m : measures) {
+        m.startSeconds *= factor;
+        m.endSeconds   *= factor;
     }
     for (auto& t : tempoMap) {
         t.beatsPerMinute *= (scale / tempoScale_);

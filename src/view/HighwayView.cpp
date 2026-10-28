@@ -115,28 +115,17 @@ void HighwayView::draw(render::Renderer2D& renderer,
 
     // ── Beat grid ─────────────────────────────────────────────────────────
     // A faint line per measure gives the eye a pulse to lock onto.
-    if (score.beatsPerMinute > 0.0) {
-        const double secondsPerMeasure =
-            60.0 / score.beatsPerMinute * score.beatsPerMeasure * 4.0 / score.beatUnit;
-        if (secondsPerMeasure > 0.05) {
-            const double leftTime  = songTime - (hitX - bounds_.x) / pps;
-            const double rightTime = songTime + kLookAheadSeconds;
-            int measureIndex = static_cast<int>(std::floor(leftTime / secondsPerMeasure));
-            for (double t = measureIndex * secondsPerMeasure; t <= rightTime;
-                 t += secondsPerMeasure, ++measureIndex) {
-                if (t < 0.0) {
-                    continue;
-                }
-                const float x = hitX + static_cast<float>(t - songTime) * pps;
-                if (x < bounds_.x || x > bounds_.right()) {
-                    continue;
-                }
-                // The grid is orientation, not content: a faint line is enough
-                // to feel the bar. Numbering every measure turned the runway
-                // into a ruler and competed with the notes travelling over it.
-                renderer.drawRect(x, bounds_.y, 1.0f, bounds_.h, kDivider.withAlpha(0.35f));
-            }
+    score.barlinesInWindow(songTime - (hitX - bounds_.x) / pps,
+                           songTime + kLookAheadSeconds, barlines_);
+    for (const double t : barlines_) {
+        const float x = hitX + static_cast<float>(t - songTime) * pps;
+        if (x < bounds_.x || x > bounds_.right()) {
+            continue;
         }
+        // The grid is orientation, not content: a faint line is enough
+        // to feel the bar. Numbering every measure turned the runway
+        // into a ruler and competed with the notes travelling over it.
+        renderer.drawRect(x, bounds_.y, 1.0f, bounds_.h, kDivider.withAlpha(0.35f));
     }
 
     // ── Notes ─────────────────────────────────────────────────────────────
