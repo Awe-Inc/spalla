@@ -35,13 +35,27 @@ std::string truncate(const std::string& text, std::size_t maxChars) {
 }
 
 /// Key signature as musicians name it, from the circle of fifths.
-const char* keyName(int fifths) noexcept {
+///
+/// The signature alone cannot tell major from minor - one sharp is G major or
+/// E minor and the notes on the page are identical - so the label says
+/// "1 sharp" style rather than claiming a mode it cannot know. The previous
+/// version printed "C major" under every piece in A minor.
+std::string keyName(int fifths) {
     constexpr const char* kMajor[15] = {
-        "Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F",
-        "C",
-        "G", "D", "A", "E", "B", "F#", "C#",
+        "Dób", "Solb", "Réb", "Láb", "Mib", "Sib", "Fá",
+        "Dó",
+        "Sol", "Ré", "Lá", "Mi", "Si", "Fá#", "Dó#",
     };
-    return kMajor[std::clamp(fifths + 7, 0, 14)];
+    const int clamped = std::clamp(fifths, -7, 7);
+    std::string out = kMajor[clamped + 7];
+    if (clamped == 0) {
+        return out + " / sem acidentes";
+    }
+    const int count = std::abs(clamped);
+    out += " maior, " + std::to_string(count);
+    out += (count == 1) ? (clamped > 0 ? " sustenido" : " bemol")
+                        : (clamped > 0 ? " sustenidos" : " bemóis");
+    return out;
 }
 
 /// Lower is better. WASAPI and WDM-KS reach the hardware; MME and DirectSound
@@ -140,6 +154,16 @@ void MenuView::setDevices(const std::vector<audio::AudioDeviceInfo>& devices) {
     deviceScroll_ = 0;
 }
 
+void MenuView::selectSongByPath(const std::string& path) noexcept {
+    for (std::size_t i = 0; i < songs_.size(); ++i) {
+        if (songs_[i].path == path) {
+            songIndex_ = i;
+            clampScroll();
+            return;
+        }
+    }
+}
+
 int MenuView::deviceIndexForRow(std::size_t row) const noexcept {
     return (row < deviceRows_.size()) ? deviceRows_[row].engineIndex : -1;
 }
@@ -219,7 +243,8 @@ void MenuView::update(double deltaSeconds, float inputLevel, bool noSignal) {
 MenuAction MenuView::handleKey(int key) {
     switch (key) {
         case SDLK_ESCAPE:
-            return MenuAction::Quit;
+        case SDLK_BACKSPACE:
+            return MenuAction::Back;
 
         case SDLK_RETURN:
         case SDLK_KP_ENTER:
@@ -357,11 +382,14 @@ void MenuView::draw(render::Renderer2D& renderer, const render::FontSet& fonts) 
     }
 
     // ── Title ─────────────────────────────────────────────────────────────
-    renderer.drawText(*fonts.hero, contentX(),
-                      bounds_.y + layout::kSpaceXx + 24.0f, "FRETLESS", kTextPrimary);
+    renderer.drawText(*fonts.label, contentX(), bounds_.y + 40.0f,
+                      "ESC  voltar", kTextMuted);
+    renderer.drawText(*fonts.lead, contentX(),
+                      bounds_.y + layout::kSpaceXx + 12.0f, "Biblioteca", kTextPrimary);
     renderer.drawText(*fonts.body, contentX(),
-                      bounds_.y + layout::kSpaceXx + 50.0f,
-                      "violin practice, judged note by note", kTextMuted);
+                      bounds_.y + layout::kSpaceXx + 36.0f,
+                      "Partituras no disco, e o microfone em que são tocadas",
+                      kTextMuted);
 
     const render::Rect songs  = songPanel();
     const render::Rect inputs = inputPanel();
@@ -405,15 +433,23 @@ void MenuView::draw(render::Renderer2D& renderer, const render::FontSet& fonts) 
     };
 
     // ── Pieces ────────────────────────────────────────────────────────────
-    drawPanel(songs, "CHOOSE A PIECE", pane_ == MenuPane::Songs);
+    drawPanel(songs, "ESCOLHA UMA PEÇA", pane_ == MenuPane::Songs);
 
     if (songs_.empty()) {
         renderer.drawText(*fonts.body, songs.x + layout::kSpaceLg,
                           songs.y + listTop + 30.0f,
-                          "No scores in assets/songs.", kTextSecondary);
+                          "Nenhuma partitura em assets/songs.", kTextSecondary);
         renderer.drawText(*fonts.body, songs.x + layout::kSpaceLg,
                           songs.y + listTop + 54.0f,
-                          "Press O to browse, or drop a file on the window.", kTextMuted);
+                          "Aperte O para procurar, ou arraste um arquivo aqui.",
+                          kTextMuted);
+        renderer.drawText(*fonts.body, songs.x + layout::kSpaceLg,
+                          songs.y + listTop + 78.0f,
+                          "Rode tools/fetch_library.py para baixar edições de",
+                          kTextMuted);
+        renderer.drawText(*fonts.body, songs.x + layout::kSpaceLg,
+                          songs.y + listTop + 98.0f,
+                          "domínio público em assets/songs/community.", kTextMuted);
     }
 
     for (std::size_t row = 0; row < visibleSongs; ++row) {
@@ -439,8 +475,8 @@ void MenuView::draw(render::Renderer2D& renderer, const render::FontSet& fonts) 
         if (song.parsed) {
             char duration[16];
             formatDuration(duration, sizeof(duration), song.durationSec);
-            std::snprintf(buffer, sizeof(buffer), "%zu notes   %s major   %d/%d   %.0f BPM",
-                          song.noteCount, keyName(song.keyFifths),
+            std::snprintf(buffer, sizeof(buffer), "%zu notas   %s   %d/%d   %.0f BPM",
+                          song.noteCount, keyName(song.keyFifths).c_str(),
                           song.beats, song.beatUnit, song.bpm);
             renderer.drawText(*fonts.label, songs.x + layout::kSpaceLg + 12.0f,
                               y + 37.0f, buffer, kTextMuted);
@@ -449,12 +485,12 @@ void MenuView::draw(render::Renderer2D& renderer, const render::FontSet& fonts) 
                                      render::TextAlign::Right, duration, kTextMuted);
         } else if (song.failed) {
             renderer.drawText(*fonts.label, songs.x + layout::kSpaceLg + 12.0f,
-                              y + 37.0f, "unreadable", kMiss);
+                              y + 37.0f, "ilegível", kMiss);
         }
     }
 
     // ── Inputs ────────────────────────────────────────────────────────────
-    drawPanel(inputs, "INPUT", pane_ == MenuPane::Inputs);
+    drawPanel(inputs, "ENTRADA", pane_ == MenuPane::Inputs);
 
     for (std::size_t row = 0; row < visibleDevices; ++row) {
         const std::size_t index = deviceScroll_ + row;
@@ -489,28 +525,28 @@ void MenuView::draw(render::Renderer2D& renderer, const render::FontSet& fonts) 
                                      color);
             renderer.drawTextAligned(*fonts.label, meterX, y + 38.0f, meterW,
                                      render::TextAlign::Right,
-                                     noSignal_ ? "no signal" : "live", color);
+                                     noSignal_ ? "sem sinal" : "ao vivo", color);
         }
     }
 
     // ── Tempo, then the key map, on the baseline ──────────────────────────
     const float footerY = bounds_.bottom() - layout::kSpaceXl;
     const float tempoY = songs.bottom() + layout::kSpaceMd;
-    renderer.drawText(*fonts.label, songs.x, tempoY + 12.0f, "TEMPO", kTextMuted);
+    renderer.drawText(*fonts.label, songs.x, tempoY + 12.0f, "ANDAM.", kTextMuted);
     tempo_.setBounds({songs.x + 58.0f, tempoY, TempoControl::preferredWidth(4), 48.0f});
     tempo_.draw(renderer, *fonts.label, *fonts.body, *fonts.lead);
 
     renderer.drawRect(contentX(), footerY - layout::kSpaceLg,
                       contentWidth(), layout::kHairline, kDivider);
     renderer.drawText(*fonts.label, contentX(), footerY,
-                      "ENTER  play          TAB  switch panel          "
-                      "UP / DOWN  select          O  browse          ESC  quit",
+                      "ENTER  tocar          TAB  trocar painel          "
+                      "SETAS  escolher          O  procurar          ESC  voltar",
                       kTextMuted);
 
     if (noSignal_) {
         renderer.drawTextAligned(*fonts.label, contentX(), footerY,
                                  contentWidth(), render::TextAlign::Right,
-                                 "play something - if no meter moves, try another input",
+                                 "toque algo - se o medidor não mexer, tente outra entrada",
                                  kMiss.withAlpha(0.7f + 0.3f *
                                      std::sin(static_cast<float>(elapsed_) * 3.0f)));
     }

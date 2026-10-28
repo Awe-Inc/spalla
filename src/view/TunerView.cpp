@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "fretless/app/Layout.h"
+#include "fretless/score/Score.h"
 #include "fretless/app/Theme.h"
 
 namespace fretless::view {
@@ -60,7 +61,11 @@ void TunerView::update(double deltaSeconds, const audio::PitchFrame& frame, bool
     }
 
     if (hasFrame && frame.frequencyHz > 0.0f) {
-        audio::formatNoteName(frame.frequencyHz, noteName_, sizeof(noteName_));
+        // The detector answers in letters; the player reads solfège. This is
+        // the only place the conversion has to happen on the audio path.
+        char scientific[8] = {};
+        audio::formatNoteName(frame.frequencyHz, scientific, sizeof(scientific));
+        score::toLatinName(scientific, noteName_, sizeof(noteName_));
     }
 
     target_ = active_ ? std::clamp(cents_ / kScaleCents, -1.0f, 1.0f) : 0.0f;
@@ -102,9 +107,9 @@ void TunerView::draw(render::Renderer2D& renderer, const render::FontSet& fonts)
                                  kTextMuted.withAlpha(0.5f));
     }
 
-    renderer.drawText(*fonts.label, trackX, trackY - 12.0f, "FLAT", kTextMuted);
+    renderer.drawText(*fonts.label, trackX, trackY - 12.0f, "BAIXO", kTextMuted);
     renderer.drawTextAligned(*fonts.label, trackX, trackY - 12.0f, trackWidth,
-                             render::TextAlign::Right, "SHARP", kTextMuted);
+                             render::TextAlign::Right, "ALTO", kTextMuted);
 
     // ── Dead line ─────────────────────────────────────────────────────────
     // An indicator that never moves is this app's most confusing failure, and
@@ -119,7 +124,7 @@ void TunerView::draw(render::Renderer2D& renderer, const render::FontSet& fonts)
                                  kMiss.withAlpha(0.16f));
         renderer.drawTextAligned(*fonts.body, boxX, boxY + 20.0f, boxW,
                                  render::TextAlign::Center,
-                                 "No signal - press I to pick an input", kMiss);
+                                 "Sem sinal - aperte I para escolher a entrada", kMiss);
     }
 
     // ── Indicator ─────────────────────────────────────────────────────────
@@ -148,7 +153,7 @@ void TunerView::draw(render::Renderer2D& renderer, const render::FontSet& fonts)
     if (!active_) {
         renderer.drawTextAligned(*fonts.title, bounds_.x, baseline - 12.0f, bounds_.w,
                                  render::TextAlign::Center,
-                                 noSignal() ? "" : "Play a note", kTextMuted);
+                                 noSignal() ? "" : "Toque uma nota", kTextMuted);
         return;
     }
 
@@ -174,8 +179,8 @@ void TunerView::draw(render::Renderer2D& renderer, const render::FontSet& fonts)
     // What the deviation is measured against. Silent about it and the reading
     // is ambiguous: 0 cents from the nearest semitone and 0 cents from the
     // written note mean very different things.
-    const char* caption = referenced_ ? "from the written note"
-                                      : "from the nearest semitone";
+    const char* caption = referenced_ ? "da nota escrita"
+                                      : "do semitom mais próximo";
     renderer.drawText(*fonts.label, centsX, captionBaseline, caption, kTextMuted);
 }
 

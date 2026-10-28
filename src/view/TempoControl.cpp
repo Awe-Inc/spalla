@@ -152,7 +152,7 @@ void TempoControl::draw(render::Renderer2D& renderer,
     // Only surface the written tempo once the player has moved away from it:
     // showing it always would be noise on the common path.
     if (writtenBpm_ > 0.0 && std::abs(static_cast<double>(bpm_) - writtenBpm_) > 0.5) {
-        std::snprintf(buffer, sizeof(buffer), "written %.0f", writtenBpm_);
+        std::snprintf(buffer, sizeof(buffer), "escrito %.0f", writtenBpm_);
         renderer.drawText(fontLabel, plus.right() + layout::kSpaceSm,
                           centerY + 4.0f, buffer, kTextMuted);
     }

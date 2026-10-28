@@ -22,10 +22,10 @@ constexpr std::size_t kMaxRecentJudgements = 24;
 
 const char* toString(HitGrade grade) noexcept {
     switch (grade) {
-        case HitGrade::Perfect: return "PERFECT";
-        case HitGrade::Great:   return "GREAT";
-        case HitGrade::Good:    return "GOOD";
-        case HitGrade::Miss:    return "MISS";
+        case HitGrade::Perfect: return "PERFEITO";
+        case HitGrade::Great:   return "ÓTIMO";
+        case HitGrade::Good:    return "BOM";
+        case HitGrade::Miss:    return "ERROU";
         case HitGrade::None:    break;
     }
     return "";

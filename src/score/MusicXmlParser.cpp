@@ -270,9 +270,13 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     }
 
     Score score;
-    score.title = root.child("work").child_value("work-title");
+    // <movement-title> is the piece; <work-title> is the volume it came from.
+    // Preferring the work title lists every song in a published collection
+    // under the collection's name, which is how a library of a hundred
+    // Schubert songs ends up looking like one file repeated.
+    score.title = root.child_value("movement-title");
     if (score.title.empty()) {
-        score.title = root.child_value("movement-title");
+        score.title = root.child("work").child_value("work-title");
     }
     for (const auto creator : root.child("identification").children("creator")) {
         if (std::strcmp(creator.attribute("type").as_string(), "composer") == 0) {

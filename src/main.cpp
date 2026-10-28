@@ -1,11 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 //  main.cpp — entry point and CLI
 //
-//    Fretless                       launch the game
+//    Fretless                       launch the practice hub
 //    Fretless --list-devices        enumerate input devices and exit
 //    Fretless --test-audio [secs]   headless pitch readout (default 5 s)
 //    Fretless --test-score <file>   parse a MusicXML file and dump its notes
 //    Fretless --song <file>         launch straight into a song
+//    Fretless --exercises           list every generated exercise
+//    Fretless --exercise <id>       launch straight into one exercise
+//    Fretless --module <id>         open a module's exercise list
+//    Fretless --check-curriculum    build every exercise and validate it
 // ═══════════════════════════════════════════════════════════════════════════
 
 #include <chrono>
@@ -17,6 +21,8 @@
 
 #include "fretless/app/Application.h"
 #include "fretless/audio/AudioEngine.h"
+#include "fretless/curriculum/Exercise.h"
+#include "fretless/curriculum/Generators.h"
 #include "fretless/game/GameEngine.h"
 #include "fretless/game/SyntheticPlayer.h"
 #include "fretless/score/MusicXmlParser.h"
@@ -244,10 +250,84 @@ int simulate(const char* path, float centsBias, float centsJitter, float missRat
     return complete ? 0 : 1;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  Curriculum tools
+// ═══════════════════════════════════════════════════════════════════════════
+
+int listExercises() {
+    const auto curriculum = fretless::curriculum::buildCurriculum();
+    for (const auto& module : curriculum.modules) {
+        std::printf("\n%s  (%zu)\n%s\n", module.title.c_str(),
+                    module.exercises.size(),
+                    std::string(module.title.size() + 8, '-').c_str());
+        for (const auto& exercise : module.exercises) {
+            std::printf("  N%-2d %-34.34s %-46.46s %s\n",
+                        exercise.level, exercise.id.c_str(),
+                        exercise.title.c_str(),
+                        fretless::curriculum::isPlayable(exercise.kind)
+                            ? "" : "(referencia)");
+        }
+    }
+    std::printf("\n%zu exercicios em %zu modulos\n", curriculum.exerciseCount(),
+                curriculum.modules.size());
+    return 0;
+}
+
+/// Builds every exercise and checks the invariants the UI relies on. Cheap
+/// enough to run in CI, and it catches the failure mode a generated curriculum
+/// is actually prone to: a table entry whose recipe produces nothing, or notes
+/// the instrument cannot play.
+int checkCurriculum() {
+    const auto curriculum = fretless::curriculum::buildCurriculum();
+    int problems = 0;
+    std::size_t notes = 0;
+
+    for (const auto& module : curriculum.modules) {
+        for (const auto& exercise : module.exercises) {
+            if (!fretless::curriculum::isPlayable(exercise.kind)) {
+                continue;
+            }
+            const auto score = fretless::curriculum::buildScore(exercise, 12345u);
+            if (score.events.empty()) {
+                std::printf("VAZIO      %s\n", exercise.id.c_str());
+                ++problems;
+                continue;
+            }
+            notes += score.noteCount();
+
+            for (const auto& event : score.events) {
+                if (event.isRest) {
+                    continue;
+                }
+                // Below open G the violin cannot play it at all; above E7 the
+                // detector's search range stops and every note would be a miss.
+                if (event.midi < 55 || event.midi > 100) {
+                    std::printf("EXTENSAO   %s: midi %d (%s)\n", exercise.id.c_str(),
+                                event.midi, event.noteName);
+                    ++problems;
+                    break;
+                }
+                if (event.durationSeconds <= 0.0) {
+                    std::printf("DURACAO    %s: %.4f s\n", exercise.id.c_str(),
+                                event.durationSeconds);
+                    ++problems;
+                    break;
+                }
+            }
+        }
+    }
+
+    std::printf("\n%zu exercicios, %zu notas, %d problemas\n",
+                curriculum.exerciseCount(), notes, problems);
+    return (problems == 0) ? 0 : 1;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
     const char* songPath       = nullptr;
+    const char* exerciseId     = nullptr;
+    const char* moduleId       = nullptr;
     const char* screenshotPath = nullptr;
     double      screenshotAt   = 6.0;
     int         deviceIndex    = -1;
@@ -258,6 +338,20 @@ int main(int argc, char** argv) {
 
         if (std::strcmp(arg, "--list-devices") == 0) {
             return listDevices();
+        }
+        if (std::strcmp(arg, "--exercises") == 0) {
+            return listExercises();
+        }
+        if (std::strcmp(arg, "--check-curriculum") == 0) {
+            return checkCurriculum();
+        }
+        if (std::strcmp(arg, "--exercise") == 0 && i + 1 < argc) {
+            exerciseId = argv[++i];
+            continue;
+        }
+        if (std::strcmp(arg, "--module") == 0 && i + 1 < argc) {
+            moduleId = argv[++i];
+            continue;
         }
         if (std::strcmp(arg, "--test-audio") == 0) {
             const double secs = (i + 1 < argc && argv[i + 1][0] != '-')
@@ -318,17 +412,21 @@ int main(int argc, char** argv) {
         if (std::strcmp(arg, "--help") == 0 || std::strcmp(arg, "-h") == 0) {
             std::printf(
                 "Fretless " FRETLESS_VERSION "\n\n"
-                "  Fretless                     launch the game\n"
-                "  Fretless --song <file>       launch straight into a song\n"
-                "  Fretless --list-devices      enumerate audio input devices\n"
-                "  Fretless --test-audio [s]    headless pitch readout\n"
-                "  Fretless --test-score <file> parse a MusicXML file\n"
-                "  Fretless --device <index>    pick an input device\n"
+                "  Fretless                     abre a tela de estudo\n"
+                "  Fretless --song <arquivo>    abre direto numa peca\n"
+                "  Fretless --exercise <id>     abre direto num exercicio\n"
+                "  Fretless --module <id>       abre a lista de um modulo\n"
+                "  Fretless --exercises         lista os exercicios e seus ids\n"
+                "  Fretless --check-curriculum  gera e valida todos os exercicios\n"
+                "  Fretless --list-devices      lista as entradas de audio\n"
+                "  Fretless --test-audio [s]    leitura de altura, sem janela\n"
+                "  Fretless --test-score <arq>  le um arquivo MusicXML\n"
+                "  Fretless --device <indice>   escolhe uma entrada\n"
                 "\n"
-                "  Fretless --simulate <file> [--bias c] [--jitter c] [--miss p]\n"
-                "        run a virtual violinist through the score and print the report\n"
-                "  Fretless --screenshot <out.png> [--song <file>] [--at <seconds>]\n"
-                "        render one frame offscreen; needs no microphone\n");
+                "  Fretless --simulate <arq> [--bias c] [--jitter c] [--miss p]\n"
+                "        roda um violinista virtual pela partitura e imprime o relatorio\n"
+                "  Fretless --screenshot <out.png> [--song <arq>] [--at <segundos>]\n"
+                "        desenha um quadro fora da tela; nao precisa de microfone\n");
             return 0;
         }
         std::fprintf(stderr, "unknown argument: %s (try --help)\n", arg);
@@ -350,6 +448,16 @@ int main(int argc, char** argv) {
     if (!app.initialize(config, &error)) {
         std::fprintf(stderr, "fatal: %s\n", error.c_str());
         return 1;
+    }
+    if (moduleId != nullptr && !app.openModule(moduleId)) {
+        std::fprintf(stderr, "no such module: %s (try --exercises)\n", moduleId);
+        app.shutdown();
+        return 2;
+    }
+    if (exerciseId != nullptr && !app.startExercise(exerciseId)) {
+        std::fprintf(stderr, "no such exercise: %s (try --exercises)\n", exerciseId);
+        app.shutdown();
+        return 2;
     }
     app.run();
     app.shutdown();

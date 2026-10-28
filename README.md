@@ -1,16 +1,124 @@
 # Fretless
 
-A custom C++20 engine for practising the violin: it listens to you play, reads
-the score, and judges every note on intonation and timing.
+A C++20 practice tool for the violin. It listens to you play, reads the score,
+and judges every note on intonation and timing — and it comes with a syllabus,
+so the answer to "what should I practise today" is on the first screen.
 
-A ground-up rewrite of an earlier Python/PyQt6 prototype, as a native engine
-with a realtime audio path, a GPU renderer and no web stack. The comparisons
-below are against that prototype; it is no longer in the tree.
+161 exercises across nine modules, from open-string long tones to three-octave
+scales; a drone and a metronome; sight reading that deals a new page every
+time; and a library of public-domain repertoire.
 
 ```bash
-build.bat            # configure + build (uses the CMake/Ninja in VS Build Tools)
-build\bin\Fretless.exe --song assets\songs\twinkle_suzuki.musicxml
+build.bat                        # configure + build (CMake/Ninja from VS Build Tools)
+build\bin\Fretless.exe          # the practice hub
+python tools/fetch_library.py    # download CC0 repertoire into assets/songs
 ```
+
+---
+
+## What you practise
+
+The home screen offers a session that has already been decided, and the shelf
+you would go to if you disagreed with it.
+
+| Module | | |
+|---|---|---|
+| **Aquecimento** | 25 | Long tones, open-string crossings, the four finger patterns, Suzuki tonalization |
+| **Afinação** | 23 | Ringing tones, drone scales, finger patterns against a reference pitch |
+| **Escalas e arpejos** | 35 | One octave to three, majors and minors, arpeggios, broken thirds, chromatic |
+| **Golpes de arco** | 10 | Détaché, slurs of 2 to 12, Galamian's acceleration, stroke studies on one pitch |
+| **Uma corda por vez** | 16 | Every string, first through seventh position |
+| **Ritmo** | 11 | One open string, so only the timing can be wrong. Includes Suzuki's Twinkle rhythms |
+| **Leitura** | 16 | Sight reading generated fresh every attempt, and a note-naming drill |
+| **Método Suzuki** | 6 | The five Twinkle variations, plus all ten books as a study path |
+| **Melodias** | 9 | Public-domain melodies that lie under a first-position hand |
+
+Every exercise says what it is for and what to listen for while playing it.
+That field is required, and a test fails when it is empty — a drill without a
+stated goal is time spent, not practice.
+
+### How the exercises exist
+
+None of them is a file. An `Exercise` carries a **recipe**, and the score is
+built from it on demand:
+
+```cpp
+Recipe recipe;
+recipe.tonicMidi    = 55;                       // G3
+recipe.scale        = ScaleType::Major;
+recipe.octaves      = 3;
+recipe.bow          = BowPattern::Acceleration; // 1, 2, 3, 4, 6, 8 to a bow
+recipe.noteQuarters = 0.5;
+```
+
+Twelve keys × three octaves × eight bowings is one table row each, not 288
+MusicXML files. It also means the whole library can be validated in a second:
+
+```bash
+build\bin\Fretless.exe --check-curriculum
+161 exercicios, 6357 notas, 0 problemas
+```
+
+### Language
+
+**The interface is in Brazilian Portuguese and notes are named Dó, Ré, Mi, Fá,
+Sol, Lá, Si** — which is what a Brazilian musician reads. The four strings are
+Sol, Ré, Lá and Mi everywhere they appear: the highway gutter, the readout, the
+exercise titles.
+
+Only the presentation changes. `ScoreEvent::noteName` keeps the letter spelling
+(`C#5`), because the staff positions notes by letter and the MusicXML parser
+writes them; `score::toLatinName` converts on the way to the screen and nowhere
+else. Exercise ids stay ASCII with letter names (`warmup.longtone.G`) because
+they are the key progress is filed under — there is a test for both.
+
+Code, comments and this file stay in English, on the same principle that keeps
+ids ASCII: they are read by whoever maintains the project, not by the player.
+
+### The session
+
+The plan is built from three findings that are about as settled as anything in
+this field gets — interleaving beats blocking, spacing beats massing, and a
+drill needs a stated goal. So it never puts two exercises of the same kind back
+to back, it prefers what has waited over what was played today, and every row
+says *why* it is there: "not played for 9 days", "unfinished — best so far
+64%", "push the tempo — clean at 72 BPM".
+
+It is stable within a day and different the next, so opening the app twice does
+not reshuffle the session underneath you.
+
+### Drone and metronome
+
+The engine used to be capture-only, which ruled out the two most effective
+things a practice tool can do. `ToneEngine` is a second, independent PortAudio
+stream: a drone to tune against and a click that knows where the bar line is.
+
+Intonation against a drone is the most effective ear-training drill there is,
+and it cannot be replaced by drawing something on a screen. **It does need
+headphones** — a drone through speakers is heard by the microphone, and the
+pitch detector will happily grade the drone. The UI says so on every exercise
+that uses one.
+
+---
+
+## The score library
+
+`assets/songs/community/` ships 36 real editions — Schubert, Brahms, Fauré,
+Debussy, Schumann, Elgar, Wolf and others — from the **OpenScore Lieder
+Corpus**, released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+CC0 is a public domain dedication, so redistributing them here is unambiguous.
+
+```bash
+python tools/fetch_library.py --count 120
+```
+
+fetches more. They are songs, not violin parts, which is exactly what makes
+them useful: a vocal line is a single melodic voice, phrased to be breathed,
+and the fetcher keeps only the ones whose entire range fits between the open G
+and the top of third position — so every file is playable as written, with no
+transposition.
+
+Attribution and the full list land in `assets/songs/community/ATTRIBUTION.md`.
 
 ---
 
@@ -23,7 +131,7 @@ build\bin\Fretless.exe --song assets\songs\twinkle_suzuki.musicxml
 | Pitch accuracy | untested | **≤1 cent** on all four open strings (measured through the sound card) |
 | Notation | Verovio → SVG → embedded Chromium | native OpenGL primitives |
 | Judgement | once per 11 ms audio block | **once per note** |
-| Tests | none | 30 cases, incl. a concurrent queue stress test |
+| Tests | none | 62 cases, incl. a concurrent queue stress test |
 
 The judgement change is the important one. Grading every audio block meant a
 whole note counted about 85 times and a sixteenth counted twice: "accuracy" was
@@ -42,16 +150,28 @@ exactly one verdict when its window closes.
                     └───────────────┬──────────────────────┘
                                     │  SpscRingBuffer<PitchFrame, 256>
                                     │  wait-free · no locks · drops, never blocks
-                    ┌───────────────▼──────────────────────┐
-   .musicxml ──►    │  GameEngine      [game thread, 144Hz]│
-   MusicXmlParser   │  one verdict per note                │
-                    └───────────────┬──────────────────────┘
-                                    │
+   Recipe ─────►    ┌───────────────▼──────────────────────┐
+   Generators       │  GameEngine      [game thread, 144Hz]│
+        │           │  one verdict per note                │
+   .musicxml ──►    └───────────────┬──────────────────────┘
+   MusicXmlParser                   │
                     ┌───────────────▼──────────────────────┐
                     │  Renderer2D → OpenGL 3.3             │
-                    │  Highway · Staff · Tuner · HUD       │
+                    │  Home · Module · Library · Game      │
+                    └──────────────────────────────────────┘
+
+                    ┌──────────────────────────────────────┐
+   speakers ◄───    │  ToneEngine      [RT thread]         │
+                    │  drone + metronome, its own stream   │
                     └──────────────────────────────────────┘
 ```
+
+Capture and playback are separate objects with separate streams on purpose.
+Capture must work on a machine with no output device and playback must work
+with no microphone; folding them into one duplex stream makes each a
+prerequisite of the other, and WASAPI duplex additionally requires both
+endpoints to agree on a sample rate, which consumer hardware routinely does
+not.
 
 ### The threading contract
 
@@ -69,14 +189,19 @@ rather than waiting. A lost frame is invisible; a dropout is not.
 
 ```
 include/fretless/
-  audio/    AudioEngine, PitchDetector          realtime capture + YIN
-  core/     SpscRingBuffer                      the thread boundary
-  score/    Score, MusicXmlParser               pugixml, replaces music21
-  game/     GameEngine, SyntheticPlayer         judgement + a virtual violinist
-  render/   Renderer2D, Font, Rect              batched GL, FreeType atlas
-  view/     Highway, Staff, Tuner, Hud          the screens
-  app/      Application, Theme                  window, loop, palette
-  platform/ FileDialog, SteamService            OS + Steamworks
+  audio/       AudioEngine, PitchDetector       realtime capture + YIN
+               ToneEngine                       drone + metronome, output side
+  core/        SpscRingBuffer                   the thread boundary
+  score/       Score, MusicXmlParser            pugixml, replaces music21
+  curriculum/  Exercise, Generators             the syllabus, as recipes
+               ScoreBuilder, Repertoire         scores without MusicXML
+               Progress, PracticePlan           what you did, and what is next
+  game/        GameEngine, SyntheticPlayer      judgement + a virtual violinist
+  render/      Renderer2D, Font, Rect           batched GL, FreeType atlas
+  view/        Home, Module, Menu               the hub, a module, the library
+               Highway, Staff, Tuner, Hud       the run
+  app/         Application, Theme               window, loop, palette
+  platform/    FileDialog, SteamService         OS + Steamworks
 ```
 
 `fretless_engine` is a static library; `Fretless` is just `main.cpp`. Tests link
@@ -118,8 +243,12 @@ preferred automatically via `FIND_PACKAGE_ARGS`.
 
 | Command | What it does |
 |---|---|
-| `Fretless` | Launch the game |
+| `Fretless` | Launch the practice hub |
 | `Fretless --song <file>` | Launch straight into a piece |
+| `Fretless --exercise <id>` | Launch straight into one exercise |
+| `Fretless --module <id>` | Open a module's exercise list |
+| `Fretless --exercises` | List every exercise with its id |
+| `Fretless --check-curriculum` | Build every exercise and validate it |
 | `Fretless --list-devices` | Enumerate inputs with their latencies |
 | `Fretless --test-audio [s]` | Headless pitch readout from the microphone |
 | `Fretless --test-score <file>` | Parse a MusicXML file and dump the timeline |
@@ -128,19 +257,51 @@ preferred automatically via `FIND_PACKAGE_ARGS`.
 
 ### Controls
 
+Escape walks the screens backwards — game → module → home — which is the only
+navigation rule there is to learn.
+
+**Home and the module list**
+
+| Key | Action |
+|---|---|
+| `Enter` | Start the highlighted item |
+| `Tab` | Switch between the session and the module shelf |
+| `↑` `↓` `←` `→` | Move |
+| `[` `]` | Tempo −/+ 4 BPM |
+| `L` | The library: scores on disk, and the input picker |
+| `Esc` | Back, and from the home screen, quit |
+
+**During a run**
+
 | Key | Action |
 |---|---|
 | `Space` | Play / pause |
-| `R` | Restart |
+| `R` | Restart — and deal a new page, in a reading exercise |
+| `D` | Drone on / off |
+| `M` | Metronome on / off |
+| `S` | Show or hide the staff |
+| `[` `]` | Tempo −/+ 4 BPM |
+| `I` | Change input device |
 | `O` | Open a score (or drag a file onto the window) |
-| `[` `]` | Tempo −/+ 5 BPM |
-| `↑` `↓` | Cycle input device |
 | `F3` | Frame time, draw calls, audio drops |
 | `F11` | Fullscreen |
-| `Esc` | Quit |
+| `Esc` | Leave the run — the attempt is filed either way |
 
 Scores load from `.musicxml`, `.xml` and `.mxl`. `assets/songs/` ships four
-public-domain exercises, regenerated by `python tools/make_songs.py`.
+generated exercises (`python tools/make_songs.py`) and, once fetched, the CC0
+community library.
+
+### Progress
+
+One line of text per exercise in `%APPDATA%\Fretless\progress.txt`, plus a
+list of the days anything was practised. Text rather than a database, so a
+corrupt line loses one exercise instead of the file, and a player can open it
+and see that nothing embarrassing is being kept. Written to a `.tmp` and
+renamed, so an interrupted save cannot destroy the real one.
+
+Stars: one for playing it, two for 80% accuracy, three for 95% **at the written
+tempo**. Ninety-five percent at half speed is a different achievement, and
+collapsing the two tells a player they are finished when they are not.
 
 ---
 
@@ -187,7 +348,7 @@ both: this one reproduces the printed fingering note for note.
 test.bat
 ```
 
-30 cases, no external test framework (a test dependency is a dependency CI can
+62 cases, no external test framework (a test dependency is a dependency CI can
 fail to fetch). Notable coverage:
 
 - **`ring_buffer_is_correct_under_concurrent_producer_and_consumer`** — 200 000
@@ -202,6 +363,26 @@ fail to fetch). Notable coverage:
   mandates forward slashes, but PowerShell's `Compress-Archive` (and other
   writers) store `META-INF\container.xml`. A naive fallback then mistakes the
   container itself for the score.
+- **`every_playable_exercise_produces_notes_the_violin_can_reach`** — the
+  failure mode a generated curriculum actually has: one wrong field in one
+  table row yields an exercise that runs fine and is silently unplayable.
+- **`exercise_ids_are_unique_because_progress_is_filed_under_them`** — two
+  exercises sharing an id would share a record, so practising one would award
+  stars on the other.
+- **`melodic_minor_descends_differently_from_how_it_ascends`** — the one scale
+  that is not its own reverse, and the commonest silent mistake in a scale
+  table.
+- **`a_generated_bar_is_never_left_half_full`** — a bar that does not add up
+  puts every following barline in the wrong place and makes the staff
+  unreadable.
+- **`a_streak_counts_days_of_practice_not_exercises_last_touched`** — a real
+  bug: only the last attempt per exercise was stored, so practising the same
+  warm-up every morning read as a streak of one, forever.
+- **`the_third_star_needs_the_tempo_as_well_as_the_accuracy`**.
+- **`notes_are_presented_with_their_latin_names`** and
+  **`exercise_ids_stay_ascii_so_a_progress_file_can_hold_them`** — the two
+  halves of the naming split above, pinned so a refactor cannot quietly merge
+  them.
 
 ### End-to-end validation
 
@@ -272,6 +453,34 @@ forgetting it is the classic reason achievements "sometimes" fail to unlock.
 - **Beaming is not grouped** — eighths and shorter get an individual flag.
 - **Leaderboard upload** stops at `FindOrCreateLeaderboard`; the async
   `CCallResult` handler that submits the score is not wired up.
-- **No audio playback** of the accompaniment. The engine is capture-only.
+- **No accompaniment playback.** `ToneEngine` plays a drone and a click; it
+  does not play a piano part.
+- **A drone through speakers is heard by the microphone** and the detector will
+  grade it. The UI asks for headphones; it cannot enforce them.
+- **The click and the notes run on different clocks** — the sound card's and
+  SDL's performance counter. They are aligned at the end of the count-in and
+  will drift apart by a few milliseconds over several minutes. Inaudible in a
+  practice session, wrong for a recording.
+- **Only Book 1's Twinkle variations are playable** in the Suzuki module. The
+  printed editions are copyrighted, so books 1–10 ship as a study path — what
+  each volume is for, and which exercises here prepare it — rather than as
+  transcriptions.
 - `--screenshot` renders through a hidden window rather than an FBO, so it needs
   a GPU and a display server.
+
+---
+
+## Working on this
+
+Three skills in `.claude/skills/` carry the context that is not in the code:
+
+| Skill | What it covers |
+|---|---|
+| `violin-pedagogy` | How violinists are actually taught — the Suzuki sequence, warm-up structure, the Flesch and Galamian scale ladders, ringing tones and drones, bow-stroke families, sight-reading grading, and what the practice-science literature says. Every claim is sourced in `references/sources.md`. |
+| `fretless-curriculum` | Adding and debugging practice content: the recipe system, the kind taxonomy, why exercise ids are a schema, level bands, the practice plan, stars, and the melody table. |
+| `fretless-engine` | The realtime audio contract, the screen and view architecture, the renderer, layout and theme tokens, and the build and test commands. |
+
+The rule that governs the content: **only add a melody you can verify.** A
+wrong note in a tool that grades intonation is worse than no melody at all,
+which is why the hand-written repertoire is short and the large-scale library
+comes from CC0 editions instead.

@@ -108,6 +108,7 @@ find_package(Threads REQUIRED)
 set(FRETLESS_AUDIO_SOURCES
     src/audio/AudioEngine.cpp
     src/audio/PitchDetector.cpp
+    src/audio/ToneEngine.cpp
 )
 
 set(FRETLESS_SOURCES
@@ -116,6 +117,12 @@ set(FRETLESS_SOURCES
     src/score/MusicXmlParser.cpp
     src/game/GameEngine.cpp
     src/game/SyntheticPlayer.cpp
+    src/curriculum/ScoreBuilder.cpp
+    src/curriculum/Repertoire.cpp
+    src/curriculum/Generators.cpp
+    src/curriculum/Curriculum.cpp
+    src/curriculum/Progress.cpp
+    src/curriculum/PracticePlan.cpp
     src/render/Renderer2D.cpp
     src/render/Font.cpp
     src/view/HighwayView.cpp
@@ -123,6 +130,8 @@ set(FRETLESS_SOURCES
     src/view/StaffView.cpp
     src/view/HudView.cpp
     src/view/MenuView.cpp
+    src/view/HomeView.cpp
+    src/view/ModuleView.cpp
     src/view/TempoControl.cpp
     src/platform/FileDialog.cpp
     src/platform/SteamService.cpp

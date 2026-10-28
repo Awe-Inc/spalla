@@ -107,7 +107,7 @@ void HighwayView::draw(render::Renderer2D& renderer,
         }
 
         // String label in the gutter left of the hit line.
-        const char label[2] = {"GDAE"[stringIndex], '\0'};
+        const char* label = score::kStringName[stringIndex];
         renderer.drawText(fontLarge, bounds_.x + 14.0f,
                           top + lane * 0.5f + fontLarge.ascender() * 0.36f,
                           label, kStringColor[stringIndex].withAlpha(0.55f));
@@ -196,8 +196,10 @@ void HighwayView::draw(render::Renderer2D& renderer,
                                  color.scaled(1.6f).withAlpha(alpha));
 
         if (w > 30.0f && noteHeight > 16.0f) {
+            char latin[16] = {};
+            score::toLatinName(note.noteName, latin, sizeof(latin));
             renderer.drawTextAligned(fontSmall, x, y + noteHeight * 0.5f + 5.0f, w,
-                                     render::TextAlign::Center, note.noteName,
+                                     render::TextAlign::Center, latin,
                                      render::Color{0.04f, 0.04f, 0.08f, alpha});
         }
     }

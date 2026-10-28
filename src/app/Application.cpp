@@ -13,6 +13,7 @@
 
 #include "fretless/app/Layout.h"
 #include "fretless/app/Theme.h"
+#include "fretless/curriculum/Generators.h"
 #include "fretless/platform/FileDialog.h"
 #include "fretless/score/MusicXmlParser.h"
 
@@ -136,7 +137,41 @@ bool Application::initialize(const ApplicationConfig& config, std::string* error
         }
     }
 
-    statusMessage_ = "Tuner live.";
+    // ── Output: the drone and the click ───────────────────────────────────
+    // Optional at every level. A machine with no output device, or one whose
+    // default endpoint is busy, still gets a fully working practice tool; it
+    // just gets a quiet one.
+    if (!offscreen) {
+        std::string toneError;
+        audio::ToneConfig toneConfig;
+        toneConfig.sampleRate = config_.audio.sampleRate;
+        if (tone_.initialize(toneConfig, &toneError) && tone_.start(&toneError)) {
+            std::printf("[tone] output ready\n");
+        } else {
+            std::printf("[tone] silent: %s\n", toneError.c_str());
+        }
+    }
+
+    // ── Curriculum and progress ───────────────────────────────────────────
+    curriculum_ = curriculum::buildCurriculum();
+    progress_.load(curriculum::Progress::defaultPath());
+    for (const auto& module : curriculum_.modules) {
+        for (const auto& exercise : module.exercises) {
+            progress_.setTargetBpm(exercise.id, exercise.defaultBpm);
+        }
+    }
+    home_.setCurriculum(&curriculum_);
+    home_.setProgress(&progress_);
+    moduleView_.setProgress(&progress_);
+    refreshPlan();
+    if (currentDeviceSlot_ >= 0 && currentDeviceSlot_ < static_cast<int>(devices_.size())) {
+        home_.setInput(devices_[static_cast<std::size_t>(currentDeviceSlot_)].name,
+                       audio_.isRunning());
+    } else {
+        home_.setInput(offscreen ? "modo captura" : "nenhuma entrada escolhida", false);
+    }
+
+    statusMessage_ = "Afinador ativo.";
     statusExpiry_  = kStatusDuration * 2.0;
 
     menu_.setDevices(devices_);
@@ -163,7 +198,14 @@ bool Application::initialize(const ApplicationConfig& config, std::string* error
 }
 
 void Application::shutdown() noexcept {
+    // Progress is saved after every run, so this only catches a session that
+    // ended without finishing anything. Cheap insurance either way.
+    if (progress_.dirty()) {
+        (void)progress_.save();
+    }
     steam_.shutdown();
+    tone_.stop();
+    tone_.shutdown();
     audio_.stop();
     audio_.shutdown();
 
@@ -212,7 +254,7 @@ bool Application::loadSong(const std::string& path, std::string* error) {
     // Short, because the menu row already carries the full summary and the
     // header carries the title. A toast is an acknowledgement, not a report.
     char message[160];
-    std::snprintf(message, sizeof(message), "Loaded %zu notes", score_->noteCount());
+    std::snprintf(message, sizeof(message), "%zu notas carregadas", score_->noteCount());
     statusMessage_ = message;
     statusExpiry_  = elapsedTotal_ + kStatusDuration;
     return true;
@@ -323,32 +365,234 @@ void Application::applyMenuDevice() {
 
     std::string error;
     if (!audio_.initialize(audioConfig, &error) || !audio_.start(&error)) {
-        statusMessage_ = "Input failed: " + error;
+        statusMessage_ = "Falha na entrada: " + error;
         statusExpiry_  = elapsedTotal_ + kStatusDuration;
         return;
     }
     config_.audio   = audioConfig;
     hasLatestFrame_ = false;
     latestFrame_    = audio::PitchFrame{};
-    statusMessage_  = "Input: " + devices_[static_cast<std::size_t>(currentDeviceSlot_)].name;
+    home_.setInput(devices_[static_cast<std::size_t>(currentDeviceSlot_)].name,
+                   audio_.isRunning());
+    statusMessage_  = "Entrada: " + devices_[static_cast<std::size_t>(currentDeviceSlot_)].name;
     statusExpiry_   = elapsedTotal_ + kStatusDuration;
     // The dead-line timer must not carry over: the new device deserves its
     // own grace period before we accuse it of being silent.
     tuner_.resetSignalWatch();
 }
 
-void Application::enterMenu() {
-    screen_ = Screen::Menu;
+void Application::enterLibrary() {
+    screen_ = Screen::Library;
     game_.stop();
+    tone_.clearDrone();
+    tone_.clearMetronome();
+
+    // Rescanning on every visit is what keeps a file dropped into
+    // assets/songs while the app is open from being invisible. The previous
+    // selection is restored below so it is not also a reset.
+    const std::string previous =
+        (menu_.selectedSong() != nullptr) ? menu_.selectedSong()->path : std::string{};
     scanSongLibrary();
+    if (!previous.empty()) {
+        menu_.selectSongByPath(previous);
+        ensureSongParsed(menu_.selectedSongIndex());
+    }
+
     menu_.setDevices(devices_);
     if (currentDeviceSlot_ >= 0 && currentDeviceSlot_ < static_cast<int>(devices_.size())) {
         menu_.selectDeviceByEngineIndex(devices_[static_cast<std::size_t>(currentDeviceSlot_)].index);
     }
 }
 
+void Application::enterHome() {
+    screen_ = Screen::Home;
+    game_.stop();
+    tone_.clearDrone();
+    tone_.clearMetronome();
+    refreshPlan();
+    if (currentDeviceSlot_ >= 0 && currentDeviceSlot_ < static_cast<int>(devices_.size())) {
+        home_.setInput(devices_[static_cast<std::size_t>(currentDeviceSlot_)].name,
+                       audio_.isRunning());
+    } else {
+        home_.setInput("nenhuma entrada escolhida", false);
+    }
+}
+
+bool Application::openModule(const std::string& moduleId) {
+    if (curriculum_.findModule(moduleId) == nullptr) {
+        return false;
+    }
+    enterModule(moduleId);
+    layout();
+    return true;
+}
+
+void Application::enterModule(const std::string& moduleId) {
+    const curriculum::Module* module = curriculum_.findModule(moduleId);
+    if (module == nullptr) {
+        return;
+    }
+    currentModuleId_ = moduleId;
+    moduleView_.setModule(module);
+    screen_ = Screen::Module;
+    game_.stop();
+    tone_.clearDrone();
+    tone_.clearMetronome();
+}
+
 void Application::enterGame() {
     screen_ = Screen::Game;
+}
+
+void Application::refreshPlan() {
+    plan_ = curriculum::buildPracticePlan(curriculum_, progress_);
+    home_.setPlan(plan_);
+}
+
+void Application::commitRun() {
+    if (currentExerciseId_.empty() || runCommitted_) {
+        return;
+    }
+    const auto& stats = game_.stats();
+    // A run nobody played is not a result. Without this, walking away from a
+    // count-in would file a zero and pull the exercise's best down with it.
+    if (stats.judgedNotes == 0) {
+        return;
+    }
+    runCommitted_ = true;
+    progress_.record(currentExerciseId_, stats.score, stats.accuracyPct,
+                     stats.meanAbsCents, targetBpm_);
+    (void)progress_.save();
+    refreshPlan();
+}
+
+double Application::metronomeClicksPerMinute() const noexcept {
+    // The tempo map counts quarter notes; the click counts beats. In 6/8 a
+    // beat is an eighth, so sixty quarters a minute is a hundred and twenty
+    // clicks - not thirty, which is what dividing by the beat unit gave.
+    const int beatUnit = score_.has_value() ? std::max(1, score_->beatUnit) : 4;
+    return static_cast<double>(targetBpm_) * static_cast<double>(beatUnit) / 4.0;
+}
+
+void Application::applyAccompaniment() {
+    if (!tone_.available()) {
+        return;
+    }
+    const curriculum::Exercise* exercise =
+        currentExerciseId_.empty() ? nullptr
+                                   : curriculum_.findExercise(currentExerciseId_);
+
+    if (exercise != nullptr && exercise->droneMidi >= 0) {
+        tone_.setDrone(exercise->droneMidi);
+    } else {
+        tone_.clearDrone();
+    }
+
+    // The click follows the tempo the player chose, not the one written in the
+    // exercise: a metronome that disagrees with the notes is worse than none.
+    if (exercise != nullptr && exercise->metronome && score_.has_value()) {
+        tone_.setMetronome(metronomeClicksPerMinute(), score_->beatsPerMeasure);
+        tone_.resyncMetronome();
+    } else {
+        tone_.clearMetronome();
+    }
+}
+
+bool Application::startExercise(const std::string& exerciseId) {
+    const curriculum::Exercise* exercise = curriculum_.findExercise(exerciseId);
+    if (exercise == nullptr || !curriculum::isPlayable(exercise->kind)) {
+        return false;
+    }
+
+    // A fresh seed per attempt is what makes sight reading actually sight
+    // reading; every other kind ignores it and builds the same score.
+    ++attemptSeed_;
+    score::Score built = curriculum::buildScore(
+        *exercise, exercise->freshEveryTime ? attemptSeed_ : 1u);
+    if (built.events.empty()) {
+        statusMessage_ = "Este exercício não gerou notas.";
+        statusExpiry_  = elapsedTotal_ + kStatusDuration;
+        return false;
+    }
+
+    score_       = std::move(built);
+    originalBpm_ = score_->beatsPerMinute;
+
+    // The module screen owns the tempo choice, so honour it here rather than
+    // resetting to the exercise default the player just moved away from.
+    const int requested = (screen_ == Screen::Module) ? moduleView_.tempo()
+                                                      : exercise->defaultBpm;
+    targetBpm_ = std::clamp(requested, view::TempoControl::kMinBpm,
+                            view::TempoControl::kMaxBpm);
+    score_->applyTempoScale(static_cast<double>(targetBpm_) /
+                            std::max(1.0, originalBpm_));
+
+    game_.setScore(&score_.value());
+    game_.setLeadInSeconds(3.0);
+    tempo_.setTempo(targetBpm_);
+    tempo_.setWrittenTempo(static_cast<double>(exercise->defaultBpm));
+
+    currentExerciseId_ = exercise->id;
+    runReported_       = false;
+    runCommitted_      = false;
+
+    enterGame();
+    layout();
+    applyAccompaniment();
+    game_.start();
+
+    statusMessage_ = exercise->focus;
+    statusExpiry_  = elapsedTotal_ + kStatusDuration * 1.5;
+    return true;
+}
+
+void Application::handleHomeAction(view::HomeAction action) {
+    switch (action) {
+        case view::HomeAction::OpenModule:
+            enterModule(home_.selectedModule());
+            layout();
+            break;
+        case view::HomeAction::StartPlanItem: {
+            enterModule(home_.selectedModule());
+            moduleView_.selectExercise(home_.selectedExercise());
+            returnScreen_ = Screen::Module;
+            if (!startExercise(home_.selectedExercise())) {
+                layout();
+            }
+            break;
+        }
+        case view::HomeAction::OpenLibrary:
+            enterLibrary();
+            layout();
+            break;
+        case view::HomeAction::Quit:
+            running_ = false;
+            break;
+        case view::HomeAction::None:
+            break;
+    }
+}
+
+void Application::handleModuleAction(view::ModuleAction action) {
+    switch (action) {
+        case view::ModuleAction::Play: {
+            const curriculum::Exercise* exercise = moduleView_.selected();
+            if (exercise != nullptr) {
+                returnScreen_ = Screen::Module;
+                (void)startExercise(exercise->id);
+            }
+            break;
+        }
+        case view::ModuleAction::Back:
+            enterHome();
+            layout();
+            break;
+        case view::ModuleAction::Quit:
+            running_ = false;
+            break;
+        case view::ModuleAction::None:
+            break;
+    }
 }
 
 bool Application::startSelectedSong() {
@@ -356,6 +600,8 @@ bool Application::startSelectedSong() {
     if (entry == nullptr) {
         return false;
     }
+    currentExerciseId_.clear();   // a file is not a curriculum exercise
+    returnScreen_ = Screen::Library;
     std::string error;
     if (!loadSong(entry->path, &error)) {
         statusMessage_ = error;
@@ -371,6 +617,7 @@ bool Application::startSelectedSong() {
     enterGame();
     layout();
     runReported_ = false;
+    applyAccompaniment();
     game_.start();
     return true;
 }
@@ -387,12 +634,16 @@ void Application::layout() {
     const auto w = static_cast<float>(width);
     const auto h = static_cast<float>(height);
 
-    if (screen_ == Screen::Menu) {
-        // The menu is one full-bleed surface. The tuner rides along the bottom
-        // so the input meter is visible while an input is being chosen —
-        // testing a microphone means watching it respond while you play.
+    if (screen_ != Screen::Game) {
+        // Every screen outside a run is one full-bleed surface with the tuner
+        // riding along the bottom. Keeping the tuner visible everywhere means
+        // a player can check a note, or check that the microphone is alive,
+        // without first deciding what they are practising.
         const float tunerHeight = layout::kReadoutHeight;
-        menu_.setBounds({0.0f, 0.0f, w, h - tunerHeight});
+        const render::Rect page{0.0f, 0.0f, w, h - tunerHeight};
+        menu_.setBounds(page);
+        home_.setBounds(page);
+        moduleView_.setBounds(page);
         tuner_.setBounds({0.0f, h - tunerHeight, w, tunerHeight});
         hud_.setReadout({0.0f, h - tunerHeight, w, tunerHeight});
         return;
@@ -480,9 +731,12 @@ void Application::handleEvents() {
                 std::string error;
                 if (loadSong(path, &error)) {
                     // A dropped file is an explicit request to play it.
+                    currentExerciseId_.clear();
+                    returnScreen_ = Screen::Home;
                     enterGame();
                     layout();
                     runReported_ = false;
+                    applyAccompaniment();
                     game_.start();
                 } else {
                     statusMessage_ = error;
@@ -494,10 +748,11 @@ void Application::handleEvents() {
             case SDL_MOUSEMOTION: {
                 const auto mx = static_cast<float>(event.motion.x);
                 const auto my = static_cast<float>(event.motion.y);
-                if (screen_ == Screen::Menu) {
-                    (void)menu_.handleMouseMove(mx, my);
-                } else {
-                    (void)tempo_.handleMouseMove(mx, my);
+                switch (screen_) {
+                    case Screen::Home:    (void)home_.handleMouseMove(mx, my); break;
+                    case Screen::Module:  (void)moduleView_.handleMouseMove(mx, my); break;
+                    case Screen::Library: (void)menu_.handleMouseMove(mx, my); break;
+                    case Screen::Game:    (void)tempo_.handleMouseMove(mx, my); break;
                 }
                 break;
             }
@@ -508,17 +763,36 @@ void Application::handleEvents() {
                 }
                 const auto mx = static_cast<float>(event.button.x);
                 const auto my = static_cast<float>(event.button.y);
-                if (screen_ == Screen::Menu) {
-                    handleMenuAction(menu_.handleMouseClick(mx, my));
-                } else if (tempo_.handleMouseClick(mx, my)) {
-                    applyTempo(tempo_.tempo());
+                switch (screen_) {
+                    case Screen::Home:
+                        handleHomeAction(home_.handleMouseClick(mx, my));
+                        break;
+                    case Screen::Module:
+                        handleModuleAction(moduleView_.handleMouseClick(mx, my));
+                        break;
+                    case Screen::Library:
+                        handleMenuAction(menu_.handleMouseClick(mx, my));
+                        break;
+                    case Screen::Game:
+                        if (tempo_.handleMouseClick(mx, my)) {
+                            applyTempo(tempo_.tempo());
+                        }
+                        break;
                 }
                 break;
             }
 
             case SDL_MOUSEWHEEL: {
-                if (screen_ == Screen::Menu) {
+                if (screen_ == Screen::Library) {
                     (void)menu_.handleScroll(event.wheel.y);
+                    break;
+                }
+                if (screen_ == Screen::Module) {
+                    (void)moduleView_.handleScroll(event.wheel.y);
+                    break;
+                }
+                if (screen_ == Screen::Home) {
+                    (void)home_.handleScroll(event.wheel.y);
                     break;
                 }
                 int mx = 0;
@@ -547,25 +821,59 @@ void Application::handleEvents() {
                     break;
                 }
 
-                if (screen_ == Screen::Menu) {
-                    handleMenuAction(menu_.handleKey(key));
+                switch (screen_) {
+                    case Screen::Home:
+                        handleHomeAction(home_.handleKey(key));
+                        break;
+                    case Screen::Module:
+                        handleModuleAction(moduleView_.handleKey(key));
+                        break;
+                    case Screen::Library:
+                        handleMenuAction(menu_.handleKey(key));
+                        break;
+                    case Screen::Game:
+                        break;
+                }
+                if (screen_ != Screen::Game) {
                     break;
                 }
 
                 switch (key) {
                     // Escape leaves the run rather than the program: quitting
-                    // outright from mid-song is never what a player means.
+                    // outright from mid-song is never what a player means. It
+                    // returns to wherever the run was started from, so the
+                    // player lands back on the row they chose.
                     case SDLK_ESCAPE:
-                        enterMenu();
+                        commitRun();
+                        if (returnScreen_ == Screen::Module) {
+                            enterModule(currentModuleId_);
+                        } else if (returnScreen_ == Screen::Library) {
+                            enterLibrary();
+                        } else {
+                            enterHome();
+                        }
                         layout();
                         break;
                     case SDLK_SPACE: togglePlay(); break;
-                    case SDLK_r:
-                        if (score_.has_value()) {
-                            runReported_ = false;
+                    case SDLK_r: {
+                        // Restarting a sight-reading exercise has to deal a
+                        // new page, or the second read is not a first read.
+                        const curriculum::Exercise* exercise =
+                            currentExerciseId_.empty()
+                                ? nullptr
+                                : curriculum_.findExercise(currentExerciseId_);
+                        if (exercise != nullptr && exercise->freshEveryTime) {
+                            commitRun();
+                            (void)startExercise(currentExerciseId_);
+                        } else if (score_.has_value()) {
+                            commitRun();          // file what was played so far
+                            runReported_  = false;
+                            runCommitted_ = false;
                             game_.start();
+                            tone_.resyncMetronome();
                         }
                         break;
+                    }
                     case SDLK_o: openFileDialog(); break;
 
                     // Both the bracket pair and the minus/plus keys, because
@@ -586,10 +894,63 @@ void Application::handleEvents() {
                         layout();
                         break;
 
-                    // Choosing an input is a menu decision; sending the player
-                    // there beats cycling blind through seventeen endpoints.
+                    // The drone and the click are the two things a player
+                    // wants to change mid-exercise without stopping, so they
+                    // get their own keys rather than living in a menu.
+                    case SDLK_d:
+                        if (tone_.available()) {
+                            if (tone_.droneMidi() >= 0) {
+                                tone_.clearDrone();
+                                statusMessage_ = "Bordão desligado";
+                            } else {
+                                const curriculum::Exercise* exercise =
+                                    currentExerciseId_.empty()
+                                        ? nullptr
+                                        : curriculum_.findExercise(currentExerciseId_);
+                                // Falling back to the tonic of whatever is
+                                // loaded means the key works on a file opened
+                                // from the library too, not just on exercises
+                                // that happen to ship with a drone.
+                                const int midi =
+                                    (exercise != nullptr && exercise->droneMidi >= 0)
+                                        ? exercise->droneMidi
+                                        : 45 + (((score_.has_value() ? score_->keyFifths : 0) * 7)
+                                                % 12 + 12) % 12;
+                                tone_.setDrone(midi);
+                                char note[16] = {};
+                                score::writeLatinName(note, sizeof(note), midi,
+                                                      score_.has_value() ? score_->keyFifths : 0);
+                                statusMessage_ = std::string("Bordão ") + note +
+                                                 " - use fones de ouvido";
+                            }
+                            statusExpiry_ = elapsedTotal_ + kStatusDuration;
+                        }
+                        break;
+
+                    case SDLK_m:
+                        if (tone_.available()) {
+                            if (tone_.metronomeRunning()) {
+                                tone_.clearMetronome();
+                                statusMessage_ = "Metrônomo desligado";
+                            } else if (score_.has_value()) {
+                                tone_.setMetronome(
+                                    metronomeClicksPerMinute(),
+                                    score_->beatsPerMeasure);
+                                tone_.resyncMetronome();
+                                statusMessage_ = "Metrônomo ligado";
+                            }
+                            statusExpiry_ = elapsedTotal_ + kStatusDuration;
+                        }
+                        break;
+
+                    // Choosing an input is a library decision; sending the
+                    // player there beats cycling blind through seventeen
+                    // endpoints. The run is filed on the way out, exactly as
+                    // Escape does - leaving by a different door should not
+                    // cost the attempt.
                     case SDLK_i:
-                        enterMenu();
+                        commitRun();
+                        enterLibrary();
                         layout();
                         break;
 
@@ -612,8 +973,9 @@ void Application::handleMenuAction(view::MenuAction action) {
         case view::MenuAction::Browse:
             openFileDialog();
             break;
-        case view::MenuAction::Quit:
-            running_ = false;
+        case view::MenuAction::Back:
+            enterHome();
+            layout();
             break;
         case view::MenuAction::SelectionChanged:
             ensureSongParsed(menu_.selectedSongIndex());
@@ -641,12 +1003,27 @@ void Application::update(double deltaSeconds) {
     const auto stateBefore = game_.state();
     game_.update(deltaSeconds, frameScratch_.data(), frameCount);
 
+    // The click free-runs on the sound card's clock and the notes run on the
+    // game's, so they have to be introduced to each other. The moment the
+    // count-in ends is the only one where both agree on where beat one is.
+    if (stateBefore == game::GameState::Countdown &&
+        game_.state() == game::GameState::Playing) {
+        tone_.resyncMetronome();
+    }
+
     if (game_.state() == game::GameState::Finished &&
         stateBefore != game::GameState::Finished && !runReported_ && score_.has_value()) {
         runReported_ = true;
         steam_.reportRunComplete(score_.value(), game_.stats(),
                                  static_cast<double>(targetBpm_) /
                                      std::max(1.0, originalBpm_));
+        commitRun();
+        // Both belong to the exercise, not to the results screen. Left
+        // running, they cover the silence a player wants after a take - and
+        // a drone still sounding while the report is up is genuinely
+        // confusing about whether the run is over.
+        tone_.clearMetronome();
+        tone_.clearDrone();
     }
 
     if (score_.has_value()) {
@@ -663,8 +1040,12 @@ void Application::update(double deltaSeconds) {
 
     tuner_.update(deltaSeconds, latestFrame_, hasLatestFrame_, referenceCents, hasReference);
 
-    if (screen_ == Screen::Menu) {
+    if (screen_ == Screen::Library) {
         menu_.update(deltaSeconds, tuner_.level(), tuner_.noSignal());
+    } else if (screen_ == Screen::Home) {
+        home_.update(deltaSeconds, tuner_.level(), tuner_.noSignal());
+    } else if (screen_ == Screen::Module) {
+        moduleView_.update(deltaSeconds);
     } else {
         // Drive the metronome from the song clock, so the beat dots and the
         // notes crossing the hit line are the same event.
@@ -721,8 +1102,13 @@ void Application::render() {
     float liveCents = 0.0f;
     const bool hasLiveCents = game_.liveCents(liveCents);
 
-    if (screen_ == Screen::Menu) {
-        menu_.draw(renderer_, fonts_);
+    if (screen_ != Screen::Game) {
+        switch (screen_) {
+            case Screen::Home:    home_.draw(renderer_, fonts_); break;
+            case Screen::Module:  moduleView_.draw(renderer_, fonts_); break;
+            case Screen::Library: menu_.draw(renderer_, fonts_); break;
+            case Screen::Game:    break;
+        }
         // The tuner strip gets its own ground so it reads as a fixed tool
         // rather than as part of the scrolling list above it.
         const float tunerY = screen.h - layout::kReadoutHeight;
@@ -810,33 +1196,15 @@ void Application::applyTempo(int bpm) {
     if (game_.state() != game::GameState::Idle) {
         runReported_ = false;
         game_.start();
-        statusMessage_ = "Restarted at the new tempo";
+        statusMessage_ = "Reiniciado no novo andamento";
         statusExpiry_  = elapsedTotal_ + kStatusDuration;
     }
-}
-
-void Application::cycleInputDevice(int direction) {
-    if (devices_.empty()) {
-        return;
+    // The click has to follow, or the tempo control silently means two
+    // different things depending on whether you can hear it.
+    if (tone_.metronomeRunning() && score_.has_value()) {
+        tone_.setMetronome(metronomeClicksPerMinute(), score_->beatsPerMeasure);
+        tone_.resyncMetronome();
     }
-    const int count = static_cast<int>(devices_.size());
-    currentDeviceSlot_ = ((currentDeviceSlot_ + direction) % count + count) % count;
-
-    audio_.stop();
-    audio_.shutdown();
-
-    auto audioConfig = config_.audio;
-    audioConfig.deviceIndex = devices_[static_cast<std::size_t>(currentDeviceSlot_)].index;
-
-    std::string error;
-    if (!audio_.initialize(audioConfig, &error) || !audio_.start(&error)) {
-        statusMessage_ = "Input device failed: " + error;
-        statusExpiry_  = elapsedTotal_ + kStatusDuration;
-        return;
-    }
-    config_.audio  = audioConfig;
-    statusMessage_ = "Input: " + devices_[static_cast<std::size_t>(currentDeviceSlot_)].name;
-    statusExpiry_  = elapsedTotal_ + kStatusDuration;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

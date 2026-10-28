@@ -74,11 +74,11 @@ void StaffView::drawEmpty(render::Renderer2D& renderer, const render::FontSet& f
         renderer.drawRect(bounds_.x, staffTop + spacing * static_cast<float>(line),
                           bounds_.w, 1.2f, ink.withAlpha(0.35f));
     }
-    renderer.drawText(fontSmall, bounds_.x + 8.0f, staffTop - 6.0f, "TREBLE",
+    renderer.drawText(fontSmall, bounds_.x + 8.0f, staffTop - 6.0f, "CLAVE DE SOL",
                       ink.withAlpha(0.30f));
     renderer.drawTextAligned(fontSmall, bounds_.x, bounds_.centerY() + 4.0f, bounds_.w,
                              render::TextAlign::Center,
-                             "the score appears here", ink.withAlpha(0.35f));
+                             "a partitura aparece aqui", ink.withAlpha(0.35f));
 }
 
 void StaffView::draw(render::Renderer2D& renderer,
@@ -113,7 +113,7 @@ void StaffView::draw(render::Renderer2D& renderer,
     // ── Clef label and key signature ──────────────────────────────────────
     // The label sits above the staff, clear of the accidentals: at seven
     // sharps the signature reaches high enough to collide with it otherwise.
-    renderer.drawText(fontSmall, bounds_.x + 8.0f, bounds_.y + 16.0f, "TREBLE",
+    renderer.drawText(fontSmall, bounds_.x + 8.0f, bounds_.y + 16.0f, "CLAVE DE SOL",
                       ink.withAlpha(0.40f));
 
     const int fifths = std::clamp(score.keyFifths, -7, 7);
@@ -227,6 +227,51 @@ void StaffView::draw(render::Renderer2D& renderer,
         if (note.noteName[1] == '#' || note.noteName[1] == 'b') {
             const char accidental[2] = {note.noteName[1], '\0'};
             renderer.drawText(fontSmall, x - headWidth * 1.35f, y + 4.0f, accidental, color);
+        }
+    }
+
+    // ── Slurs ─────────────────────────────────────────────────────────────
+    // Drawn as a flat arc above the top line rather than hugging the note
+    // heads. A bow group can span an octave, and a curve that followed the
+    // pitches would cross the stem of every note it covers.
+    const float slurY = bottomY - spacing * 4.0f - 12.0f;
+    for (const std::size_t index : visible_) {
+        const auto& first = score.events[index];
+        if (first.bowSpan <= 1 || first.bowSlot != 0) {
+            continue;
+        }
+        const std::size_t last = index + first.bowSpan - 1u;
+        if (last >= score.events.size()) {
+            continue;
+        }
+        const auto& end = score.events[last];
+        if (end.bowSpan != first.bowSpan || end.bowSlot != first.bowSpan - 1) {
+            continue;   // the group was cut short by a rest
+        }
+
+        const float x0 = cursorX +
+            static_cast<float>(first.startSeconds - songTime) * pps;
+        const float x1 = cursorX +
+            static_cast<float>(end.startSeconds - songTime) * pps;
+        if (x1 < bounds_.x - 30.0f || x0 > bounds_.right() + 30.0f || x1 <= x0) {
+            continue;
+        }
+
+        // A quadratic through a control point above the midpoint. Twelve
+        // segments is past the point where the joins are visible at this size.
+        constexpr int kSegments = 12;
+        const float cx = (x0 + x1) * 0.5f;
+        const float cy = slurY - std::min(18.0f, (x1 - x0) * 0.18f) * 2.0f;
+        float px = x0;
+        float py = slurY;
+        for (int step = 1; step <= kSegments; ++step) {
+            const float t = static_cast<float>(step) / static_cast<float>(kSegments);
+            const float u = 1.0f - t;
+            const float qx = u * u * x0 + 2.0f * u * t * cx + t * t * x1;
+            const float qy = u * u * slurY + 2.0f * u * t * cy + t * t * slurY;
+            renderer.drawLine(px, py, qx, qy, 1.4f, ink.withAlpha(0.7f));
+            px = qx;
+            py = qy;
         }
     }
 

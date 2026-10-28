@@ -94,25 +94,25 @@ void HudView::drawHeader(render::Renderer2D& renderer, const render::FontSet& fo
         cursor -= layout::kSpaceSm;
     };
 
-    chipFromRight(context.showStaff ? "S  STAFF ON" : "S  STAFF OFF",
+    chipFromRight(context.showStaff ? "S  PAUTA" : "S  SEM PAUTA",
                   context.showStaff ? kTextSecondary : kTextMuted);
 
     if (context.game != nullptr) {
         switch (context.game->state()) {
             case game::GameState::Playing:
-                chipFromRight("SPACE  PAUSE", kTextMuted);
+                chipFromRight("ESPAÇO  PAUSAR", kTextMuted);
                 break;
             case game::GameState::Paused:
-                chipFromRight("PAUSED", kGood);
+                chipFromRight("PAUSADO", kGood);
                 break;
             case game::GameState::Countdown:
-                chipFromRight("GET READY", kGreat);
+                chipFromRight("PREPARE-SE", kGreat);
                 break;
             case game::GameState::Finished:
-                chipFromRight("FINISHED", kProgress);
+                chipFromRight("FIM", kProgress);
                 break;
             case game::GameState::Idle:
-                chipFromRight("SPACE  START", kTextMuted);
+                chipFromRight("ESPAÇO  COMEÇAR", kTextMuted);
                 break;
         }
     }
@@ -129,28 +129,30 @@ void HudView::drawExpectedNote(render::Renderer2D& renderer, const render::FontS
     }
     const score::ScoreEvent* note = context.game->currentNote();
 
-    renderer.drawText(*fonts.label, zone.x, zone.y + layout::kSpaceLg, "PLAY",
+    renderer.drawText(*fonts.label, zone.x, zone.y + layout::kSpaceLg, "TOQUE",
                       kTextMuted);
 
     if (note == nullptr || note->isRest) {
         renderer.drawText(*fonts.lead, zone.x, zone.y + layout::kSpaceXx + 4.0f,
-                          note != nullptr ? "rest" : "--", kTextMuted);
+                          note != nullptr ? "pausa" : "--", kTextMuted);
         return;
     }
 
-    // The string is part of the instruction: on a violin "A4" and "which
+    // The string is part of the instruction: on a violin "Lá4" and "which
     // string" together are what the hand needs.
     const auto color = kStringColor[note->suggestedString];
+    char latin[16] = {};
+    score::toLatinName(note->noteName, latin, sizeof(latin));
     renderer.drawText(*fonts.lead, zone.x, zone.y + layout::kSpaceXx + 4.0f,
-                      note->noteName, kTextPrimary);
+                      latin, kTextPrimary);
 
-    const float nameWidth = fonts.lead->measure(note->noteName);
+    const float nameWidth = fonts.lead->measure(latin);
     const float chipX = zone.x + nameWidth + layout::kSpaceMd;
-    const char label[2] = {"GDAE"[note->suggestedString], '\0'};
-    drawChip(renderer, *fonts.label, chipX, zone.y + layout::kSpaceXl + 2.0f, 22.0f,
+    const char* label = score::kStringName[note->suggestedString];
+    drawChip(renderer, *fonts.label, chipX, zone.y + layout::kSpaceXl + 2.0f, 30.0f,
              label, color);
     renderer.drawText(*fonts.label, chipX, zone.y + layout::kSpaceXx + 22.0f,
-                      "STRING", kTextMuted);
+                      "CORDA", kTextMuted);
 }
 
 void HudView::drawStats(render::Renderer2D& renderer, const render::FontSet& fonts,
@@ -167,7 +169,7 @@ void HudView::drawStats(render::Renderer2D& renderer, const render::FontSet& fon
     renderer.drawTextAligned(*fonts.lead, zone.x, zone.y + layout::kSpaceXx + 4.0f,
                              zone.w, render::TextAlign::Right, buffer, kTextPrimary);
     renderer.drawTextAligned(*fonts.label, zone.x, zone.y + layout::kSpaceLg, zone.w,
-                             render::TextAlign::Right, "POINTS", kTextMuted);
+                             render::TextAlign::Right, "PONTOS", kTextMuted);
 
     // Accuracy and combo on one line below, as supporting detail.
     float cursor = zone.right();
@@ -220,7 +222,7 @@ void HudView::drawResults(render::Renderer2D& renderer, const render::FontSet& f
     float y = py + layout::kSpaceXl;
 
     const char* title = (context.score != nullptr && !context.score->title.empty())
-        ? context.score->title.c_str() : "Run complete";
+        ? context.score->title.c_str() : "Execução concluída";
     renderer.drawTextAligned(*fonts.body, px, y, panelW, render::TextAlign::Center,
                              title, kTextSecondary);
     // Enough room for the badge ring, which reaches well above its baseline.
@@ -242,9 +244,9 @@ void HudView::drawResults(render::Renderer2D& renderer, const render::FontSet& f
     std::snprintf(headlines[1].value, sizeof(headlines[1].value), "%.0f%%",
                   static_cast<double>(stats.accuracyPct));
     std::snprintf(headlines[2].value, sizeof(headlines[2].value), "%d", stats.maxCombo);
-    headlines[0].label = "POINTS";     headlines[0].color = kTextPrimary;
-    headlines[1].label = "ACCURACY";   headlines[1].color = accent;
-    headlines[2].label = "BEST COMBO"; headlines[2].color = kTextPrimary;
+    headlines[0].label = "PONTOS";     headlines[0].color = kTextPrimary;
+    headlines[1].label = "PRECISÃO";   headlines[1].color = accent;
+    headlines[2].label = "MAIOR SEQUÊNCIA"; headlines[2].color = kTextPrimary;
 
     const float columnW = (panelW - layout::kSpaceXl * 2.0f) / 3.0f;
     for (int i = 0; i < 3; ++i) {
@@ -266,10 +268,10 @@ void HudView::drawResults(render::Renderer2D& renderer, const render::FontSet& f
 
     struct Segment { int count; render::Color color; const char* label; };
     const Segment segments[] = {
-        {stats.perfect, kPerfect, "perfect"},
-        {stats.great,   kGreat,   "great"},
-        {stats.good,    kGood,    "good"},
-        {stats.miss,    kMiss,    "missed"},
+        {stats.perfect, kPerfect, "perfeitas"},
+        {stats.great,   kGreat,   "ótimas"},
+        {stats.good,    kGood,    "boas"},
+        {stats.miss,    kMiss,    "erradas"},
     };
     for (const auto& segment : segments) {
         const float width = barW * static_cast<float>(segment.count) /
@@ -296,12 +298,12 @@ void HudView::drawResults(render::Renderer2D& renderer, const render::FontSet& f
         const float drift = stats.meanSignedCents;
         if (std::fabs(drift) > 5.0f) {
             std::snprintf(buffer, sizeof(buffer),
-                          "You played %.0f cents %s on average.",
+                          "Sua afinação ficou %.0f cents %s, em média.",
                           std::fabs(static_cast<double>(drift)),
-                          drift > 0.0f ? "sharp" : "flat");
+                          drift > 0.0f ? "acima" : "abaixo");
         } else {
             std::snprintf(buffer, sizeof(buffer),
-                          "Intonation centred, %+.1f cents on average.",
+                          "Afinação centrada, %+.1f cents em média.",
                           static_cast<double>(drift));
         }
         renderer.drawTextAligned(*fonts.body, px, y, panelW, render::TextAlign::Center,
@@ -310,7 +312,7 @@ void HudView::drawResults(render::Renderer2D& renderer, const render::FontSet& f
 
     renderer.drawTextAligned(*fonts.label, px, py + panelH - layout::kSpaceLg, panelW,
                              render::TextAlign::Center,
-                             "R  play again          ESC  back to menu", kTextMuted);
+                             "R  tocar de novo          ESC  voltar", kTextMuted);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

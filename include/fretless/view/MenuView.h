@@ -47,7 +47,7 @@ enum class MenuAction : std::uint8_t {
     None,
     Play,            ///< start the selected song
     Browse,          ///< open the file dialog
-    Quit,
+    Back,            ///< return to the home screen
     SelectionChanged,///< a different song is highlighted; parse it
     DeviceChanged,   ///< a different input is highlighted; reopen the engine
 };
@@ -60,6 +60,10 @@ public:
     [[nodiscard]] std::vector<SongEntry>& songs() noexcept { return songs_; }
     [[nodiscard]] const SongEntry* selectedSong() const noexcept;
     [[nodiscard]] std::size_t selectedSongIndex() const noexcept { return songIndex_; }
+    /// Restores a selection across a rescan. Without it, every return to this
+    /// screen sends the cursor back to the first file, which is the sort of
+    /// small betrayal that makes a list feel untrustworthy.
+    void selectSongByPath(const std::string& path) noexcept;
 
     /// Takes the raw PortAudio list and keeps one row per physical input,
     /// preferring the lowest-latency host API. Seventeen rows, most of them

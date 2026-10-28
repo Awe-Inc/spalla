@@ -56,7 +56,8 @@ private:
     float  cents_         = 0.0f;
     float  level_         = 0.0f;
     double silentSeconds_ = 0.0;
-    char   noteName_[8]   = {};
+    /// Latin spelling, so "Sol#5" and its two-byte accented letters fit.
+    char   noteName_[16]  = {};
     bool   active_        = false;
     bool   referenced_    = false;
 };
