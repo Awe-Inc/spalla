@@ -94,6 +94,7 @@ function toneColor(tone: NoteTone, palette: Palette): { color: string; alpha: nu
     case "Miss":
       return { color: palette.off, alpha: 0.9 };
     case "unjudged":
+    default:
       return { color: palette.ink, alpha: PAST_ALPHA };
   }
 }

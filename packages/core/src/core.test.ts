@@ -80,6 +80,9 @@ describe("session", () => {
     expect(stats.judgedNotes).toBe(noteCount);
     expect(stats.accuracyPct).toBeGreaterThan(90);
     expect(session.state).toBe("finished");
+    const grades = new Set(session.judgements.map((judgement) => judgement.grade));
+    expect(grades.size).toBeGreaterThan(0);
+    for (const grade of grades) expect(["Perfect", "Great", "Good", "Miss"]).toContain(grade);
     session.dispose();
   });
 

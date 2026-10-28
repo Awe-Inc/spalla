@@ -58,6 +58,12 @@ apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolli
 
 ## Armadilhas
 
+- **The binding is the contract, not `toString()`.** `NoteJudgement.grade` crashed the staff (`toneColor` returned
+  `undefined`) because `Bindings.cpp` serialised the grade with the native screen label (`"PERFEITO"`) while
+  `types.ts` promised `"Perfect"`. Anything the binding emits for a TS union must come from an id mapping in the
+  binding (`gradeId`), never from a display helper, and `core.test.ts` asserts the union values against the real WASM.
+  Rebuild the core (`pnpm --filter @fretless/core build`) after touching `Bindings.cpp`; vitest runs against `dist/`.
+
 - **Worklet cannot `fetch`.** An AudioWorklet has no `fetch`, so the WASM bytes are fetched on the main thread and
   passed in `processorOptions.wasmBinary`; `loadCore({ wasmBinary })` accepts them. Loading by URL inside the worklet
   fails silently with a module that never becomes ready.

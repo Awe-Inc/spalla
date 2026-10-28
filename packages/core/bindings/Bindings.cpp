@@ -239,10 +239,22 @@ val statsToVal(const game::GameStats& s) {
     return o;
 }
 
+// The TypeScript side keys on the enum name; toString() is the native screen label.
+const char* gradeId(game::HitGrade grade) {
+    switch (grade) {
+        case game::HitGrade::Perfect: return "Perfect";
+        case game::HitGrade::Great:   return "Great";
+        case game::HitGrade::Good:    return "Good";
+        case game::HitGrade::Miss:    return "Miss";
+        case game::HitGrade::None:    break;
+    }
+    return "Miss";
+}
+
 val judgementToVal(const game::NoteJudgement& j) {
     val o = val::object();
     o.set("eventIndex", static_cast<int>(j.eventIndex));
-    o.set("grade", std::string(game::toString(j.grade)));
+    o.set("grade", std::string(gradeId(j.grade)));
     o.set("meanCents", j.meanCents);
     o.set("worstCents", j.worstCents);
     o.set("onsetErrorSec", j.onsetErrorSec);
