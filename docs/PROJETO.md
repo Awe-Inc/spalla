@@ -1,6 +1,6 @@
 # Fretless: o projeto inteiro em um documento
 
-Atualizado em 28/10/2026, commit `26e05f1`. Serve de base para o planejamento: o que é, o que já roda, como é
+Atualizado em 28/10/2026, commit `f2256e0`. Serve de base para o planejamento: o que é, o que já roda, como é
 construído, o que falta e o que precisa ser decidido. Os detalhes de cada área estão nas skills do repo e em
 `docs/replanejamento/`; este arquivo é o mapa.
 
@@ -120,7 +120,7 @@ apps/web/src/
 | **Hoje** | `/` | Saudação, minutos de hoje em anel ("de 20 min"), sequência de dias, "Próximo passo" (um exercício do plano) com estrelas e bpm, botão Começar | Sessão do dia inteira (blocos), revisão pendente, atalhos, caderno da aula |
 | **Praticar** | `/praticar` | Cartões dos 9 módulos com progresso (melhor resultado por exercício), lista de exercícios com estrelas, detalhe e "Tocar" | Rotinas (lista, editor, metas), sessão em execução com repetições, gerador de rotina com espaçamento, filtros, histórico por exercício |
 | **Músicas** | `/musicas` | Importar `.musicxml`/`.mxl` (limite 8 MB), lista com título, compositor, bpm, notas e duração; Tocar; Remover | Persistir as músicas (hoje somem ao recarregar), trilha Suzuki (10 livros como cartões, "aprendi na aula"), biblioteca CC0, detalhe com trechos, loop e andamento, gravador |
-| **Tocar** | `/tocar/:id` | Tela cheia escura. Countdown, nota atual (nome, corda, compasso), próximas notas, afinador (−50..+50 cents), precisão, combo, perfeitas/erros, Resultado com estrelas (salvo no Dexie), Tocar de novo, Sair. Pede microfone no Começar; erros do mic em PT-BR | Highway (canvas), pauta (VexFlow), metrônomo e drone, Resultado com mapa de compassos e "repetir os difíceis", controle de andamento |
+| **Tocar** | `/tocar/:id` | Tela cheia escura. Countdown, pauta rolando (canvas próprio, notas vêm da direita até a linha de agora, veredito colore a nota), nota atual (nome, corda, compasso), afinador (−50..+50 cents), precisão, combo, perfeitas/erros, Resultado com estrelas (salvo no Dexie), Tocar de novo, Sair. Pede microfone no Começar; erros do mic em PT-BR | Highway (canvas) como modo alternativo, metrônomo e drone, loop A-B, controle de andamento, auto-slowdown, Resultado com mapa de compassos e "repetir os difíceis" |
 | **Ferramentas** | `/ferramentas` | Índice; **Teste de latência** (12 cliques no alto-falante, mede chegada no mic, média/jitter/mín/máx, veredito aprovado/limite/reprovado) | Afinador tela cheia com modo ressonância, Metrônomo progressivo, Drone com aviso de fone |
 | **Progresso** | `/progresso` | Sequência atual, últimos 7 dias com minutos, resultados recentes | Calendário, por módulo, histórico, exportar, migração do `progress.txt` do app nativo |
 | **Configurações** | `/configuracoes` | Dispositivo de entrada, nomes das notas, ajustes persistidos | Calibração, tema, conta |
@@ -169,12 +169,12 @@ escolha).
 |---|---|---|
 | 0. Spike de latência | **quase**: pipeline funciona, teste pronto | medir no PC/tablet: meta ≤ 30 ms, jitter < 5 ms, ≤ 1 cent nas 4 cordas; reprovou → Capacitor/Tauri com a mesma UI |
 | 1. Fundação | **feita**: monorepo, core nos dois mundos, tokens em código, 5 áreas, PWA, Dexie | página de componentes com todos os tokens; conferir o app aberto offline |
-| 2. Tocar | **parcial**: fluxo exercício → Tocar → Resultado funciona com afinador e estatísticas | **partitura vindo** (requisito de 28/10): pauta rolando em canvas ou VexFlow, highway como alternativa; metrônomo e drone em Web Audio, mapa de compassos, "repetir os difíceis", controle de andamento, e2e com jogador sintético |
+| 2. Tocar | **parcial**: fluxo exercício → Tocar → Resultado com pauta rolando (feita 28/10, canvas próprio), afinador e estatísticas | metrônomo com subdivisão e drone em Web Audio, controle de andamento, loop A-B de compassos, auto-slowdown, mapa de compassos, "repetir os difíceis", highway como modo alternativo, e2e com jogador sintético |
 | 3. Praticar | **parcial**: módulos e exercícios listados, Próximo passo na Hoje | rotinas (lista, editor arrastável, metas, variações), sessão com contador de repetições, gerador com intercalação e espaçamento (testes com data fixa), filtros e histórico |
-| 4. Hoje, onboarding, Progresso | **parcial**: Hoje e Progresso básicos | onboarding de 6 passos com calibração, sessão completa na Hoje, calendário, por módulo, exportar, migração do `progress.txt` |
-| 5. Músicas | **parcial**: importar e tocar MusicXML | persistir no Dexie, trilha Suzuki, biblioteca CC0, trechos/loop/andamento, gravador com comparação |
+| 4. Hoje, onboarding, Progresso | **parcial**: Hoje e Progresso básicos | onboarding de 6 passos com calibração, sessão completa na Hoje, calendário, por módulo, histórico de precisão por música, migração do `progress.txt`; configurações: seleção e teste de microfone, noise gate e sensibilidade, tamanho da fonte da partitura, exportar backup `.json`, apagar cache, resetar progresso |
+| 5. Músicas | **parcial**: importar e tocar MusicXML | persistir no Dexie (limite 8 MB por arquivo), trilha Suzuki, biblioteca CC0, filtros por nível, compositor, gênero e status (não iniciada, em estudo, dominada), trechos/loop/andamento, gravador com comparação |
 | 6. Caderno da aula e Ferramentas | **começou**: teste de latência | caderno (anotações, tarefas → rotina "Da aula", resumo da semana), afinador tela cheia, metrônomo progressivo, drone |
-| 7. Conta e publicação | **não começou** | deploy (GitHub Pages ou Render), conta e sync (Supabase), acesso da professora, CI, Electron/Steam opcional |
+| 7. Publicação | **não começou** | deploy (GitHub Pages ou Render) e CI. Conta e sync (Supabase) e acesso da professora ficam pausados até a base offline estar impecável (decisão de 28/10) |
 
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 
@@ -190,23 +190,21 @@ Todas pequenas; nenhuma bloqueia uso.
 
 ## 11. Decisões que o planejamento precisa tomar
 
-1. **Qual tablet** vai para a estante: Android (Chrome) ou iPad (Safari)? Define onde o teste de latência precisa
-   passar e se o worklet precisa de ajustes para WebKit.
+1. ~~Qual tablet~~ **Decidido em 28/10: Chrome no Android** é o alvo de estabilidade inicial. O teste de latência
+   precisa passar lá; Safari/iPad fica para depois.
 2. **Depois da fase 2, o que vem primeiro**: Praticar (rotinas e sessão do dia) ou Músicas (Suzuki e trechos)?
-3. **Tocar precisa mostrar a partitura vindo** (decidido em 28/10: "o design deve fazer com que seja possível
-   ver a partitura vindo"). Hoje a tela só mostra a nota atual e as próximas em texto; isso não basta. O que
-   resta escolher é a forma: pauta rolando da direita para a esquerda com a linha de "agora" fixa (como o app
-   nativo faz com `StaffView`), highway por corda (como `HighwayView`), ou pauta em cima e highway embaixo. A
-   recomendação é começar pela pauta rolando, porque é o que a aula usa, e deixar o highway como modo
-   alternativo.
+3. ~~Tocar precisa mostrar a partitura vindo~~ **Feito em 28/10** ("o design deve fazer com que seja possível ver
+   a partitura vindo"): pauta rolando em canvas próprio, portada do `StaffView` nativo, com a linha de agora fixa
+   a 20% da largura e 6 s à frente (`ScrollingStaff.tsx`). VexFlow foi descartado. O highway fica como modo
+   alternativo opcional.
 4. **Metrônomo e drone** dentro do Tocar desde o início ou como ferramentas separadas primeiro?
-5. **Conta e sincronização**: quando? Só local até ter dois aparelhos, ou já na primeira publicação?
+5. ~~Conta e sincronização~~ **Decidido em 28/10: pausado.** Só local até a fundação offline estar impecável.
 6. **Publicação**: GitHub Pages (estático, grátis) ou Render? PWA basta ou quer loja (Capacitor) também?
-7. **Professora**: ela vai ver o Caderno da aula? Isso puxa conta, compartilhamento e privacidade para antes.
+7. ~~Professora~~ **Pausado junto com a conta (28/10).** O Caderno da aula é só do aluno por enquanto.
 8. **Gravação de áudio** das sessões (comparar antes/depois): entra na fase 5 ou fica fora?
 9. **Nome e idioma das áreas**: Hoje · Praticar · Músicas · Ferramentas · Progresso está bom?
-10. **Steam/Electron**: mantém como anexo opcional ou encerra a linha nativa de vez (deixando só o core e os
-    testes)?
+10. ~~Steam/Electron~~ **Decidido em 28/10: o app nativo vira harness de testes.** SDL2/OpenGL deixa de ter
+    prioridade de UI; `test.bat` continua rodando a suíte C++. Steam/Electron saem do plano.
 
 ## 12. Como rodar
 
@@ -224,6 +222,7 @@ No Windows, fora do Git Bash, `pnpm` precisa ser chamado como
 
 ## 13. Referências
 
+- `docs/plano-de-acao.md`: plano de ação de 28/10 (princípios, mecânicas, app, decisões, roadmap).
 - `docs/replanejamento/README.md`: pedido reescrito, princípios, fases, riscos, decisões.
 - `docs/replanejamento/arquitetura-da-informacao.md`: cada tela e os 5 fluxos de ponta a ponta.
 - `docs/replanejamento/pedagogia-e-rotina.md`: níveis, rotina, Suzuki, afinação, caderno.

@@ -15,7 +15,7 @@
 |---|---|---|---|
 | Latência de entrada | 7 ms (WASAPI exclusivo) | 7 ms (mesmo engine) | ~15–25 ms com `latencyHint` e processamento desligado; medir na máquina |
 | Esforço de UI | muito alto (toolkit do zero, sem acessibilidade) | baixo (React) | baixo (React) |
-| Pauta | própria (443 linhas hoje, limitada) | VexFlow | VexFlow |
+| Pauta | própria (443 linhas hoje, limitada) | canvas próprio portado | canvas próprio portado (feito 28/10; VexFlow descartado) |
 | Tablet / celular | não | não | sim (Capacitor), mesmo código |
 | Steam / desktop | sim | sim (steamworks.js) | sim (Electron ou Tauri por cima da mesma build) |
 | Reaproveita o engine C++ | tudo | tudo | parser, currículo, geradores, julgamento, YIN, jogador sintético (tudo sem SDL/PortAudio) |
@@ -57,7 +57,7 @@ packages/
                  Session (GameEngine + Score), simulate (SyntheticPlayer). Wrapper TS tipado em src/.
 apps/
   web/           React 19 + TypeScript + Vite · Tailwind v4 com os tokens do DESIGN.md em @theme · React Router ·
-                 Zustand · VexFlow · highway em <canvas> · Dexie (IndexedDB, local-first) · vite-plugin-pwa
+                 Zustand · pauta e highway em <canvas> · Dexie (IndexedDB, local-first) · vite-plugin-pwa
                  src/audio/ (AudioWorklet + calibração) · src/data/ · src/design/ (componentes) · src/areas/ (telas)
 ```
 
