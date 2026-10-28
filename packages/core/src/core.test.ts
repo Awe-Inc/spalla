@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { loadCore, type FretlessCore } from "./index.js";
 
@@ -120,5 +120,24 @@ describe("pitch tracker", () => {
     expect(frame.silent).toBe(true);
     expect(frame.frequencyHz).toBe(0);
     tracker.dispose();
+  });
+});
+
+describe("loading inside an AudioWorklet", () => {
+  const wasmPath = fileURLToPath(new URL("../dist/fretless_core.wasm", import.meta.url));
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it("evaluates and loads from bytes in a scope without URL", async () => {
+    const wasmBinary = await readFile(wasmPath);
+    vi.stubGlobal("URL", undefined);
+    vi.resetModules();
+    const worklet = await import("./index.js");
+    expect(worklet.coreWasmUrl).toBe("");
+    const loaded = await worklet.loadCore({ wasmBinary });
+    expect(loaded.noteName(69)).toBe("Lá4");
   });
 });

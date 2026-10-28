@@ -226,9 +226,20 @@ export class FretlessCore {
   }
 }
 
+type InstantiateWasm = (imports: WebAssembly.Imports, receive: (instance: WebAssembly.Instance) => void) => Record<string, never>;
+
+function toModuleArg({ wasmBinary, locateFile }: CoreLoadOptions): { locateFile?: CoreLoadOptions["locateFile"]; instantiateWasm?: InstantiateWasm } {
+  if (!wasmBinary) return { locateFile };
+  const instantiateWasm: InstantiateWasm = (imports, receive) => {
+    void WebAssembly.instantiate(wasmBinary as BufferSource, imports).then(({ instance }) => receive(instance));
+    return {};
+  };
+  return { locateFile, instantiateWasm };
+}
+
 export async function loadCore(options: CoreLoadOptions = {}): Promise<FretlessCore> {
-  const module = await createFretlessCore(options);
+  const module = await createFretlessCore(toModuleArg(options));
   return new FretlessCore(module);
 }
 
-export const coreWasmUrl = new URL("../dist/fretless_core.wasm", import.meta.url);
+export const coreWasmUrl = typeof URL === "function" ? new URL("../dist/fretless_core.wasm", import.meta.url).href : "";

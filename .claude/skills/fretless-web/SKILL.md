@@ -59,6 +59,15 @@ apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the s
 - **Worklet cannot `fetch`.** An AudioWorklet has no `fetch`, so the WASM bytes are fetched on the main thread and
   passed in `processorOptions.wasmBinary`; `loadCore({ wasmBinary })` accepts them. Loading by URL inside the worklet
   fails silently with a module that never becomes ready.
+- **AudioWorkletGlobalScope has no `URL`.** `new URL(..., import.meta.url)` at the top of a module imported by the
+  worklet throws, Chrome still resolves `addModule`, and `new AudioWorkletNode` fails with
+  `InvalidStateError: 'fretless-pitch' is not defined`. `coreWasmUrl` in `packages/core/src/index.ts` is guarded by
+  `typeof URL`; keep module top levels free of `URL`, `window`, `document`, `fetch`. The vitest case "evaluates
+  and loads from bytes in a scope without URL" stubs `URL` out and fails without the guard.
+- **The Emscripten glue ignores `Module.wasmBinary`.** Emscripten 4 only honours `locateFile` and
+  `instantiateWasm`, so `loadCore({ wasmBinary })` turns the bytes into an `instantiateWasm` hook; without it the
+  glue calls `findWasmBinary()` → `new URL(...)` → "URL is not defined" inside the worklet. Probe without a mic:
+  `addModule` + `AudioWorkletNode` with an oscillator connected to the node and wait for the `ready` message.
 - **pnpm 12 ignores `package.json#pnpm`.** Build-script approvals live in `pnpm-workspace.yaml` as `allowBuilds:
   { esbuild: true }`. The old `onlyBuiltDependencies` key is silently dropped and `pnpm install` exits with
   `ERR_PNPM_IGNORED_BUILDS`.

@@ -5,6 +5,8 @@ import workletUrl from "./pitch-worklet.ts?worker&url";
 
 export type FrameListener = (frame: PitchFrame) => void;
 
+const READY_TIMEOUT_MS = 10_000;
+
 export interface PitchInputInfo {
   sampleRate: number;
   baseLatencySec: number;
@@ -74,10 +76,17 @@ export class PitchInput {
       context.createMediaStreamSource(stream).connect(node);
 
       const ready = new Promise<number>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("O analisador de afinação não respondeu. Recarregue a página e tente de novo.")), READY_TIMEOUT_MS);
         node.port.onmessage = (event: MessageEvent<WorkletOutbound>) => {
           const message = event.data;
-          if (message.type === "ready") resolve(message.requiredSamples);
-          if (message.type === "error") reject(new Error(message.message));
+          if (message.type === "ready") {
+            clearTimeout(timer);
+            resolve(message.requiredSamples);
+          }
+          if (message.type === "error") {
+            clearTimeout(timer);
+            reject(new Error(message.message));
+          }
           if (message.type === "frame") {
             for (const listener of this.#listeners) listener(message.frame);
           }
