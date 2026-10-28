@@ -31,7 +31,8 @@ O que roda agora, verificado nesta data:
 | Core C++ nativo (`build.bat`, `test.bat`) | 100 testes, 0 falhas |
 | Core em WASM (`pnpm build:core`) | os mesmos 99 casos passam no Node (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
-| `apps/web` | 20 testes vitest, typecheck limpo, `vite build` gera a PWA |
+| `apps/web` | 89 testes vitest, typecheck limpo, `vite build` gera a PWA (e `404.html` para hospedagem estática) |
+| CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`; deploy no Pages desligado (ver §11, item 6) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
 | Afinador no AudioWorklet | WASM carrega dentro do worklet e detecta 440,02 Hz de um oscilador com confiança 0,99999 (testado sem microfone) |
 | Microfone real no Chrome | **ainda não medido**: o bug de hoje (InvalidStateError) impedia; corrigido em `26e05f1`, falta rodar `/ferramentas/latencia` numa máquina com microfone |
@@ -169,12 +170,12 @@ escolha).
 |---|---|---|
 | 0. Spike de latência | **quase**: pipeline funciona, teste pronto | medir no PC/tablet: meta ≤ 30 ms, jitter < 5 ms, ≤ 1 cent nas 4 cordas; reprovou → Capacitor/Tauri com a mesma UI |
 | 1. Fundação | **feita**: monorepo, core nos dois mundos, tokens em código, 5 áreas, PWA, Dexie | página de componentes com todos os tokens; conferir o app aberto offline |
-| 2. Tocar | **parcial**: fluxo exercício → Tocar → Resultado com pauta rolando (feita 28/10, canvas próprio), afinador e estatísticas | metrônomo com subdivisão e drone em Web Audio, controle de andamento, loop A-B de compassos, auto-slowdown, mapa de compassos, "repetir os difíceis", highway como modo alternativo, e2e com jogador sintético |
-| 3. Praticar | **parcial**: módulos e exercícios listados, Próximo passo na Hoje | rotinas (lista, editor arrastável, metas, variações), sessão com contador de repetições, gerador com intercalação e espaçamento (testes com data fixa), filtros e histórico |
-| 4. Hoje, onboarding, Progresso | **parcial**: Hoje e Progresso básicos | onboarding de 6 passos com calibração, sessão completa na Hoje, calendário, por módulo, histórico de precisão por música, migração do `progress.txt`; configurações: seleção e teste de microfone, noise gate e sensibilidade, tamanho da fonte da partitura, exportar backup `.json`, apagar cache, resetar progresso |
-| 5. Músicas | **parcial**: importar e tocar MusicXML | persistir no Dexie (limite 8 MB por arquivo), trilha Suzuki, biblioteca CC0, filtros por nível, compositor, gênero e status (não iniciada, em estudo, dominada), trechos/loop/andamento, gravador com comparação |
-| 6. Caderno da aula e Ferramentas | **começou**: teste de latência | caderno (anotações, tarefas → rotina "Da aula", resumo da semana), afinador tela cheia, metrônomo progressivo, drone |
-| 7. Publicação | **não começou** | deploy (GitHub Pages ou Render) e CI. Conta e sync (Supabase) e acesso da professora ficam pausados até a base offline estar impecável (decisão de 28/10) |
+| 2. Tocar | **feita (28/10)**: pauta rolando, metrônomo com subdivisão e 3 sons, drone, andamento ±5, loop A-B, mapa de compassos, "repetir os difíceis", XP e maestria por execução | highway como modo alternativo, auto-slowdown, e2e com jogador sintético |
+| 3. Praticar | **feita (28/10)**: rotinas padrão 15/25/45 e rotinas próprias, blocos ↔ tipo de exercício, planejador do dia com revisão espaçada e semente diária, filtros por módulo | editor arrastável de rotina, contador de repetições |
+| 4. Hoje, onboarding, Progresso | **feita (28/10)**: onboarding em 5 passos, sessão do dia na Hoje, nível e XP, heatmap de 12 semanas, histórico de precisão, conquistas, loja (congelador, sons, paleta sépia); configurações com teste de microfone, sensibilidade, tamanho da partitura, backup `.json`, limpar cache, resetar | migração do `progress.txt` do app nativo |
+| 5. Músicas | **feita (28/10)**: catálogo do core + importações persistidas no Dexie (8 MB), filtros por nível, compositor, gênero e status (não iniciada, em estudo, dominada), tocar em `/tocar/musica/:id` | biblioteca CC0 maior, gravador com comparação (decisão 8 em §11) |
+| 6. Caderno da aula e Ferramentas | **feita (28/10)**: caderno na Hoje (tarefa → bloco "Da aula", dia da aula), afinador tela cheia com corda provável e referência, metrônomo progressivo, nota pedal, teste de latência | resumo da semana no caderno |
+| 7. Publicação | **CI feita (28/10)**; deploy aguarda decisão | Pages exige repo público ou plano Pro (§11, item 6); Render é a alternativa. Conta e sync (Supabase) e acesso da professora seguem pausados |
 
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 
@@ -192,14 +193,21 @@ Todas pequenas; nenhuma bloqueia uso.
 
 1. ~~Qual tablet~~ **Decidido em 28/10: Chrome no Android** é o alvo de estabilidade inicial. O teste de latência
    precisa passar lá; Safari/iPad fica para depois.
-2. **Depois da fase 2, o que vem primeiro**: Praticar (rotinas e sessão do dia) ou Músicas (Suzuki e trechos)?
+2. ~~Depois da fase 2, o que vem primeiro~~ **Resolvido em 28/10**: as fases 3 a 7 foram feitas em sequência num
+   só dia ("faça todos os planos, só pare quando finalizar tudo").
 3. ~~Tocar precisa mostrar a partitura vindo~~ **Feito em 28/10** ("o design deve fazer com que seja possível ver
    a partitura vindo"): pauta rolando em canvas próprio, portada do `StaffView` nativo, com a linha de agora fixa
    a 20% da largura e 6 s à frente (`ScrollingStaff.tsx`). VexFlow foi descartado. O highway fica como modo
    alternativo opcional.
-4. **Metrônomo e drone** dentro do Tocar desde o início ou como ferramentas separadas primeiro?
+4. ~~Metrônomo e drone~~ **Feito dos dois jeitos em 28/10**: dentro do Tocar (presos ao contexto do microfone) e
+   como ferramentas separadas (`/ferramentas/metronomo` com andamento progressivo, `/ferramentas/pedal`).
 5. ~~Conta e sincronização~~ **Decidido em 28/10: pausado.** Só local até a fundação offline estar impecável.
-6. **Publicação**: GitHub Pages (estático, grátis) ou Render? PWA basta ou quer loja (Capacitor) também?
+6. **Publicação**: o CI já gera o site com `BASE_PATH=/fretless/` e o job de deploy no GitHub Pages existe, mas a
+   API respondeu em 28/10 que **o plano atual não oferece Pages para repositório privado**. Para publicar: tornar o
+   repo público (ou assinar o Pro) e criar a variável `DEPLOY_PAGES=true` em Settings → Secrets and variables →
+   Actions; ou apontar um Static Site do Render para `apps/web/dist` (build `pnpm install && pnpm build:core &&
+   pnpm --filter @fretless/web build`, que precisa do emsdk na imagem). PWA basta por enquanto; loja (Capacitor)
+   só se o teste de latência reprovar no Chrome Android.
 7. ~~Professora~~ **Pausado junto com a conta (28/10).** O Caderno da aula é só do aluno por enquanto.
 8. **Gravação de áudio** das sessões (comparar antes/depois): entra na fase 5 ou fica fora?
 9. **Nome e idioma das áreas**: Hoje · Praticar · Músicas · Ferramentas · Progresso está bom?
@@ -214,7 +222,11 @@ pnpm build:core                    # Emscripten (precisa de C:\Users\Usuario\ems
 pnpm test
 pnpm typecheck
 pnpm dev                           # http://localhost:5180
+pnpm --filter @fretless/web build  # apps/web/dist; com BASE_PATH=/fretless/ gera o site para o sub-caminho do Pages
 ```
+
+O CI (`.github/workflows/ci.yml`) roda a mesma sequência a cada push na `main` e em pull requests, com o Emscripten
+6.0.13 (a mesma versão do `~/emsdk` local). O deploy só acontece com a variável `DEPLOY_PAGES=true` no repositório.
 
 No Windows, fora do Git Bash, `pnpm` precisa ser chamado como
 `node %APPDATA%\npm\node_modules\pnpm\bin\pnpm.mjs` (o `pnpm.cmd` está quebrado). Teste de latência:

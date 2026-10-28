@@ -16,6 +16,7 @@ build still works and runs the same test suite.
 pnpm install && pnpm build:core  # Emscripten build of the core (needs emsdk)
 pnpm dev                         # the web app on http://localhost:5180
 pnpm test                        # C++ cases in WASM + vitest (core and web)
+pnpm --filter @fretless/web build  # PWA in apps/web/dist (BASE_PATH=/fretless/ for GitHub Pages; CI does this)
 
 build.bat                        # native configure + build (CMake/Ninja from VS Build Tools)
 build\bin\Fretless.exe          # the native practice hub
