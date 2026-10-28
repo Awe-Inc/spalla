@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import { registerSW } from "virtual:pwa-register";
 
+import "@/design/fonts.css";
 import "@/design/tokens.css";
 
 import { router } from "./app/router";

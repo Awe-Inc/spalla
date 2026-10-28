@@ -29,7 +29,7 @@ function RadioGroup<T extends string | number>({ name, value, options, onChange 
       {options.map((option) => (
         <label
           key={option.value}
-          className={`inline-flex h-10 cursor-pointer items-center rounded-pill px-4 font-medium transition-colors ${
+          className={`inline-flex h-10 cursor-pointer items-center rounded-pill px-4 font-medium transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus ${
             option.value === value ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
           }`}
         >

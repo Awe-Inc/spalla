@@ -146,9 +146,8 @@ apps/web/src/
 | Onde | O quê | Estado |
 |---|---|---|
 | IndexedDB via Dexie (`db.ts`) | `results` (exercício, estrelas, precisão, desvio médio, bpm, data), `practiceDays` (minutos por dia local) | em uso |
-| IndexedDB via Dexie | `routines`, `settings` | tabelas criadas, sem uso ainda |
-| localStorage via Zustand persist | dispositivo de entrada, nomenclatura das notas | em uso |
-| Memória (`library.ts`) | músicas importadas (bytes + partitura parseada) | **somem ao recarregar** |
+| IndexedDB via Dexie | `routines` (rotinas próprias), `pieces` (MusicXML importado), `sheets` + `sheetFiles` (PDFs da estante), `userStats`, `achievements`, `lessonTasks` | em uso |
+| localStorage via Zustand persist | dispositivo de entrada, nomenclatura das notas, acento, onboarding | em uso; o id do microfone volta ao padrão quando o aparelho some |
 | Nada | conta, sincronização, professora | fase 7, não começou |
 
 A sequência de dias usa o dia do calendário local (`localDayKey`); UTC quebrava a sequência depois das 21h.
@@ -181,13 +180,13 @@ escolha).
 
 Todas pequenas; nenhuma bloqueia uso.
 
-- Músicas importadas só em memória (seção 7).
-- Select de microfone em Configurações pode mostrar um id que já não existe.
-- Foco de teclado invisível nos radios `sr-only` e no input de arquivo; `<button>` contendo `<h2>` em Praticar.
-- Google Fonts não entra no precache: offline cai na fonte de sistema.
-- Tabelas `routines` e `settings` do Dexie sem uso; alguns valores arbitrários do Tailwind; `aria-label` em
-  spans genéricos; contraste do `StringChip`.
+- Alguns valores arbitrários do Tailwind; `aria-label` em spans genéricos; contraste do `StringChip`.
 - Highway e pauta não desenhados (é a fase 2, não dívida).
+
+Fechadas em 28/10: músicas importadas agora ficam no Dexie (`pieces`); o select de microfone zera um id que não
+existe mais (`audio/devices.ts`); foco visível nos radios `sr-only` e nos botões de importar (`has-focus-visible:`);
+o título do módulo em Praticar é `<h2>` com `<button>` dentro; fontes auto-hospedadas (Fontsource, `design/fonts.css`)
+e no precache, sem Google Fonts; tabela `settings` do Dexie removida (versão 5), `routines` está em uso.
 
 ## 11. Decisões que o planejamento precisa tomar
 

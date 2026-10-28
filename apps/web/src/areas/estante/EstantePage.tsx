@@ -68,7 +68,7 @@ export function EstantePage() {
   return (
     <>
       <PageTitle title="Músicas" eyebrow="Catálogo e suas partituras">
-        <label className="inline-flex h-11 cursor-pointer items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10">
+        <label className="inline-flex h-11 cursor-pointer items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus md:h-10">
           {isImporting ? "Guardando…" : "Importar PDF"}
           <input type="file" accept=".pdf,application/pdf" multiple className="sr-only" onChange={(event) => void onFiles(event)} disabled={isImporting} />
         </label>

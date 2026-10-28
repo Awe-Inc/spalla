@@ -35,6 +35,8 @@ another project uses.
 packages/core/src/index.ts       loadCore(), typed wrappers: curriculum, exerciseScore, parseMusicXml,
                                  createSession, createPitchTracker, noteName, centsBetween
 apps/web/src/design/tokens.css   the only place a colour, font or radius is written (from DESIGN.md)
+apps/web/src/design/fonts.css    Fontsource imports (Fraunces Variable, Figtree Variable, JetBrains Mono 500);
+                                 self-hosted woff2 land in the precache, no Google Fonts
 .github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
                                  variable DEPLOY_PAGES is "true" (private repo on the free plan has no Pages)
@@ -45,6 +47,7 @@ apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, 
                                  onboarding em 5 passos; Shell redireciona para lá enquanto `onboardedAt` é null)
 apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an AudioWorklet),
                                  PitchInput.ts (mic + context), usePitchInput.ts, latency.ts,
+                                 devices.ts (isStoredDeviceMissing: resets a stored mic id the OS no longer lists),
                                  clickTrack.ts (pure click schedule from a Score, tested), metronome.ts
                                  (Metronome: look-ahead scheduler on the mic AudioContext, 3 sounds),
                                  drone.ts (Drone: timbre "corda" = sawtooth + octave through a low-pass, ou

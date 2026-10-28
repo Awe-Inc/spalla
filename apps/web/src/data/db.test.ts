@@ -12,6 +12,10 @@ describe("schema", () => {
     expect(Object.keys(db.results.schema.idxByName)).toEqual(expect.arrayContaining(["exerciseId", "playedAt"]));
     expect(Object.keys(db.sheets.schema.idxByName)).toEqual(expect.arrayContaining(["fileName", "openedAt"]));
   });
+
+  it("no longer carries the unused settings table", () => {
+    expect(db.tables.map((table) => table.name)).not.toContain("settings");
+  });
 });
 
 describe("starsFor", () => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useSettings } from "@/app/settings";
+import { isStoredDeviceMissing } from "@/audio/devices";
 import { listInputDevices } from "@/audio/PitchInput";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
@@ -13,6 +14,7 @@ export function MicrofoneCard() {
   const mic = usePitchInput();
   const settings = useSettings();
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const { inputDeviceId, setInputDevice } = settings;
 
   useEffect(() => {
     if (!navigator.mediaDevices) return;
@@ -20,6 +22,10 @@ export function MicrofoneCard() {
       .then(setDevices)
       .catch(() => setDevices([]));
   }, [mic.status.status]);
+
+  useEffect(() => {
+    if (isStoredDeviceMissing(inputDeviceId, devices)) setInputDevice(null);
+  }, [inputDeviceId, devices, setInputDevice]);
 
   const reading = core.status === "ready" ? tunerReading(core.core, mic.frame, settings.noteNaming) : null;
 

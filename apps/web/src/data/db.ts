@@ -50,11 +50,6 @@ export interface PracticeDay {
   sessionCompleted?: boolean;
 }
 
-export interface Setting {
-  key: string;
-  value: string;
-}
-
 export interface UserStats {
   key: "me";
   xp: number;
@@ -125,7 +120,6 @@ export class FretlessDatabase extends Dexie {
   results!: EntityTable<ExerciseResult, "id">;
   routines!: EntityTable<Routine, "id">;
   practiceDays!: EntityTable<PracticeDay, "day">;
-  settings!: EntityTable<Setting, "key">;
   userStats!: EntityTable<UserStats, "key">;
   achievements!: EntityTable<Achievement, "id">;
   lessonTasks!: EntityTable<LessonTask, "id">;
@@ -157,6 +151,9 @@ export class FretlessDatabase extends Dexie {
     this.version(4).stores({
       sheets: "++id, fileName, title, importedAt, openedAt",
       sheetFiles: "id",
+    });
+    this.version(5).stores({
+      settings: null,
     });
   }
 }

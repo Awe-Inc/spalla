@@ -16,15 +16,19 @@ function ModuleCard({ module, best }: { module: CurriculumModule; best: Map<stri
   const starred = playable.filter((exercise) => (best.get(exercise.id)?.stars ?? 0) === 3).length;
   return (
     <Card as="article" className="grid gap-4">
-      <button type="button" className="flex items-start justify-between gap-4 text-left" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+      <div className="relative flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-heading font-semibold">{module.title}</h2>
+          <h2 className="text-heading font-semibold">
+            <button type="button" className="text-left after:absolute after:inset-0" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+              {module.title}
+            </button>
+          </h2>
           <p className="text-ink-muted">{module.tagline}</p>
         </div>
         <span className="shrink-0 font-mono text-caption text-ink-subtle tabular">
           {starred}/{playable.length}
         </span>
-      </button>
+      </div>
       {open ? (
         <ul className="divide-y divide-hairline">
           {playable.map((exercise) => (

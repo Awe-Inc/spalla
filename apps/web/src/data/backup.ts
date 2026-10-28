@@ -8,7 +8,6 @@ interface Backup {
   results: unknown[];
   routines: unknown[];
   practiceDays: unknown[];
-  settings: unknown[];
   userStats: unknown[];
   achievements: unknown[];
   lessonTasks: unknown[];
@@ -16,11 +15,10 @@ interface Backup {
 }
 
 export async function buildBackup(): Promise<Backup> {
-  const [results, routines, practiceDays, settings, userStats, achievements, lessonTasks, pieceCount] = await Promise.all([
+  const [results, routines, practiceDays, userStats, achievements, lessonTasks, pieceCount] = await Promise.all([
     db.results.toArray(),
     db.routines.toArray(),
     db.practiceDays.toArray(),
-    db.settings.toArray(),
     db.userStats.toArray(),
     db.achievements.toArray(),
     db.lessonTasks.toArray(),
@@ -32,7 +30,6 @@ export async function buildBackup(): Promise<Backup> {
     results,
     routines,
     practiceDays,
-    settings,
     userStats,
     achievements,
     lessonTasks,
