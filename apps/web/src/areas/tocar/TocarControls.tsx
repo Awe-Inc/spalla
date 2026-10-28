@@ -5,6 +5,7 @@ import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
 import { Button } from "@/design/components";
 
+import { HARD_MEASURE_ACCURACY_PCT } from "./measureMap";
 import { BPM_STEP, type TempoLimits } from "./tempo";
 
 interface TocarControlsProps {
@@ -66,6 +67,15 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
           </button>
           <button type="button" aria-pressed={loop !== null} className={toggleClass(loop !== null)} onClick={() => onLoop(loop ? null : { firstIndex: first, lastIndex: last })} disabled={fullMeasureCount < 2}>
             Repetir trecho
+          </button>
+          <button
+            type="button"
+            aria-pressed={prefs.autoSlowdown}
+            title={`Quando um compasso sai com menos de ${HARD_MEASURE_ACCURACY_PCT}% de acerto, a próxima tentativa fica mais lenta`}
+            className={toggleClass(prefs.autoSlowdown)}
+            onClick={() => prefs.setPracticeAudio({ autoSlowdown: !prefs.autoSlowdown })}
+          >
+            Diminuir ao errar
           </button>
         </div>
         {prefs.metronomeOn ? (

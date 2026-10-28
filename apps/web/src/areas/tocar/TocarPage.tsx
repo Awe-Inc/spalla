@@ -11,6 +11,7 @@ import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/compo
 import { Tuner } from "@/design/Tuner";
 import { displayNoteName } from "@/music/noteNames";
 
+import { autoSlowdown, slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { ComboBar } from "./ComboBar";
 import { ResultScreen } from "./ResultScreen";
 import { ScrollingStaff } from "./ScrollingStaff";
@@ -62,7 +63,10 @@ export function TocarPage() {
   const staffHeight = { height: `${Math.round(STAFF_BASE_HEIGHT_PX * staffScale)}px` };
   const headphonesConfirmedAt = useSettings((state) => state.headphonesConfirmedAt);
   const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
+  const isAutoSlowdownOn = useSettings((state) => state.autoSlowdown);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [slowdown, setSlowdown] = useState<Slowdown | null>(null);
+  const slowedRunRef = useRef(false);
   const [outcome, setOutcome] = useState<RunOutcome | null>(null);
   const goal = useBlockGoal(exercise?.id ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -114,9 +118,18 @@ export function TocarPage() {
   }, [session, isListening, isSynthetic, takeFrames, accompaniment]);
 
   useEffect(() => {
+    if (!score || !limits || snapshot?.state !== "finished" || slowedRunRef.current) return;
+    slowedRunRef.current = true;
+    const next = isAutoSlowdownOn ? autoSlowdown(score, snapshot.judgements, snapshot.stats, bpm, limits) : null;
+    setSlowdown(next);
+    if (next) setBpm(next.bpm);
+  }, [snapshot, score, limits, bpm, isAutoSlowdownOn, setBpm]);
+
+  useEffect(() => {
     if (!session || snapshot?.state !== "finished" || !loop) return;
     void recordLoopCompleted();
     const timer = window.setTimeout(() => {
+      slowedRunRef.current = false;
       session.restart();
       accompaniment.rewind(-LEAD_IN_SECONDS);
       session.start();
@@ -152,6 +165,8 @@ export function TocarPage() {
     session.restart();
     startedAtRef.current = Date.now();
     savedRunRef.current = false;
+    slowedRunRef.current = false;
+    setSlowdown(null);
     setOutcome(null);
     setSaveError(null);
     accompaniment.rewind(-LEAD_IN_SECONDS);
@@ -167,6 +182,11 @@ export function TocarPage() {
     accompaniment.stopDrone();
     stopInput();
     setSnapshot(null);
+  }
+
+  function keepTempo(previous: number) {
+    setBpm(previous);
+    setSlowdown(null);
   }
 
   function repeatHardest(range: MeasureRange) {
@@ -263,7 +283,7 @@ export function TocarPage() {
         {snapshot?.state === "finished" && score && limits && loop ? (
           <section className="grid justify-items-center gap-3 text-center" aria-label="Trecho concluído">
             <p className="font-display text-display">{Math.round(snapshot.stats.accuracyPct)}%</p>
-            <p className="text-ink-muted">Recomeçando o trecho…</p>
+            <p className="text-ink-muted">{slowdown ? slowdownSentence(slowdown) : "Recomeçando o trecho…"}</p>
           </section>
         ) : null}
 
@@ -277,6 +297,7 @@ export function TocarPage() {
             bpm={bpm}
             limits={limits}
             loop={loop}
+            slowdown={slowdown}
             saveError={saveError}
             backTo={backTo}
             onPlayAgain={() => void begin()}
@@ -285,6 +306,7 @@ export function TocarPage() {
               setBpm(next);
               void begin();
             }}
+            onKeepTempo={keepTempo}
           />
         ) : null}
 

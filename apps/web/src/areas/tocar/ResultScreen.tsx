@@ -9,8 +9,9 @@ import type { RunOutcome } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
 import { Button, GoalDots, Stars } from "@/design/components";
 
+import { slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { hardestRange, measureStats, measureTone, type MeasureStat } from "./measureMap";
-import { adviseTempo, type TempoLimits } from "./tempo";
+import { adviseTempo, type TempoAdvice, type TempoLimits } from "./tempo";
 
 interface ResultScreenProps {
   score: Score;
@@ -21,12 +22,16 @@ interface ResultScreenProps {
   bpm: number;
   limits: TempoLimits;
   loop: MeasureRange | null;
+  slowdown: Slowdown | null;
   saveError: string | null;
   backTo: string;
   onPlayAgain: () => void;
   onRepeatHardest: (range: MeasureRange) => void;
   onChangeTempo: (bpm: number) => void;
+  onKeepTempo: (bpm: number) => void;
 }
+
+const KEEP_TEMPO: TempoAdvice = { kind: "keep" };
 
 const toneClass: Record<ReturnType<typeof measureTone>, string> = {
   unplayed: "bg-surface-soft text-ink-subtle",
@@ -61,10 +66,10 @@ function seriesSentence(goal: BlockGoal): string {
   return hadStreak ? "A série zerou. Mais devagar e de novo." : "Essa não contou: a série pede 90% ou mais.";
 }
 
-export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, saveError, backTo, onPlayAgain, onRepeatHardest, onChangeTempo }: ResultScreenProps) {
+export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, slowdown, saveError, backTo, onPlayAgain, onRepeatHardest, onChangeTempo, onKeepTempo }: ResultScreenProps) {
   const perMeasure = measureStats(score, judgements);
   const hardest = loop ? null : hardestRange(perMeasure);
-  const advice = adviseTempo(stats.accuracyPct, bpm, limits);
+  const advice = slowdown ? KEEP_TEMPO : adviseTempo(stats.accuracyPct, bpm, limits);
   const goalLabel = goal ? goalSentence(goal.block, goal.progress) : null;
 
   return (
@@ -142,6 +147,14 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
         </div>
       ) : null}
 
+      {slowdown ? (
+        <p className="max-w-prose text-ink-muted" aria-label="Andamento reduzido">
+          {slowdownSentence(slowdown)}{" "}
+          <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => onKeepTempo(slowdown.fromBpm)}>
+            Manter {slowdown.fromBpm} bpm
+          </button>
+        </p>
+      ) : null}
       {advice.kind === "slow-down" ? (
         <p className="max-w-prose text-ink-muted">
           Ficou corrido. Que tal tentar a {advice.bpm} bpm?{" "}

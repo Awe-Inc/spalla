@@ -14,7 +14,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (99 cases) + vitest core (14) + vitest web (179)
+pnpm test                          # WASM harness (99 cases) + vitest core (14) + vitest web (187)
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 with the synthetic player (~35 s); first run needs
@@ -67,7 +67,7 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  useAccompaniment (metronome + drone bound to the mic context), TocarControls
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
                                  tempo advice, "repetir compassos", cartão da meta do bloco com GoalDots e a
-                                 frase da série), tempo.ts and measureMap.ts (pure, tested)
+                                 frase da série), tempo.ts, measureMap.ts and autoSlowdown.ts (pure, tested; the "Diminuir ao errar" toggle lives in settings.autoSlowdown)
 apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles), sheets.ts (estante:
                                  importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas),
