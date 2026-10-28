@@ -15,24 +15,29 @@ import { TocarPage } from "@/areas/tocar/TocarPage";
 
 import { Shell } from "./Shell";
 
-export const router = createBrowserRouter([
-  {
-    path: "/",
-    Component: Shell,
-    children: [
-      { index: true, Component: HojePage },
-      { path: "praticar", Component: PraticarPage },
-      { path: "musicas", Component: MusicasPage },
-      { path: "ferramentas", Component: FerramentasPage },
-      { path: "ferramentas/latencia", Component: LatenciaPage },
-      { path: "ferramentas/afinador", Component: AfinadorPage },
-      { path: "ferramentas/metronomo", Component: MetronomoPage },
-      { path: "ferramentas/pedal", Component: PedalPage },
-      { path: "progresso", Component: ProgressoPage },
-      { path: "configuracoes", Component: ConfiguracoesPage },
-      { path: "tocar/musica/:pieceId", Component: TocarPage },
-      { path: "tocar/:exerciseId", Component: TocarPage },
-      { path: "boas-vindas", Component: BoasVindasPage },
-    ],
-  },
-]);
+const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+export const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      Component: Shell,
+      children: [
+        { index: true, Component: HojePage },
+        { path: "praticar", Component: PraticarPage },
+        { path: "musicas", Component: MusicasPage },
+        { path: "ferramentas", Component: FerramentasPage },
+        { path: "ferramentas/latencia", Component: LatenciaPage },
+        { path: "ferramentas/afinador", Component: AfinadorPage },
+        { path: "ferramentas/metronomo", Component: MetronomoPage },
+        { path: "ferramentas/pedal", Component: PedalPage },
+        { path: "progresso", Component: ProgressoPage },
+        { path: "configuracoes", Component: ConfiguracoesPage },
+        { path: "tocar/musica/:pieceId", Component: TocarPage },
+        { path: "tocar/:exerciseId", Component: TocarPage },
+        { path: "boas-vindas", Component: BoasVindasPage },
+      ],
+    },
+  ],
+  { basename },
+);

@@ -16,7 +16,9 @@ pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
 pnpm test                          # WASM harness (99 cases) + vitest core (12) + vitest web (20)
 pnpm typecheck                     # tsc in both packages
-pnpm --filter @fretless/web build  # tsc -b + vite build → apps/web/dist (PWA, service worker)
+pnpm --filter @fretless/web build  # tsc -b + vite build → apps/web/dist (PWA, service worker, 404.html = SPA fallback)
+BASE_PATH=/fretless/ pnpm --filter @fretless/web build   # sub-path build (GitHub Pages); from PowerShell on Windows,
+                                   # Git Bash rewrites "/fretless/" into a Windows path
 pnpm dev                           # vite on http://localhost:5180 (preview: 4180)
 ```
 
@@ -33,6 +35,9 @@ another project uses.
 packages/core/src/index.ts       loadCore(), typed wrappers: curriculum, exerciseScore, parseMusicXml,
                                  createSession, createPitchTracker, noteName, centsBetween
 apps/web/src/design/tokens.css   the only place a colour, font or radius is written (from DESIGN.md)
+.github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
+                                 web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
+                                 variable DEPLOY_PAGES is "true" (private repo on the free plan has no Pages)
 apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, ProgressRing, HeadphoneNotice, …
 apps/web/src/app/                Shell (sidebar ≥ lg, bottom bar below), router, settings store
 apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, ferramentas, progresso,
