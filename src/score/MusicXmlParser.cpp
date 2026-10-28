@@ -86,6 +86,214 @@ void writeNoteName(char* out, const char* step, int alter, int octave) noexcept 
     return 0.0;
 }
 
+// ── Performance order ─────────────────────────────────────────────────────
+// Repeats and jumps are resolved into a list of measure indices before any
+// note is read, so the note walk below stays a straight pass over measures and
+// every timing rule it has (divisions, backup, pickups) applies unchanged to a
+// measure heard for the second time.
+
+/// What a measure's barlines and <sound> attributes say about navigation.
+/// Only the playback attributes are read: the printed "D.C." words and the
+/// segno glyph are for the eye, and editions disagree on how to spell them,
+/// while <sound dacapo/dalsegno/fine/tocoda> is what every notation program
+/// writes for exactly this purpose.
+struct MeasureFlow {
+    bool             forwardRepeat = false;
+    int              backwardTimes = 0;      ///< 0 = no backward repeat
+    std::vector<int> endings;                ///< volta numbers this measure belongs to
+    bool             endingCloses  = false;  ///< the volta ends with this measure
+    bool             finalEnding   = false;  ///< belongs to the last volta of its block
+    std::string      segno;
+    std::string      coda;
+    std::string      toCoda;
+    std::string      dalSegno;
+    bool             daCapo        = false;
+    bool             fine          = false;
+};
+
+/// A file is untrusted input; a volta numbered "99999999999" must not overflow.
+constexpr int kMaxEndingNumber = 999;
+
+[[nodiscard]] std::vector<int> parseEndingNumbers(const char* text) {
+    std::vector<int> numbers;
+    int  value   = 0;
+    bool inDigit = false;
+    for (const char* c = text; ; ++c) {
+        if (*c >= '0' && *c <= '9') {
+            value   = std::min(value * 10 + (*c - '0'), kMaxEndingNumber);
+            inDigit = true;
+        } else {
+            if (inDigit) {
+                numbers.push_back(value);
+            }
+            value   = 0;
+            inDigit = false;
+            if (*c == '\0') {
+                break;
+            }
+        }
+    }
+    return numbers;
+}
+
+[[nodiscard]] std::vector<MeasureFlow> readFlow(const std::vector<pugi::xml_node>& measures) {
+    std::vector<MeasureFlow> flow(measures.size());
+    std::vector<int>         openEnding;
+
+    for (std::size_t i = 0; i < measures.size(); ++i) {
+        MeasureFlow& m = flow[i];
+        for (const auto barline : measures[i].children("barline")) {
+            if (const auto repeat = barline.child("repeat")) {
+                if (std::strcmp(repeat.attribute("direction").as_string(), "forward") == 0) {
+                    m.forwardRepeat = true;
+                } else {
+                    m.backwardTimes = std::max(repeat.attribute("times").as_int(2), 2);
+                }
+            }
+            if (const auto ending = barline.child("ending")) {
+                const char* type = ending.attribute("type").as_string();
+                if (std::strcmp(type, "start") == 0) {
+                    openEnding = parseEndingNumbers(ending.attribute("number").as_string());
+                } else {
+                    m.endingCloses = true;
+                    if (openEnding.empty()) {
+                        openEnding = parseEndingNumbers(ending.attribute("number").as_string());
+                    }
+                }
+            }
+        }
+        m.endings = openEnding;
+        if (m.endingCloses) {
+            openEnding.clear();
+        }
+
+        for (const auto node : measures[i].select_nodes(".//sound")) {
+            const auto sound = node.node();
+            if (const auto a = sound.attribute("segno"))    { m.segno    = a.as_string(); }
+            if (const auto a = sound.attribute("coda"))     { m.coda     = a.as_string(); }
+            if (const auto a = sound.attribute("tocoda"))   { m.toCoda   = a.as_string(); }
+            if (const auto a = sound.attribute("dalsegno")) { m.dalSegno = a.as_string(); }
+            m.daCapo |= sound.attribute("dacapo").as_bool(false);
+            m.fine   |= static_cast<bool>(sound.attribute("fine"));
+        }
+    }
+
+    // After a D.C. or D.S. the convention is to take the last ending of each
+    // volta block, so each block needs to know which of its measures that is.
+    for (std::size_t start = 0; start < flow.size();) {
+        if (flow[start].endings.empty()) {
+            ++start;
+            continue;
+        }
+        std::size_t end     = start;
+        int         highest = 0;
+        while (end < flow.size() && !flow[end].endings.empty()) {
+            for (const int n : flow[end].endings) {
+                highest = std::max(highest, n);
+            }
+            ++end;
+        }
+        for (std::size_t i = start; i < end; ++i) {
+            const auto& numbers = flow[i].endings;
+            flow[i].finalEnding =
+                std::find(numbers.begin(), numbers.end(), highest) != numbers.end();
+        }
+        start = end;
+    }
+    return flow;
+}
+
+/// Finds the measure carrying `label` in `field`. An empty label matches the
+/// first measure with any value, because many editions write segno="segno"
+/// on one side and dalsegno="yes" on the other.
+template <typename Field>
+[[nodiscard]] std::optional<std::size_t> findMarker(const std::vector<MeasureFlow>& flow,
+                                                    Field field, const std::string& label,
+                                                    std::size_t from = 0) {
+    for (std::size_t i = from; i < flow.size(); ++i) {
+        const std::string& value = flow[i].*field;
+        if (!value.empty() && (value == label || label.empty() || label == "yes")) {
+            return i;
+        }
+    }
+    if (!label.empty() && label != "yes") {
+        return findMarker(flow, field, std::string{}, from);
+    }
+    return std::nullopt;
+}
+
+[[nodiscard]] std::vector<std::size_t> performanceOrder(const std::vector<MeasureFlow>& flow) {
+    std::vector<std::size_t> order;
+    order.reserve(flow.size() * 2);
+
+    // A malformed score can describe a loop with no exit — a backward repeat
+    // inside a D.S. that lands before it, say. No real piece plays its page
+    // more than a handful of times, so a generous cap ends the walk instead.
+    const std::size_t limit = flow.size() * 16 + 16;
+
+    std::size_t i           = 0;
+    std::size_t repeatStart = 0;
+    int         pass        = 1;
+    bool        jumped      = false;   // after a D.C. or D.S., repeats are not retaken
+
+    while (i < flow.size() && order.size() < limit) {
+        const MeasureFlow& m = flow[i];
+
+        if (m.forwardRepeat && !jumped && i != repeatStart) {
+            repeatStart = i;
+            pass        = 1;
+        }
+
+        if (!m.endings.empty()) {
+            const bool taken = jumped
+                ? m.finalEnding
+                : std::find(m.endings.begin(), m.endings.end(), pass) != m.endings.end();
+            if (!taken) {
+                ++i;
+                continue;
+            }
+        }
+
+        order.push_back(i);
+
+        if (jumped && m.fine) {
+            break;
+        }
+        if (jumped && !m.toCoda.empty()) {
+            if (const auto coda = findMarker(flow, &MeasureFlow::coda, m.toCoda, i + 1)) {
+                i = *coda;
+                continue;
+            }
+        }
+        if (m.backwardTimes > 0 && !jumped) {
+            if (pass < m.backwardTimes) {
+                ++pass;
+                i = repeatStart;
+                continue;
+            }
+            pass        = 1;
+            repeatStart = i + 1;
+        } else if (m.endingCloses && !jumped) {
+            pass        = 1;
+            repeatStart = i + 1;
+        }
+        if (!jumped && m.daCapo) {
+            jumped = true;
+            i      = 0;
+            continue;
+        }
+        if (!jumped && !m.dalSegno.empty()) {
+            if (const auto segno = findMarker(flow, &MeasureFlow::segno, m.dalSegno)) {
+                jumped = true;
+                i      = *segno;
+                continue;
+            }
+        }
+        ++i;
+    }
+    return order;
+}
+
 // ── Intermediate representation ────────────────────────────────────────────
 // Positions stay in quarter notes until the very end, because tempo can change
 // mid-piece and seconds are only meaningful once the tempo map is complete.
@@ -94,6 +302,7 @@ struct RawEvent {
     double durationQuarters = 0.0;
     int    midi             = -1;
     int    measure          = 0;
+    int    playedMeasure    = 0;   ///< position in performance order; numbers repeat
     bool   isRest           = false;
     bool   tieStart         = false;
     bool   tieStop          = false;
@@ -324,8 +533,27 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     bool   sawTimeSignature    = false;
     bool   sawKey              = false;
 
+    std::vector<pugi::xml_node> measures;
     for (const auto measure : part.children("measure")) {
-        measureNumber = measure.attribute("number").as_int(measureNumber + 1);
+        measures.push_back(measure);
+    }
+    std::vector<std::size_t> order;
+    if (options.expandRepeats) {
+        order = performanceOrder(readFlow(measures));
+    } else {
+        order.resize(measures.size());
+        for (std::size_t i = 0; i < order.size(); ++i) {
+            order[i] = i;
+        }
+    }
+
+    int playedMeasure = 0;
+    for (const std::size_t measureIndex : order) {
+        const pugi::xml_node measure = measures[measureIndex];
+        ++playedMeasure;
+        // The number attribute is the printed one, which is what a player
+        // looks for on the page; a measure heard twice reports it twice.
+        measureNumber = measure.attribute("number").as_int(static_cast<int>(measureIndex) + 1);
         const double measureStart = quarterCursor;
 
         for (const auto element : measure.children()) {
@@ -387,6 +615,7 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
 
             RawEvent event;
             event.measure          = measureNumber;
+            event.playedMeasure    = playedMeasure;
             event.startQuarters    = isChord ? lastOnsetQuarters : quarterCursor;
             event.durationQuarters = isChord ? lastDurationQuarters : durQuarters;
 
@@ -499,8 +728,8 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     int    currentMeasure       = -1;
 
     for (const auto& event : merged) {
-        if (event.measure != currentMeasure) {
-            currentMeasure       = event.measure;
+        if (event.playedMeasure != currentMeasure) {
+            currentMeasure       = event.playedMeasure;
             measureStartQuarters = event.startQuarters;
         }
 

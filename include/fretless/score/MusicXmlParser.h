@@ -3,7 +3,8 @@
 //
 //  Replaces music21. Handles the parts of the format that actually occur in
 //  violin repertoire: divisions changes, multi-voice backup/forward, chords,
-//  ties, dots, grace notes, mid-piece tempo changes and pickup measures.
+//  ties, dots, grace notes, mid-piece tempo changes, pickup measures, and
+//  repeats, voltas, D.C., D.S., Fine and Coda expanded into performance order.
 // ═══════════════════════════════════════════════════════════════════════════
 #pragma once
 
@@ -25,6 +26,11 @@ struct ParseOptions {
 
     /// Merge tied notes into a single sustained event instead of re-attacking.
     bool mergeTies = true;
+
+    /// Play repeats, voltas, D.C., D.S., Fine and Coda in performance order.
+    /// Off gives the page as printed, measure after measure, which is what a
+    /// player wants when drilling one passage rather than playing the piece.
+    bool expandRepeats = true;
 };
 
 /// Parses `path` (.musicxml, .xml, or .mxl). Returns nullopt and fills

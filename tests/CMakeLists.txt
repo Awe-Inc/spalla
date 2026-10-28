@@ -6,6 +6,7 @@ add_executable(fretless_tests
     test_pitch_detector.cpp
     test_score.cpp
     test_mxl.cpp
+    test_repeats.cpp
     test_game_engine.cpp
     test_curriculum.cpp
 )

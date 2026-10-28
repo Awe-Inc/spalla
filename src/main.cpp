@@ -153,6 +153,40 @@ int testAudio(double seconds, int deviceIndex, bool sharedMode) {
     return 0;
 }
 
+/// The measures in the order they are played, as runs: "1-12, 1-10, 13-20".
+/// The event dump below stops at forty notes, which is before the first
+/// repeat in most pieces, so this is the only way to see the expansion.
+void printMeasureOrder(const fretless::score::Score& s) {
+    std::string runs;
+    int runStart = -1;
+    int previous = -1;
+    const auto closeRun = [&] {
+        if (runStart < 0) {
+            return;
+        }
+        runs += runs.empty() ? "" : ", ";
+        runs += std::to_string(runStart);
+        if (previous != runStart) {
+            runs += "-" + std::to_string(previous);
+        }
+    };
+    float previousBeat = 0.0f;
+    for (const auto& event : s.events) {
+        const bool sameBar = event.measure == previous && event.beat > previousBeat;
+        previousBeat = event.beat;
+        if (sameBar) {
+            continue;
+        }
+        if (runStart < 0 || event.measure != previous + 1) {
+            closeRun();
+            runStart = event.measure;
+        }
+        previous = event.measure;
+    }
+    closeRun();
+    std::printf("measures   : %s\n", runs.c_str());
+}
+
 int testScore(const char* path) {
     std::string error;
     const auto score = fretless::score::parseMusicXml(path, &error);
@@ -168,7 +202,9 @@ int testScore(const char* path) {
     std::printf("key        : %d fifths\n", s.keyFifths);
     std::printf("events     : %zu (%zu notes, %zu rests)\n",
                 s.events.size(), s.noteCount(), s.events.size() - s.noteCount());
-    std::printf("duration   : %.2f s\n\n", s.durationSeconds());
+    std::printf("duration   : %.2f s\n", s.durationSeconds());
+    printMeasureOrder(s);
+    std::printf("\n");
 
     const std::size_t limit = s.events.size() < 40 ? s.events.size() : 40;
     for (std::size_t i = 0; i < limit; ++i) {

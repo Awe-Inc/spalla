@@ -131,7 +131,7 @@ Attribution and the full list land in `assets/songs/community/ATTRIBUTION.md`.
 | Pitch accuracy | untested | **≤1 cent** on all four open strings (measured through the sound card) |
 | Notation | Verovio → SVG → embedded Chromium | native OpenGL primitives |
 | Judgement | once per 11 ms audio block | **once per note** |
-| Tests | none | 62 cases, incl. a concurrent queue stress test |
+| Tests | none | 74 cases, incl. a concurrent queue stress test |
 
 The judgement change is the important one. Grading every audio block meant a
 whole note counted about 85 times and a sixteenth counted twice: "accuracy" was
@@ -348,7 +348,7 @@ both: this one reproduces the printed fingering note for note.
 test.bat
 ```
 
-62 cases, no external test framework (a test dependency is a dependency CI can
+74 cases, no external test framework (a test dependency is a dependency CI can
 fail to fetch). Notable coverage:
 
 - **`ring_buffer_is_correct_under_concurrent_producer_and_consumer`** — 200 000
@@ -375,6 +375,12 @@ fail to fetch). Notable coverage:
 - **`a_generated_bar_is_never_left_half_full`** — a bar that does not add up
   puts every following barline in the wrong place and makes the staff
   unreadable.
+- **`first_and_second_endings_are_taken_in_turn`** and
+  **`after_da_capo_the_repeats_are_not_taken_again_and_the_last_ending_is_played`**
+  — a score plays in performance order: repeats with their `times`, voltas,
+  D.C., D.S., Fine and Coda, read from the `<sound>` playback attributes
+  rather than the printed words. `ParseOptions::expandRepeats = false` gives
+  the page as printed, and `--test-score` prints the order as measure runs.
 - **`a_streak_counts_days_of_practice_not_exercises_last_touched`** — a real
   bug: only the last attempt per exercise was stored, so practising the same
   warm-up every morning read as a streak of one, forever.
@@ -448,8 +454,6 @@ forgetting it is the classic reason achievements "sometimes" fail to unlock.
 
 ## Known gaps
 
-- **Repeats and voltas are not expanded**; the score plays linearly. Fine for
-  practice, wrong for a performance-accurate playthrough.
 - **Beaming is not grouped** — eighths and shorter get an individual flag.
 - **Leaderboard upload** stops at `FindOrCreateLeaderboard`; the async
   `CCallResult` handler that submits the score is not wired up.
