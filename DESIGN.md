@@ -159,7 +159,7 @@ Escala: 13 · 16 · 20 · 28 · 40. Corpo nunca abaixo de 16px; `caption` só em
 | Afinação | `in-tune` / `close` / `off` (+ `-soft` para fundo) |
 | Informação neutra, link | `info` |
 | Cordas | `string-g` `string-d` `string-a` `string-e` |
-| Paleta sépia (item da loja) | os mesmos tokens, redefinidos sob `[data-accent="sepia"]` em `tokens.css`; nenhum componente conhece a paleta |
+| Paleta sépia (livre para todos, em Configurações) | os mesmos tokens, redefinidos sob `[data-accent="sepia"]` em `tokens.css`; nenhum componente conhece a paleta |
 
 Proibido: gradientes decorativos, vidro fosco, neon, sombra colorida, cinza puro (`#808080`) — todo cinza é quente.
 

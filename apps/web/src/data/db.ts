@@ -53,12 +53,9 @@ export interface PracticeDay {
 export interface UserStats {
   key: "me";
   xp: number;
-  resinas: number;
-  freezers: number;
   dailyGoalXp: number;
   frozenDays: string[];
   loopsCompleted: number;
-  unlockedItems: string[];
 }
 
 export interface Achievement {
@@ -108,12 +105,9 @@ export const DEFAULT_DAILY_GOAL_XP = 60;
 export const DEFAULT_USER_STATS: UserStats = {
   key: "me",
   xp: 0,
-  resinas: 0,
-  freezers: 0,
   dailyGoalXp: DEFAULT_DAILY_GOAL_XP,
   frozenDays: [],
   loopsCompleted: 0,
-  unlockedItems: [],
 };
 
 export class FretlessDatabase extends Dexie {
@@ -227,10 +221,6 @@ export async function recordResult(result: ExerciseResult): Promise<void> {
       xp,
       goalMet: xp >= stats.dailyGoalXp,
     });
-    await db.userStats.put({
-      ...stats,
-      xp: stats.xp + (result.xpEarned ?? 0),
-      resinas: stats.resinas + result.stars * 5,
-    });
+    await db.userStats.put({ ...stats, xp: stats.xp + (result.xpEarned ?? 0) });
   });
 }

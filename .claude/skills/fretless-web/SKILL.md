@@ -65,8 +65,9 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  frase da série), tempo.ts and measureMap.ts (pure, tested)
 apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles), sheets.ts (estante:
-                                 importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas,
-                                 loja), spaced.ts (prioridade espaçada), routines.ts (rotinas padrão 15/25/45,
+                                 importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas),
+                                 medals.ts (medalhas bronze/prata/ouro derivadas de results + practiceDays,
+                                 sem tabela própria), spaced.ts (prioridade espaçada), routines.ts (rotinas padrão 15/25/45,
                                  blocos ↔ ExerciseKind, variações, `goalFor`: escalas/tecnica/estudo nascem com
                                  meta de 3 repetições limpas, o resto "uma-vez"; moveBlock/addBlock/removeBlock/
                                  setBlockMinutes/setBlockGoal/goalSummary: helpers puros do editor de rotina,
@@ -77,8 +78,8 @@ apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDay
                                  `closedSeriesDays`/`shouldRaiseTempo`: 3 séries fechadas em dias diferentes pedem
                                  andamento novo), planner.ts (planSession: monta a sessão do dia;
                                  `blockProgress`/`nextOpenBlock`/`sessionProgress` recebem os runs de hoje por
-                                 exercício, não um Set de ids: um bloco só fecha quando a meta fecha), progress.ts (saveRun: resultado + XP + conquistas; bônus de sessão,
-                                 congelador, loja, setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
+                                 exercício, não um Set de ids: um bloco só fecha quando a meta fecha), progress.ts (saveRun: resultado + XP + conquistas + medalhas novas; bônus de sessão,
+                                 setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
                                  de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
                                  pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
                                  estudo/dominada, filtros), importPiece.ts (MusicXML → `db.pieces`, 8 MB, mesmo
@@ -100,7 +101,7 @@ apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/
 apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
-                                 Conquistas, Loja
+                                 Conquistas, Medalhas
 apps/web/src/areas/componentes/  ComponentesPage em /componentes (link em Configurações › Aparência): TokensSection
                                  (cores com swatch e papel, prévia dos 4 temas via `data-theme`/`data-accent` na
                                  subárvore, tipografia, raio/sombra/movimento/layout) + ComponentesSection (cada
@@ -114,7 +115,7 @@ apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados →
                                  CadernoDaAula (tarefas da professora; aberta + bloco combinando vira "Da aula")
 apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela cheia; corda provável = corda solta
                                  mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage
-                                 (TempoClock; som gated pela loja), PedalPage (Drone próprio, nota/oitava/timbre),
+                                 (TempoClock; três sons livres), PedalPage (Drone próprio, nota/oitava/timbre),
                                  LatenciaPage
 apps/web/src/areas/praticar/     PraticarPage (módulos e exercícios; botão "Histórico" em cada exercício já tocado),
                                  HistoricoExercicio (painel: vezes/dias, última vez, melhor resultado, barras das
@@ -135,10 +136,13 @@ kept), so the engine, the staff, the metronome and the result all see "the piece
 
 Gamification is pure data in `data/gamification.ts`: XP per note (Perfect 3, Great 1, ×2 after 20 perfect in a
 row, +50 when the day's session closes), five mastery levels per piece (`masteryOfRun`), achievements checked in
-`saveRun` after every saved result, Resinas = stars × 5. The streak counts days whose XP met `dailyGoalXp`; a
-frozen day bridges the streak without counting. `currentStreak` keeps yesterday's streak alive while today is
-still open. Shop items gate the UI by `userStats.unlockedItems` (`sound:<id>` in TocarControls, `theme:sepia`
-in Configurações; the sepia palette is `[data-accent="sepia"]` overrides in tokens.css). The session planner (`planSession`) assigns review blocks first (weak <70% → spaced), then new pieces
+`saveRun` after every saved result. The streak counts days whose XP met `dailyGoalXp`; a frozen day (legacy
+`userStats.frozenDays`) bridges the streak without counting. `currentStreak` keeps yesterday's streak alive while
+today is still open. Medals (`data/medals.ts`) are derived on read from `results` + `practiceDays`, never stored:
+seven of them, bronze/silver/gold thresholds, `longestStreak` is the best ever so a medal is never lost. They are
+cosmetic by design (the owner's rule, 28/10: reward without changing the experience) — nothing in the UI, sounds or
+palettes is gated by them; the resinas shop was removed and sépia and the three click sounds are free. `saveRun`
+compares `medalProgress` before and after the save and returns `newMedals` for the result screen. The session planner (`planSession`) assigns review blocks first (weak <70% → spaced), then new pieces
 (<2★, lowest level), then the rest by spaced priority with the day's seed; lesson tasks win their block.
 
 ## Rules

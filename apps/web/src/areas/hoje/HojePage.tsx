@@ -3,10 +3,10 @@ import { Link } from "react-router";
 
 import { SESSION_COMPLETE_XP } from "@/data/gamification";
 import { blockProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
-import { freezeDay, grantSessionBonus } from "@/data/progress";
+import { grantSessionBonus } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
 import { BLOCK_LABELS } from "@/data/routines";
-import { Button, Card, EmptyState, GoalDots, PageTitle, ProgressRing } from "@/design/components";
+import { Card, EmptyState, GoalDots, PageTitle, ProgressRing } from "@/design/components";
 
 import { CadernoDaAula } from "./CadernoDaAula";
 import { useTodayPlan } from "./useTodayPlan";
@@ -88,14 +88,7 @@ export function HojePage() {
           <Card className="flex flex-col items-center gap-4">
             <ProgressRing value={today.todayXp} max={today.stats.dailyGoalXp} caption={`de ${today.stats.dailyGoalXp} XP`} />
             <p className="text-center text-body text-ink-muted">{streakSentence(today.streak, frozenToday)}</p>
-            <p className="text-center text-caption text-ink-subtle">
-              {today.todayMinutes} min hoje · {today.stats.resinas} resinas
-            </p>
-            {today.stats.freezers > 0 && !frozenToday && today.todayXp < today.stats.dailyGoalXp ? (
-              <Button variant="ghost" onClick={() => void freezeDay(today.today)}>
-                Congelar hoje ({today.stats.freezers})
-              </Button>
-            ) : null}
+            <p className="text-center text-caption text-ink-subtle">{today.todayMinutes} min hoje</p>
           </Card>
           <Card className="grid gap-2">
             <span className="text-caption text-ink-subtle">Rotina</span>

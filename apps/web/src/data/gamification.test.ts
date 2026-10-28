@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameStats, NoteJudgement } from "@fretless/core";
 
-import { DEFAULT_USER_STATS } from "./db";
-import { achievementsEarned, canBuy, levelForXp, longestPerfectStreak, masteryOfRun, SHOP_ITEMS, xpForRun } from "./gamification";
+import { achievementsEarned, levelForXp, longestPerfectStreak, masteryOfRun, xpForRun } from "./gamification";
 
 function judgements(grades: NoteJudgement["grade"][]): NoteJudgement[] {
   return grades.map((grade, eventIndex) => ({ eventIndex, grade }) as unknown as NoteJudgement);
@@ -48,17 +47,6 @@ describe("achievementsEarned", () => {
 
   it("measures the longest perfect streak, not the total", () => {
     expect(longestPerfectStreak(judgements(["Perfect", "Perfect", "Miss", "Perfect"]))).toBe(2);
-  });
-});
-
-describe("shop", () => {
-  it("sells a freezer repeatedly but a theme only once", () => {
-    const freezer = SHOP_ITEMS.find((item) => item.kind === "freezer")!;
-    const theme = SHOP_ITEMS.find((item) => item.kind === "theme")!;
-    const rich = { ...DEFAULT_USER_STATS, resinas: 500, unlockedItems: [theme.id] };
-    expect(canBuy(rich, freezer)).toBe(true);
-    expect(canBuy(rich, theme)).toBe(false);
-    expect(canBuy({ ...rich, resinas: 10 }, freezer)).toBe(false);
   });
 });
 

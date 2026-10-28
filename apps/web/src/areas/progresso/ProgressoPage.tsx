@@ -3,12 +3,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, localDayKey } from "@/data/db";
 import { levelForXp } from "@/data/gamification";
+import { medalProgress } from "@/data/medals";
 import { Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
 
 import { Conquistas } from "./Conquistas";
 import { Heatmap } from "./Heatmap";
 import { HistoricoPrecisao } from "./HistoricoPrecisao";
-import { Loja } from "./Loja";
+import { Medalhas } from "./Medalhas";
 
 export function ProgressoPage() {
   const core = useCore();
@@ -21,6 +22,7 @@ export function ProgressoPage() {
   const best = bestResultsByExercise(results);
   const level = levelForXp(stats.xp);
   const totalMinutes = Math.round(days.reduce((sum, day) => sum + day.minutes, 0));
+  const medals = medalProgress({ results, days, frozenDays: stats.frozenDays });
   const exercises = core.status === "ready" ? core.core.exercises : [];
 
   if (results.length === 0) {
@@ -92,7 +94,9 @@ export function ProgressoPage() {
         <div className="lg:col-span-2">
           <Conquistas unlocked={achievements} />
         </div>
-        <Loja stats={stats} />
+        <div className="lg:col-span-3">
+          <Medalhas medals={medals} />
+        </div>
       </div>
     </>
   );

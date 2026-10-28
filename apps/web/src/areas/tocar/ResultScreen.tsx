@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import type { BlockGoal } from "@/areas/hoje/useTodayPlan";
 import { ACHIEVEMENTS, MASTERY_LEVELS, type MasteryLevel } from "@/data/gamification";
 import { driftSentence } from "@/data/history";
+import { earnedMedalTitle } from "@/data/medals";
 import type { RunOutcome } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
 import { Button, GoalDots, Stars } from "@/design/components";
@@ -114,6 +115,17 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
               </li>
             );
           })}
+        </ul>
+      ) : null}
+
+      {outcome && outcome.newMedals.length > 0 ? (
+        <ul className="grid gap-2" aria-label="Medalhas novas">
+          {outcome.newMedals.map((medal) => (
+            <li key={medal.id} className="rounded-md bg-primary-soft px-4 py-2 text-body">
+              <span className="font-semibold">Medalha: {earnedMedalTitle(medal)}</span>
+              <span className="text-ink-muted"> · Fica no seu Progresso, sem mudar nada no app.</span>
+            </li>
+          ))}
         </ul>
       ) : null}
 

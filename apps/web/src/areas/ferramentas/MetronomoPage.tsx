@@ -1,10 +1,8 @@
-import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useRef, useState } from "react";
 
 import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
 import { clampBpm, TEMPO_MAX_BPM, TEMPO_MIN_BPM, TempoClock, type ProgressivePlan, type TempoClockSettings } from "@/audio/tempoClock";
-import { db, DEFAULT_USER_STATS } from "@/data/db";
 import { Button, Card, PageTitle } from "@/design/components";
 
 const BEATS_OPTIONS = [2, 3, 4, 6] as const;
@@ -30,7 +28,6 @@ function pillClass(active: boolean): string {
 }
 
 export function MetronomoPage() {
-  const unlockedItems = useLiveQuery(() => db.userStats.get("me"), [])?.unlockedItems ?? DEFAULT_USER_STATS.unlockedItems;
   const [settings, setSettings] = useState<TempoClockSettings>({ bpm: 72, beatsPerMeasure: 4, subdivision: 1, accentFirstBeat: true, sound: "madeira", progressive: null });
   const [plan, setPlan] = useState<ProgressivePlan>(DEFAULT_PLAN);
   const [isRunning, setIsRunning] = useState(false);
@@ -68,7 +65,6 @@ export function MetronomoPage() {
     setIsRunning(true);
   }
 
-  const soundUnlocked = (sound: ClickSound) => sound === "madeira" || unlockedItems.includes(`sound:${sound}`);
   const isProgressive = settings.progressive !== null;
 
   return (
@@ -114,9 +110,8 @@ export function MetronomoPage() {
             </label>
             <select className={FIELD_CLASS} value={settings.sound} aria-label="Som" onChange={(event) => patch({ sound: event.target.value as ClickSound })}>
               {(Object.keys(CLICK_SOUNDS) as ClickSound[]).map((sound) => (
-                <option key={sound} value={sound} disabled={!soundUnlocked(sound)}>
+                <option key={sound} value={sound}>
                   {CLICK_SOUNDS[sound].label}
-                  {soundUnlocked(sound) ? "" : " (na loja)"}
                 </option>
               ))}
             </select>

@@ -1,13 +1,12 @@
 import type { GameStats, NoteJudgement } from "@fretless/core";
 
-import type { ExerciseResult, UserStats } from "./db";
+import type { ExerciseResult } from "./db";
 
 export const XP_PERFECT = 3;
 export const XP_GREAT = 1;
 export const COMBO_MULTIPLIER_AT = 20;
 export const COMBO_MULTIPLIER = 2;
 export const SESSION_COMPLETE_XP = 50;
-export const FREEZER_COST_RESINAS = 100;
 
 export function xpForRun(judgements: readonly NoteJudgement[]): number {
   let perfectStreak = 0;
@@ -96,26 +95,6 @@ export function longestPerfectStreak(judgements: readonly NoteJudgement[]): numb
     longest = Math.max(longest, current);
   }
   return longest;
-}
-
-export interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  priceResinas: number;
-  kind: "sound" | "theme" | "freezer";
-}
-
-export const SHOP_ITEMS: readonly ShopItem[] = [
-  { id: "freezer", name: "Congelador de ofensiva", description: "Protege a sequência por um dia sem praticar.", priceResinas: FREEZER_COST_RESINAS, kind: "freezer" },
-  { id: "sound:digital", name: "Clique digital", description: "Som de metrônomo eletrônico, mais seco.", priceResinas: 40, kind: "sound" },
-  { id: "sound:suave", name: "Clique suave", description: "Som de metrônomo redondo, para notas longas.", priceResinas: 40, kind: "sound" },
-  { id: "theme:sepia", name: "Tema sépia", description: "Tons de papel antigo para o app inteiro.", priceResinas: 80, kind: "theme" },
-];
-
-export function canBuy(stats: UserStats, item: ShopItem): boolean {
-  if (stats.resinas < item.priceResinas) return false;
-  return item.kind === "freezer" || !stats.unlockedItems.includes(item.id);
 }
 
 export function levelForXp(xp: number): { level: number; intoLevel: number; needed: number } {

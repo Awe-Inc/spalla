@@ -44,10 +44,9 @@ function RadioGroup<T extends string | number>({ name, value, options, onChange 
 export function ConfiguracoesPage() {
   const settings = useSettings();
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
-  const sepiaUnlocked = stats.unlockedItems.includes("theme:sepia");
   const accentOptions: { value: Accent; label: string }[] = [
     { value: "padrao", label: "Verniz" },
-    ...(sepiaUnlocked ? [{ value: "sepia" as const, label: "Sépia" }] : []),
+    { value: "sepia", label: "Sépia" },
   ];
 
   return (
@@ -59,15 +58,6 @@ export function ConfiguracoesPage() {
           <div className="grid gap-2">
             <span className="text-caption text-ink-subtle">Paleta</span>
             <RadioGroup name="accent" value={settings.accent} options={accentOptions} onChange={settings.setAccent} />
-            {!sepiaUnlocked ? (
-              <p className="text-caption text-ink-subtle">
-                O tema sépia se compra com resinas na{" "}
-                <Link to="/progresso" className="font-semibold text-primary">
-                  loja
-                </Link>
-                .
-              </p>
-            ) : null}
           </div>
           <p className="text-caption text-ink-subtle">
             Quer ver as cores, as fontes e os componentes do app?{" "}
