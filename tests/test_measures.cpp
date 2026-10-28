@@ -35,6 +35,10 @@ std::string note(int duration, const char* step = "A") {
            "</duration></note>";
 }
 
+std::string rest(int duration) {
+    return "<note><rest/><duration>" + std::to_string(duration) + "</duration></note>";
+}
+
 std::string notes(int count, int duration) {
     std::string out;
     for (int i = 0; i < count; ++i) {
@@ -52,9 +56,9 @@ std::string tempo(int bpm) {
     return "<direction><sound tempo=\"" + std::to_string(bpm) + "\"/></direction>";
 }
 
-Score parse(const std::string& xml) {
+Score parse(const std::string& xml, const ParseOptions& options = {}) {
     std::string error;
-    auto score = parseMusicXmlBuffer(xml.c_str(), xml.size(), &error);
+    auto score = parseMusicXmlBuffer(xml.c_str(), xml.size(), &error, options);
     if (!score.has_value()) {
         ::testing::reportFailure(__FILE__, __LINE__, "parse failed: " + error);
         return {};
@@ -201,4 +205,69 @@ TEST(a_generated_exercise_carries_its_measures) {
     CHECK_NEAR(score.measures[2].startQuarters, 6.0, 1e-9);
     CHECK_NEAR(score.measures[2].startSeconds, 4.0, 1e-9);
     CHECK_EQ(score.events[3].measureIndex, 1);
+}
+
+TEST(a_silent_introduction_is_cut_to_the_bar_of_the_first_note) {
+    const Score score = parse(piece({rest(8), rest(8), note(8, "B"), note(8)}, kFourFour));
+    CHECK_EQ(score.measures.size(), std::size_t{2});
+    CHECK_EQ(score.events.size(), std::size_t{2});
+    if (score.measures.size() != 2 || score.events.size() != 2) {
+        return;
+    }
+    CHECK_EQ(score.measures[0].number, 3);
+    CHECK_NEAR(score.measures[0].startSeconds, 0.0, 1e-9);
+    CHECK_NEAR(score.measures[0].startQuarters, 0.0, 1e-9);
+    CHECK_NEAR(score.events[0].startSeconds, 0.0, 1e-9);
+    CHECK_EQ(score.events[0].measure, 3);
+    CHECK_EQ(score.events[0].measureIndex, 0);
+    CHECK_NEAR(score.events[0].beat, 1.0f, 1e-6);
+    CHECK_NEAR(score.durationSeconds(), 8.0, 1e-9);
+    CHECK_NEAR(score.trimmedIntroSeconds, 8.0, 1e-9);
+}
+
+TEST(rests_inside_the_bar_of_the_first_note_are_kept) {
+    const Score score = parse(piece({rest(8), rest(4) + note(4)}, kFourFour));
+    CHECK_EQ(score.events.size(), std::size_t{2});
+    if (score.events.size() != 2) {
+        return;
+    }
+    CHECK(score.events[0].isRest);
+    CHECK_NEAR(score.events[1].startSeconds, 2.0, 1e-9);
+    CHECK_NEAR(score.events[1].beat, 3.0f, 1e-6);
+}
+
+TEST(the_tempo_reached_during_the_introduction_carries_over) {
+    const Score score = parse(piece({rest(8), tempo(120) + rest(8), note(8)}, kFourFour));
+    CHECK_NEAR(score.beatsPerMinute, 120.0, 1e-9);
+    CHECK_EQ(score.tempoMap.size(), std::size_t{1});
+    if (score.tempoMap.empty() || score.events.empty()) {
+        return;
+    }
+    CHECK_NEAR(score.tempoMap[0].quarterPosition, 0.0, 1e-9);
+    CHECK_NEAR(score.events[0].durationSeconds, 2.0, 1e-9);
+}
+
+TEST(the_opening_meter_is_the_meter_where_the_playing_starts) {
+    const Score score = parse(piece(
+        {rest(8), "<attributes>" + meter(3, 4) + "</attributes>" + note(6)}, kFourFour));
+    CHECK_EQ(score.beatsPerMeasure, 3);
+    CHECK_EQ(score.beatUnit, 4);
+}
+
+TEST(a_piece_that_starts_playing_at_once_is_left_alone) {
+    const Score score = parse(piece({note(2), note(6)}, kThreeFour, " implicit=\"yes\""));
+    CHECK_EQ(score.measures.size(), std::size_t{2});
+    CHECK_NEAR(score.trimmedIntroSeconds, 0.0, 1e-9);
+    if (score.measures.empty()) {
+        return;
+    }
+    CHECK_NEAR(score.measures[0].beatOffset, 2.0, 1e-9);
+}
+
+TEST(the_introduction_can_be_kept) {
+    ParseOptions options;
+    options.trimSilentIntro = false;
+    const Score score = parse(piece({rest(8), note(8)}, kFourFour), options);
+    CHECK_EQ(score.measures.size(), std::size_t{2});
+    CHECK_EQ(score.events.size(), std::size_t{2});
 }

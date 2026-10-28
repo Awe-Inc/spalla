@@ -150,6 +150,10 @@ struct Score {
     std::vector<TempoMark>  tempoMap;
     std::vector<MeasureMark> measures; ///< performance order, contiguous
 
+    /// Seconds of written time cut off the front by `trimSilentIntro`, at the
+    /// written tempo. Zero when the part plays from its first bar.
+    double trimmedIntroSeconds = 0.0;
+
     /// The bar sounding at `timeSeconds`, or `measures.size()` outside the
     /// piece (before the first bar or after the last one ends).
     [[nodiscard]] std::size_t measureIndexAt(double timeSeconds) const noexcept;
@@ -187,6 +191,16 @@ struct Score {
     /// original first tempo mark said `beatsPerMinute`. Cheap: it only
     /// multiplies the precomputed seconds.
     void applyTempoScale(double scale);
+
+    /// Drops the bars before the one holding the first note. A voice part
+    /// often opens with twenty seconds of rests while the piano plays its
+    /// introduction, and with no piano in the app that is twenty seconds of
+    /// staring at an empty staff before every attempt. The bar of the first
+    /// note is kept whole, so a note that enters on beat 3 still reads as
+    /// beat 3 and the count-in lands on its downbeat. Printed measure numbers
+    /// are kept; the timeline, the tempo map and the opening tempo and meter
+    /// start from the cut. Must run before `applyTempoScale`.
+    void trimSilentIntro();
 
     [[nodiscard]] double tempoScale() const noexcept { return tempoScale_; }
 

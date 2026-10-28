@@ -31,6 +31,10 @@ struct ParseOptions {
     /// Off gives the page as printed, measure after measure, which is what a
     /// player wants when drilling one passage rather than playing the piece.
     bool expandRepeats = true;
+
+    /// Start at the bar of the first note instead of sitting through the
+    /// rests of an accompaniment's introduction. See Score::trimSilentIntro.
+    bool trimSilentIntro = true;
 };
 
 /// Parses `path` (.musicxml, .xml, or .mxl). Returns nullopt and fills

@@ -822,6 +822,9 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
         score.events.push_back(out);
     }
 
+    if (options.trimSilentIntro) {
+        score.trimSilentIntro();
+    }
     return score;
 }
 

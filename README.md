@@ -116,6 +116,12 @@ Debussy, Schumann, Elgar, Wolf and others — from the **OpenScore Lieder
 Corpus**, released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
 CC0 is a public domain dedication, so redistributing them here is unambiguous.
 
+Being songs, many open with the piano alone — Am Wasserfall has twelve bars
+and 20 seconds of rests in the voice part before it sings. The parser starts
+the timeline at the bar of the first note instead, keeping that bar whole and
+its printed number, so the count-in lands on its downbeat and the measure
+numbers still match the printed page.
+
 ```bash
 python tools/fetch_library.py --count 120
 ```
@@ -139,7 +145,7 @@ Attribution and the full list land in `assets/songs/community/ATTRIBUTION.md`.
 | Pitch accuracy | untested | **≤1 cent** on all four open strings (measured through the sound card) |
 | Notation | Verovio → SVG → embedded Chromium | native OpenGL primitives |
 | Judgement | once per 11 ms audio block | **once per note** |
-| Tests | none | 94 cases, incl. a concurrent queue stress test |
+| Tests | none | 100 cases, incl. a concurrent queue stress test |
 
 The judgement change is the important one. Grading every audio block meant a
 whole note counted about 85 times and a sixteenth counted twice: "accuracy" was
@@ -356,7 +362,7 @@ both: this one reproduces the printed fingering note for note.
 test.bat
 ```
 
-94 cases, no external test framework (a test dependency is a dependency CI can
+100 cases, no external test framework (a test dependency is a dependency CI can
 fail to fetch). Notable coverage:
 
 - **`ring_buffer_is_correct_under_concurrent_producer_and_consumer`** — 200 000
@@ -400,6 +406,10 @@ fail to fetch). Notable coverage:
   **`a_time_signature_change_is_kept_per_measure`** — barlines used to be a
   grid from the first tempo and the first meter, which put them in the wrong
   place in a third of the bundled songs.
+- **`a_silent_introduction_is_cut_to_the_bar_of_the_first_note`** and
+  **`a_piece_that_starts_playing_at_once_is_left_alone`** — the voice parts
+  open with up to 20 s of rests under the piano introduction; the cut keeps
+  the bar of the first note whole and leaves pickups untouched.
 - **`a_streak_counts_days_of_practice_not_exercises_last_touched`** — a real
   bug: only the last attempt per exercise was stored, so practising the same
   warm-up every morning read as a streak of one, forever.

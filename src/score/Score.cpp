@@ -209,4 +209,56 @@ void Score::applyTempoScale(double scale) {
     tempoScale_ = scale;
 }
 
+void Score::trimSilentIntro() {
+    const auto firstNote = std::find_if(events.begin(), events.end(),
+                                        [](const ScoreEvent& e) { return !e.isRest; });
+    if (firstNote == events.end() || firstNote->measureIndex <= 0 ||
+        static_cast<std::size_t>(firstNote->measureIndex) >= measures.size()) {
+        return;
+    }
+    const int    dropped     = firstNote->measureIndex;
+    const MeasureMark& cut   = measures[static_cast<std::size_t>(dropped)];
+    const double cutSeconds  = cut.startSeconds;
+    const double cutQuarters = cut.startQuarters;
+    // Same tolerance the parser uses for onsets: anything this close to the
+    // cut is on it, not before it.
+    constexpr double kEpsilon = 1.0 / 512.0;
+
+    beatsPerMeasure = cut.beats;
+    beatUnit        = cut.beatUnit;
+
+    std::vector<TempoMark> tempos;
+    double tempoAtCut = beatsPerMinute;
+    for (const auto& t : tempoMap) {
+        if (t.quarterPosition <= cutQuarters + kEpsilon) {
+            tempoAtCut = t.beatsPerMinute;
+        } else {
+            tempos.push_back({t.quarterPosition - cutQuarters, t.beatsPerMinute});
+        }
+    }
+    tempos.insert(tempos.begin(), TempoMark{0.0, tempoAtCut});
+    tempoMap       = std::move(tempos);
+    beatsPerMinute = tempoAtCut;
+
+    measures.erase(measures.begin(), measures.begin() + dropped);
+    for (auto& m : measures) {
+        m.startSeconds  -= cutSeconds;
+        m.endSeconds    -= cutSeconds;
+        m.startQuarters -= cutQuarters;
+    }
+
+    // Only rests can start before the cut: the first note is in the cut bar.
+    std::erase_if(events, [&](const ScoreEvent& e) {
+        return e.startQuarters < cutQuarters - kEpsilon;
+    });
+    for (auto& e : events) {
+        e.startSeconds  -= cutSeconds;
+        e.startQuarters -= cutQuarters;
+        if (e.measureIndex >= 0) {
+            e.measureIndex -= dropped;
+        }
+    }
+    trimmedIntroSeconds = cutSeconds;
+}
+
 }  // namespace fretless::score
