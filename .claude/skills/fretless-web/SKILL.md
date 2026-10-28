@@ -78,5 +78,10 @@ apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the s
   `mic.status.status` and the stable callbacks (`start`, `stop`, `takeFrames`). The result save in `TocarPage` is
   guarded by a ref (`savedRunRef`), because the effect used to fire several times per finished run and inflate
   `practiceDays`.
+- **pnpm only runs from Git Bash on this machine.** The global pnpm 12 never installed its native binary, so
+  `%APPDATA%\npm\pnpm.cmd` points at a shell script Windows cannot execute ("não é reconhecido como um comando").
+  Anything that spawns `pnpm` through cmd (the app's browser preview, `.claude/launch.json`, a root script such as
+  `pnpm dev` that calls `pnpm --filter`) must run `node %APPDATA%\npm\node_modules\pnpm\bin\pnpm.mjs --dir apps/web dev`
+  instead, as `.claude/launch.json` does.
 - **Streak uses the local calendar day.** `localDayKey` in `db.ts`; `toISOString().slice(0, 10)` is UTC and breaks
   the streak for anyone practising after 21:00 in Brazil.
