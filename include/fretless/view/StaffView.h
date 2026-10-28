@@ -2,9 +2,9 @@
 //  StaffView.h — scrolling treble-clef notation, drawn natively.
 //
 //  Replaces the Verovio + embedded-Chromium pipeline. Note heads, stems,
-//  ledger lines, accidentals and barlines are primitives in the same batch as
-//  everything else, so the staff scrolls at display rate instead of being a
-//  web page told to translate itself.
+//  beams, ledger lines, accidentals and barlines are primitives in the same
+//  batch as everything else, so the staff scrolls at display rate instead of
+//  being a web page told to translate itself.
 //
 //  Staff geometry follows the convention: the bottom line is E4, every step
 //  up the diatonic ladder moves half a line space.
@@ -18,6 +18,7 @@
 #include "fretless/render/FontSet.h"
 #include "fretless/render/Rect.h"
 #include "fretless/render/Renderer2D.h"
+#include "fretless/score/Beaming.h"
 #include "fretless/score/Score.h"
 
 namespace fretless::view {
@@ -42,6 +43,7 @@ public:
 private:
     render::Rect bounds_{};
     std::vector<std::size_t> visible_;
+    std::vector<score::BeamGroup> beams_;
 };
 
 }  // namespace fretless::view

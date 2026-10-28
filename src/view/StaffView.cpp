@@ -59,6 +59,146 @@ using namespace fretless::app::theme;
 constexpr int kSharpPositions[7] = {8, 5, 9, 6, 3, 7, 4};   // F C G D A E B
 constexpr int kFlatPositions[7]  = {4, 7, 3, 6, 2, 5, 1};   // B E A D G C F
 
+/// The middle line. Notes below it take a stem up, as in any engraving.
+constexpr int kMiddleLinePosition = 4;
+
+/// Where on screen a note lands this frame. Shared by the note pass and the
+/// beam pass, which must agree to the pixel or stems miss their beam.
+struct StaffGeometry {
+    float  spacing   = 0.0f;
+    float  bottomY   = 0.0f;
+    float  cursorX   = 0.0f;
+    float  pps       = 0.0f;
+    float  headWidth = 0.0f;
+    double songTime  = 0.0;
+
+    [[nodiscard]] float x(const score::ScoreEvent& note) const noexcept {
+        return cursorX + static_cast<float>(note.startSeconds - songTime) * pps;
+    }
+    [[nodiscard]] float y(const score::ScoreEvent& note) const noexcept {
+        return bottomY - static_cast<float>(staffPosition(note)) * spacing * 0.5f;
+    }
+    [[nodiscard]] float stemX(const score::ScoreEvent& note, bool stemUp) const noexcept {
+        return x(note) + (stemUp ? headWidth * 0.44f : -headWidth * 0.44f);
+    }
+    [[nodiscard]] float stemLength() const noexcept { return spacing * 3.3f; }
+    [[nodiscard]] float beamThickness() const noexcept { return spacing * 0.42f; }
+    [[nodiscard]] float beamGap() const noexcept { return spacing * 0.72f; }
+};
+
+/// The straight line a beam group's stems end on, as y = y0 + slope·(x − x0).
+struct BeamLine {
+    bool  stemUp = true;
+    int   levels = 1;
+    float x0     = 0.0f;
+    float y0     = 0.0f;
+    float slope  = 0.0f;
+
+    [[nodiscard]] float yAt(float x) const noexcept { return y0 + slope * (x - x0); }
+};
+
+/// One stem direction for the whole group, decided by where the group sits
+/// on average, then a beam from the first stem tip to the last. The slope is
+/// capped at a line space so a leap does not stand the beam on end, and the
+/// whole line slides away from the heads until the shortest stem still reads.
+[[nodiscard]] BeamLine layoutBeam(const score::Score& score, const score::BeamGroup& group,
+                                  const StaffGeometry& geometry) {
+    const auto& events = score.events;
+    BeamLine    beam;
+    int         positionSum = 0;
+    for (std::size_t i = group.first; i <= group.last; ++i) {
+        positionSum += staffPosition(events[i]);
+        beam.levels = std::max(beam.levels,
+                               score::beamCount(score::durationQuarters(score, i)));
+    }
+    const int count = static_cast<int>(group.last - group.first + 1);
+    beam.stemUp     = positionSum < kMiddleLinePosition * count;
+
+    const float direction = beam.stemUp ? -1.0f : 1.0f;
+    const auto& first     = events[group.first];
+    const auto& last      = events[group.last];
+    beam.x0 = geometry.stemX(first, beam.stemUp);
+    beam.y0 = geometry.y(first) + direction * geometry.stemLength();
+
+    const float x1 = geometry.stemX(last, beam.stemUp);
+    if (x1 > beam.x0) {
+        const float idealRise = geometry.y(last) - geometry.y(first);
+        const float rise      = std::clamp(idealRise, -geometry.spacing, geometry.spacing);
+        beam.slope            = rise / (x1 - beam.x0);
+    }
+
+    // Inner beams sit closer to the heads, so the stems need room for them.
+    const float shortestStem = geometry.spacing * 2.5f +
+                               static_cast<float>(beam.levels - 1) * geometry.beamGap();
+    float shift = 0.0f;
+    for (std::size_t i = group.first; i <= group.last; ++i) {
+        const float tip   = beam.yAt(geometry.stemX(events[i], beam.stemUp));
+        const float reach = (geometry.y(events[i]) - tip) * -direction;
+        shift = std::max(shift, shortestStem - reach);
+    }
+    beam.y0 += direction * shift;
+    return beam;
+}
+
+/// The beam group holding `index`, or nullptr when the note stands alone.
+[[nodiscard]] const score::BeamGroup* groupOf(const std::vector<score::BeamGroup>& groups,
+                                              std::size_t index) noexcept {
+    const auto after = std::upper_bound(
+        groups.begin(), groups.end(), index,
+        [](std::size_t value, const score::BeamGroup& group) { return value < group.first; });
+    if (after == groups.begin()) {
+        return nullptr;
+    }
+    const auto& candidate = *(after - 1);
+    return index <= candidate.last ? &candidate : nullptr;
+}
+
+/// Beams, inner levels included. A level runs across every stretch of notes
+/// short enough to carry it; a single such note gets a stub pointing into
+/// the group, the way a dotted eighth and sixteenth are engraved.
+void drawBeams(render::Renderer2D& renderer, const score::Score& score,
+               const score::BeamGroup& group, const BeamLine& beam,
+               const StaffGeometry& geometry, render::Color color) {
+    const auto& events    = score.events;
+    const float inward    = beam.stemUp ? 1.0f : -1.0f;
+    const float thickness = geometry.beamThickness();
+    const float stub      = geometry.headWidth * 0.9f;
+
+    const auto drawSegment = [&](float xa, float xb, int level) {
+        const float offset = inward * (thickness * 0.5f +
+                                       static_cast<float>(level) * geometry.beamGap());
+        renderer.drawLine(xa, beam.yAt(xa) + offset, xb, beam.yAt(xb) + offset,
+                          thickness, color);
+    };
+    const auto carries = [&](std::size_t i, int level) {
+        return score::beamCount(score::durationQuarters(score, i)) > level;
+    };
+
+    drawSegment(beam.x0, geometry.stemX(events[group.last], beam.stemUp), 0);
+    for (int level = 1; level < beam.levels; ++level) {
+        std::size_t i = group.first;
+        while (i <= group.last) {
+            if (!carries(i, level)) {
+                ++i;
+                continue;
+            }
+            std::size_t end = i;
+            while (end < group.last && carries(end + 1, level)) {
+                ++end;
+            }
+            const float xa = geometry.stemX(events[i], beam.stemUp);
+            if (end > i) {
+                drawSegment(xa, geometry.stemX(events[end], beam.stemUp), level);
+            } else if (i == group.last) {
+                drawSegment(xa - stub, xa, level);
+            } else {
+                drawSegment(xa, xa + stub, level);
+            }
+            i = end + 1;
+        }
+    }
+}
+
 }  // namespace
 
 void StaffView::drawEmpty(render::Renderer2D& renderer, const render::FontSet& fonts) {
@@ -157,15 +297,18 @@ void StaffView::draw(render::Renderer2D& renderer,
     const float headHeight = spacing * 0.92f;
     const float headWidth  = headHeight * 1.32f;
 
+    const StaffGeometry geometry{spacing, bottomY, cursorX, pps, headWidth, songTime};
+    score::findBeamGroups(score, beams_);
+
     for (const std::size_t index : visible_) {
         const auto& note = score.events[index];
-        const float x = cursorX + static_cast<float>(note.startSeconds - songTime) * pps;
+        const float x = geometry.x(note);
         if (x < bounds_.x - 30.0f || x > bounds_.right() + 30.0f) {
             continue;
         }
 
         const int   position = staffPosition(note);
-        const float y = bottomY - static_cast<float>(position) * spacing * 0.5f;
+        const float y = geometry.y(note);
 
         render::Color color = ink;
         if (index < cursorIndex) {
@@ -192,7 +335,7 @@ void StaffView::draw(render::Renderer2D& renderer,
         }
 
         // ── Head, stem, accidental ────────────────────────────────────────
-        const double quarters = (note.durationSeconds * score.beatsPerMinute) / 60.0;
+        const double quarters = score::durationQuarters(score, index);
         const bool   isHollow = quarters >= 1.75;
         const bool   hasStem  = quarters < 3.5;
 
@@ -207,17 +350,26 @@ void StaffView::draw(render::Renderer2D& renderer,
                                      headWidth, headHeight, headHeight * 0.5f, color);
         }
 
-        if (hasStem) {
-            const bool stemUp = position < 4;
-            const float stemLength = spacing * 3.3f;
-            const float stemX = stemUp ? (x + headWidth * 0.44f) : (x - headWidth * 0.44f);
+        if (const auto* group = groupOf(beams_, index); group != nullptr) {
+            // The stem runs to the group's beam; the beam pass draws the rest.
+            const BeamLine beam  = layoutBeam(score, *group, geometry);
+            const float    stemX = geometry.stemX(note, beam.stemUp);
+            const float    tip   = beam.yAt(stemX);
+            renderer.drawRect(stemX - 0.75f, std::min(tip, y), 1.5f, std::abs(y - tip), color);
+        } else if (hasStem) {
+            const bool stemUp = position < kMiddleLinePosition;
+            const float stemLength = geometry.stemLength();
+            const float stemX = geometry.stemX(note, stemUp);
             const float stemY = stemUp ? (y - stemLength) : y;
             renderer.drawRect(stemX - 0.75f, stemY, 1.5f, stemLength, color);
 
-            // A single flag for anything shorter than a quarter. Beaming
-            // groups properly is a notation engine's job, not a trainer's.
-            if (quarters < 0.9) {
-                const float flagY = stemUp ? stemY : (stemY + stemLength - spacing * 0.9f);
+            // A note with no neighbour to share a beam keeps one flag per
+            // beam it would have carried.
+            const int flags = score::beamCount(quarters);
+            for (int flag = 0; flag < flags; ++flag) {
+                const float step  = static_cast<float>(flag) * geometry.beamGap();
+                const float flagY = stemUp ? (stemY + step)
+                                           : (stemY + stemLength - spacing * 0.9f - step);
                 renderer.drawLine(stemX, flagY, stemX + spacing * 0.75f,
                                   flagY + (stemUp ? spacing * 0.9f : -spacing * 0.9f),
                                   1.8f, color);
@@ -227,6 +379,23 @@ void StaffView::draw(render::Renderer2D& renderer,
         if (note.noteName[1] == '#' || note.noteName[1] == 'b') {
             const char accidental[2] = {note.noteName[1], '\0'};
             renderer.drawText(fontSmall, x - headWidth * 1.35f, y + 4.0f, accidental, color);
+        }
+    }
+
+    // ── Beams ─────────────────────────────────────────────────────────────
+    // In ink rather than the notes' grade colours: one beam spans notes that
+    // were judged differently, and a beam can only be one colour.
+    if (!visible_.empty()) {
+        const std::size_t firstVisible = visible_.front();
+        const std::size_t lastVisible  = visible_.back();
+        for (const auto& group : beams_) {
+            if (group.last < firstVisible) {
+                continue;
+            }
+            if (group.first > lastVisible) {
+                break;
+            }
+            drawBeams(renderer, score, group, layoutBeam(score, group, geometry), geometry, ink);
         }
     }
 

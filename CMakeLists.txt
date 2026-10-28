@@ -114,6 +114,7 @@ set(FRETLESS_AUDIO_SOURCES
 set(FRETLESS_SOURCES
     ${FRETLESS_AUDIO_SOURCES}
     src/score/Score.cpp
+    src/score/Beaming.cpp
     src/score/MusicXmlParser.cpp
     src/game/GameEngine.cpp
     src/game/SyntheticPlayer.cpp
