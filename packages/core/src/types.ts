@@ -166,6 +166,11 @@ export interface NoteJudgement {
   judgedAtSec: number;
 }
 
+export interface MeasureRange {
+  firstIndex: number;
+  lastIndex: number;
+}
+
 export interface SimulationConfig {
   centsBias?: number;
   centsJitter?: number;

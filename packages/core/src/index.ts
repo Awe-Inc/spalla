@@ -8,6 +8,7 @@ import type {
   CurriculumModule,
   Exercise,
   GameStats,
+  MeasureRange,
   NoteJudgement,
   ParseOptions,
   ParseResult,
@@ -89,6 +90,21 @@ export class PracticeSession {
 
   setLeadInSeconds(seconds: number): void {
     this.#raw.setLeadInSeconds(seconds);
+  }
+
+  setMeasureRange(range: MeasureRange | null): boolean {
+    if (range === null) return this.#raw.setMeasureRange(-1, -1);
+    return this.#raw.setMeasureRange(range.firstIndex, range.lastIndex);
+  }
+
+  get measureCount(): number {
+    return this.#raw.measureCount();
+  }
+
+  get measureRange(): MeasureRange | null {
+    const firstIndex = this.#raw.loopFirstMeasure();
+    if (firstIndex < 0) return null;
+    return { firstIndex, lastIndex: this.#raw.loopLastMeasure() };
   }
 
   get score(): Score {

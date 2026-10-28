@@ -38,12 +38,24 @@ apps/web/src/app/                Shell (sidebar ≥ lg, bottom bar below), route
 apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, ferramentas, progresso,
                                  configuracoes, tocar (fullscreen, forced dark)
 apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an AudioWorklet),
-                                 PitchInput.ts (mic + context), usePitchInput.ts, latency.ts
+                                 PitchInput.ts (mic + context), usePitchInput.ts, latency.ts,
+                                 clickTrack.ts (pure click schedule from a Score, tested), metronome.ts
+                                 (Metronome: look-ahead scheduler on the mic AudioContext, 3 sounds),
+                                 drone.ts (Drone: sawtooth + octave through a low-pass, fades in and out)
+apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),
+                                 useAccompaniment (metronome + drone bound to the mic context), TocarControls
+                                 (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
+                                 tempo advice, "repetir compassos"), tempo.ts and measureMap.ts (pure, tested)
 apps/web/src/data/               db.ts (Dexie: results, routines, practiceDays, settings), library.ts
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
 apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested
 apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolling into the playhead
 ```
+
+Loop A-B lives in the core binding, not in the web: `session.setMeasureRange({firstIndex, lastIndex})` replaces the
+session's score by a copy cut to those bars (time and `measureIndex` rebased to zero, tempo map and tempo scale
+kept), so the engine, the staff, the metronome and the result all see "the piece" as just that excerpt.
+`setMeasureRange(null)` restores the full score. A loop run is never saved as a result and restarts by itself.
 
 ## Rules
 
@@ -100,5 +112,12 @@ apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolli
   Anything that spawns `pnpm` through cmd (the app's browser preview, `.claude/launch.json`, a root script such as
   `pnpm dev` that calls `pnpm --filter`) must run `node %APPDATA%\npm\node_modules\pnpm\bin\pnpm.mjs --dir apps/web dev`
   instead, as `.claude/launch.json` does.
+- **`Score::applyTempoScale` is absolute, not cumulative.** It undoes the previous scale before applying the new
+  one, so the binding's `setTempoScale(scale)` must pass the scale itself. It used to pass `scale / current`, which
+  made the second call with the same value reset the tempo to the written one (`core.test.ts`, "treats the tempo
+  scale as absolute"). Anything that re-cuts the score (`setMeasureRange`) must re-apply the scale explicitly, since
+  the copy starts from the unscaled full score.
+- **Zustand 5 selectors that build an object need `useShallow`.** A plain `useSettings((s) => ({a: s.a}))` returns a
+  fresh object every store read and React re-renders forever. `useAccompaniment` is the example.
 - **Streak uses the local calendar day.** `localDayKey` in `db.ts`; `toISOString().slice(0, 10)` is UTC and breaks
   the streak for anyone practising after 21:00 in Brazil.

@@ -144,3 +144,44 @@ describe("loading inside an AudioWorklet", () => {
     expect(loaded.noteName(69)).toBe("Lá4");
   });
 });
+
+describe("tempo and loop", () => {
+  it("treats the tempo scale as absolute, not cumulative", () => {
+    const session = core.createSession();
+    const exercise = core.exercises.find((item) => item.kind === "scale");
+    session.loadExercise(exercise!.id);
+    const written = session.score.beatsPerMinute;
+    session.setTempoScale(0.5);
+    session.setTempoScale(0.5);
+    expect(session.score.tempoScale).toBeCloseTo(0.5);
+    expect(session.score.beatsPerMinute).toBeCloseTo(written * 0.5);
+    session.setTempoScale(1);
+    expect(session.score.beatsPerMinute).toBeCloseTo(written);
+    session.dispose();
+  });
+
+  it("cuts a loop of bars that starts at zero and keeps the tempo", () => {
+    const session = core.createSession();
+    const exercise = core.exercises.find((item) => item.kind === "scale");
+    session.loadExercise(exercise!.id);
+    const full = session.score;
+    expect(session.measureCount).toBe(full.measures.length);
+    expect(full.measures.length).toBeGreaterThan(2);
+    session.setTempoScale(0.8);
+    expect(session.setMeasureRange({ firstIndex: 1, lastIndex: 2 })).toBe(true);
+    const loop = session.score;
+    expect(loop.measures.length).toBe(2);
+    expect(loop.measures[0]!.startSeconds).toBeCloseTo(0);
+    expect(loop.events[0]!.startSeconds).toBeGreaterThanOrEqual(0);
+    expect(loop.events.every((event) => event.measureIndex >= 0 && event.measureIndex <= 1)).toBe(true);
+    expect(loop.tempoScale).toBeCloseTo(0.8);
+    expect(loop.noteCount).toBeLessThan(full.noteCount);
+    expect(session.measureRange).toEqual({ firstIndex: 1, lastIndex: 2 });
+    const stats = session.simulate({ centsBias: 0, centsJitter: 2, seed: 7 });
+    expect(stats.judgedNotes).toBe(loop.noteCount);
+    expect(session.setMeasureRange(null)).toBe(false);
+    expect(session.score.noteCount).toBe(full.noteCount);
+    expect(session.score.tempoScale).toBeCloseTo(0.8);
+    session.dispose();
+  });
+});

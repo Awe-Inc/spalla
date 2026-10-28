@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <emscripten/bind.h>
@@ -374,7 +375,9 @@ public:
         if (exercise == nullptr || !curriculum::isPlayable(exercise->kind)) {
             return false;
         }
-        score_ = curriculum::buildScore(*exercise, seed);
+        full_ = curriculum::buildScore(*exercise, seed);
+        score_ = full_;
+        range_ = {-1, -1};
         attach();
         return true;
     }
@@ -386,17 +389,44 @@ public:
         }
         const std::vector<std::uint8_t> data = emscripten::convertJSArrayToNumberVector<std::uint8_t>(bytes);
         auto parsed = score::parseMusicXmlBuffer(reinterpret_cast<const char*>(data.data()), data.size());
-        score_ = std::move(*parsed);
+        full_ = std::move(*parsed);
+        score_ = full_;
+        range_ = {-1, -1};
         attach();
         return result;
     }
 
     void setTempoScale(double scale) {
-        const double current = score_.tempoScale();
-        if (current > 0.0 && scale > 0.0) {
-            score_.applyTempoScale(scale / current);
+        if (scale > 0.0) {
+            score_.applyTempoScale(scale);
         }
     }
+
+    // A loop is a fresh score cut from the full one, so the engine, the staff
+    // and the result all see "the piece" as just those bars: no special-casing
+    // of a window inside GameEngine, and judgements index the sliced events.
+    // The full score is kept unscaled; the active tempo is reapplied after
+    // the cut so a slowed-down loop stays slowed down.
+    bool setMeasureRange(int firstIndex, int lastIndex) {
+        const double scale = score_.tempoScale();
+        if (firstIndex < 0 || lastIndex < firstIndex ||
+            static_cast<std::size_t>(lastIndex) >= full_.measures.size()) {
+            score_ = full_;
+            range_ = {-1, -1};
+        } else {
+            score_ = sliceMeasures(full_, static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(lastIndex));
+            range_ = {firstIndex, lastIndex};
+        }
+        if (scale > 0.0 && scale != 1.0) {
+            score_.applyTempoScale(scale);
+        }
+        attach();
+        return range_.first >= 0;
+    }
+
+    int measureCount() const { return static_cast<int>(full_.measures.size()); }
+    int loopFirstMeasure() const { return range_.first; }
+    int loopLastMeasure() const { return range_.second; }
 
     void setLeadInSeconds(double seconds) { engine_.setLeadInSeconds(seconds); }
 
@@ -477,9 +507,55 @@ private:
         blockIndex_ = 0;
     }
 
-    score::Score     score_;
-    game::GameEngine engine_;
-    std::uint64_t    blockIndex_ = 0;
+    static score::Score sliceMeasures(const score::Score& full, std::size_t first, std::size_t last) {
+        score::Score cut = full;
+        const score::MeasureMark& head = full.measures[first];
+        const score::MeasureMark& tail = full.measures[last];
+        const double fromSeconds  = head.startSeconds;
+        const double fromQuarters = head.startQuarters;
+        const double toQuarters   = tail.startQuarters + tail.lengthQuarters;
+        constexpr double kEpsilon = 1.0 / 512.0;
+
+        cut.measures.assign(full.measures.begin() + static_cast<std::ptrdiff_t>(first),
+                            full.measures.begin() + static_cast<std::ptrdiff_t>(last) + 1);
+        for (auto& m : cut.measures) {
+            m.startSeconds  -= fromSeconds;
+            m.endSeconds    -= fromSeconds;
+            m.startQuarters -= fromQuarters;
+        }
+        cut.beatsPerMeasure = head.beats;
+        cut.beatUnit        = head.beatUnit;
+
+        cut.events.clear();
+        for (const auto& e : full.events) {
+            if (e.startQuarters < fromQuarters - kEpsilon || e.startQuarters >= toQuarters - kEpsilon) continue;
+            score::ScoreEvent shifted = e;
+            shifted.startSeconds  -= fromSeconds;
+            shifted.startQuarters -= fromQuarters;
+            shifted.measureIndex  -= static_cast<int>(first);
+            cut.events.push_back(shifted);
+        }
+
+        std::vector<score::TempoMark> tempos;
+        double tempoAtCut = full.beatsPerMinute;
+        for (const auto& t : full.tempoMap) {
+            if (t.quarterPosition <= fromQuarters + kEpsilon) {
+                tempoAtCut = t.beatsPerMinute;
+            } else if (t.quarterPosition < toQuarters) {
+                tempos.push_back({t.quarterPosition - fromQuarters, t.beatsPerMinute});
+            }
+        }
+        tempos.insert(tempos.begin(), score::TempoMark{0.0, tempoAtCut});
+        cut.tempoMap       = std::move(tempos);
+        cut.beatsPerMinute = tempoAtCut;
+        return cut;
+    }
+
+    score::Score            full_;
+    score::Score            score_;
+    std::pair<int, int>     range_{-1, -1};
+    game::GameEngine        engine_;
+    std::uint64_t           blockIndex_ = 0;
 };
 
 std::string noteName(int midi, int fifths) { return latinName(midi, fifths); }
@@ -532,6 +608,10 @@ EMSCRIPTEN_BINDINGS(fretless_core) {
         .function("loadMusicXml", &Session::loadMusicXml)
         .function("setTempoScale", &Session::setTempoScale)
         .function("setLeadInSeconds", &Session::setLeadInSeconds)
+        .function("setMeasureRange", &Session::setMeasureRange)
+        .function("measureCount", &Session::measureCount)
+        .function("loopFirstMeasure", &Session::loopFirstMeasure)
+        .function("loopLastMeasure", &Session::loopLastMeasure)
         .function("score", &Session::score)
         .function("start", &Session::start)
         .function("pause", &Session::pause)

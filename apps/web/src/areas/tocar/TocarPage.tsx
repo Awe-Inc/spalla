@@ -1,17 +1,20 @@
-import type { Exercise, GameStats, NoteJudgement, PracticeSession, Score, SessionState } from "@fretless/core";
+import type { GameStats, MeasureRange, NoteJudgement, PracticeSession, SessionState } from "@fretless/core";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 import { useSettings } from "@/app/settings";
+import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
-import { useCore } from "@/core/useCore";
 import { recordResult, starsFor } from "@/data/db";
-import { useLibrary } from "@/data/library";
-import { Button, HeadphoneNotice, InlineError, Stars, StringChip } from "@/design/components";
+import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
 import { Tuner } from "@/design/Tuner";
 import { displayNoteName } from "@/music/noteNames";
 
+import { ResultScreen } from "./ResultScreen";
 import { ScrollingStaff } from "./ScrollingStaff";
+import { TocarControls } from "./TocarControls";
+import { useAccompaniment } from "./useAccompaniment";
+import { LEAD_IN_SECONDS, useSession } from "./useSession";
 
 interface Snapshot {
   state: SessionState;
@@ -22,7 +25,7 @@ interface Snapshot {
   judgements: NoteJudgement[];
 }
 
-const LEAD_IN_SECONDS = 2;
+const LOOP_RESTART_DELAY_MS = 1200;
 
 function readSnapshot(session: PracticeSession): Snapshot {
   return {
@@ -35,51 +38,10 @@ function readSnapshot(session: PracticeSession): Snapshot {
   };
 }
 
-function useSession(exerciseId: string | undefined) {
-  const core = useCore();
-  const piece = useLibrary((state) => state.selected);
-  const [session, setSession] = useState<PracticeSession | null>(null);
-  const [exercise, setExercise] = useState<Exercise | null>(null);
-  const [score, setScore] = useState<Score | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (core.status !== "ready" || !exerciseId) return;
-    const next = core.core.createSession();
-    next.setLeadInSeconds(LEAD_IN_SECONDS);
-    const fail = (message: string) => {
-      next.dispose();
-      setError(message);
-      setExercise(null);
-      setScore(null);
-    };
-    if (exerciseId === "musica") {
-      if (!piece) return fail("Escolha uma música em Músicas antes de tocar.");
-      const parsed = next.loadMusicXml(piece.bytes, { expandRepeats: true, trimSilentIntro: true, mergeTies: true });
-      if (!parsed.ok) return fail(parsed.error);
-      setExercise(null);
-    } else {
-      const found = core.core.findExercise(exerciseId);
-      if (!found || !next.loadExercise(exerciseId, Date.now() >>> 0)) return fail("Esse exercício não existe.");
-      setExercise(found);
-    }
-    setError(null);
-    setScore(next.score);
-    setSession(next);
-    return () => {
-      next.dispose();
-      setSession(null);
-    };
-  }, [core, exerciseId, piece]);
-
-  const resultId = exercise?.id ?? (piece ? `musica:${piece.fileName}` : null);
-  return { core, session, exercise, score, error, resultId };
-}
-
 export function TocarPage() {
   const { exerciseId } = useParams();
   const navigate = useNavigate();
-  const { core, session, exercise, score, error, resultId } = useSession(exerciseId);
+  const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId);
   const mic = usePitchInput();
   const { takeFrames, stop: stopMic, start: startMic } = mic;
   const isListening = mic.status.status === "listening";
@@ -89,10 +51,25 @@ export function TocarPage() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [saved, setSaved] = useState<{ stars: 0 | 1 | 2 | 3 } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [droneOn, setDroneOn] = useState(false);
   const startedAtRef = useRef<number | null>(null);
   const savedRunRef = useRef(false);
 
-  const needsHeadphones = (exercise?.droneMidi ?? 0) > 0 && headphonesConfirmedAt === null;
+  const exerciseDrone = exercise?.droneMidi ?? 0;
+  const droneMidi = exerciseDrone > 0 ? exerciseDrone : DRONE_A4_MIDI;
+  const droneLabel = displayNoteName(coreStatus.status === "ready" ? coreStatus.core.noteName(droneMidi, score?.keyFifths ?? 0) : "A4", naming);
+  const needsHeadphones = (exerciseDrone > 0 || droneOn) && headphonesConfirmedAt === null;
+  const accompaniment = useAccompaniment({
+    input: mic.input.current,
+    isListening,
+    score,
+    leadInSeconds: LEAD_IN_SECONDS,
+    droneMidi: droneOn ? droneMidi : null,
+  });
+
+  useEffect(() => {
+    setDroneOn(exerciseDrone > 0);
+  }, [exerciseDrone]);
 
   useEffect(() => {
     if (!session || !isListening) return;
@@ -108,18 +85,30 @@ export function TocarPage() {
         const slice = dt / frames.length;
         for (const frame of frames) session.update(slice, frame);
       }
+      const state = session.state;
+      if (state === "countdown" || state === "playing") accompaniment.sync(session.songTime);
       setSnapshot(readSnapshot(session));
       handle = requestAnimationFrame(tick);
     };
     handle = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(handle);
-  }, [session, isListening, takeFrames]);
+  }, [session, isListening, takeFrames, accompaniment]);
 
   useEffect(() => {
-    if (!score || !resultId || snapshot?.state !== "finished" || savedRunRef.current || startedAtRef.current === null) return;
+    if (!session || snapshot?.state !== "finished" || !loop) return;
+    const timer = window.setTimeout(() => {
+      session.restart();
+      accompaniment.rewind(-LEAD_IN_SECONDS);
+      session.start();
+      setSnapshot(readSnapshot(session));
+    }, LOOP_RESTART_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [snapshot?.state, session, loop, accompaniment]);
+
+  useEffect(() => {
+    if (!score || !resultId || !limits || loop || snapshot?.state !== "finished" || savedRunRef.current || startedAtRef.current === null) return;
     savedRunRef.current = true;
-    const bpm = Math.round(score.beatsPerMinute * score.tempoScale);
-    const stars = starsFor(snapshot.stats.accuracyPct, bpm, exercise?.defaultBpm ?? score.beatsPerMinute);
+    const stars = starsFor(snapshot.stats.accuracyPct, bpm, limits.writtenBpm);
     const durationSeconds = (Date.now() - startedAtRef.current) / 1000;
     recordResult({
       exerciseId: resultId,
@@ -132,8 +121,9 @@ export function TocarPage() {
     })
       .then(() => setSaved({ stars }))
       .catch(() => setSaveError("O resultado não foi salvo neste aparelho. As estrelas valem só por agora."));
+    accompaniment.stopDrone();
     void stopMic();
-  }, [snapshot, score, exercise, resultId, stopMic]);
+  }, [snapshot, score, resultId, limits, bpm, loop, stopMic, accompaniment]);
 
   async function begin() {
     if (!session) return;
@@ -143,16 +133,37 @@ export function TocarPage() {
     savedRunRef.current = false;
     setSaved(null);
     setSaveError(null);
+    accompaniment.rewind(-LEAD_IN_SECONDS);
+    accompaniment.startDrone();
     session.start();
     setSnapshot(readSnapshot(session));
   }
 
+  function stopLoop() {
+    if (!session) return;
+    session.stop();
+    setLoop(null);
+    accompaniment.stopDrone();
+    void stopMic();
+    setSnapshot(null);
+  }
+
+  function repeatHardest(range: MeasureRange) {
+    setLoop(range);
+    void begin();
+  }
+
   function leave() {
+    accompaniment.stopDrone();
     void stopMic();
     void navigate(exercise ? "/praticar" : "/musicas");
   }
 
+  const backTo = exercise ? "/praticar" : "/musicas";
   const currentEvent = score && snapshot ? score.events[snapshot.currentNoteIndex] : undefined;
+  const isRunning = snapshot !== null && snapshot.state !== "finished" && snapshot.state !== "idle";
+  const isIdle = score !== null && (!snapshot || snapshot.state === "idle") && !error;
+  const fullMeasureCount = session?.measureCount ?? 0;
 
   return (
     <div data-theme="dark" className="grid min-h-dvh grid-rows-[auto_1fr_auto] bg-canvas px-4 py-4 text-ink md:px-8">
@@ -160,20 +171,28 @@ export function TocarPage() {
         <div className="grid gap-0.5">
           <h1 className="text-heading font-semibold">{exercise?.title ?? score?.title ?? "Carregando…"}</h1>
           {exercise ? <p className="text-caption text-ink-subtle">{exercise.subtitle}</p> : null}
+          {loop ? (
+            <p className="text-caption text-primary">
+              Repetindo compassos {loop.firstIndex + 1}–{loop.lastIndex + 1}
+            </p>
+          ) : null}
         </div>
-        <Button variant="ghost" onClick={leave}>
-          Sair
-        </Button>
+        <div className="flex gap-2">
+          {loop && snapshot ? <Button onClick={stopLoop}>Parar repetição</Button> : null}
+          <Button variant="ghost" onClick={leave}>
+            Sair
+          </Button>
+        </div>
       </header>
 
-      <main className="grid content-center gap-8">
+      <main className="grid content-center gap-6">
         {error ? <InlineError title="Não dá para tocar isso agora." nextStep={error} /> : null}
-        {core.status === "error" ? <InlineError title="O núcleo não carregou." nextStep={core.message} /> : null}
+        {coreStatus.status === "error" ? <InlineError title="O núcleo não carregou." nextStep={coreStatus.message} /> : null}
         {mic.status.status === "error" ? <InlineError title="O microfone não abriu." nextStep={mic.status.message} /> : null}
 
         {needsHeadphones ? <HeadphoneNotice onConfirm={confirmHeadphones} /> : null}
 
-        {score && snapshot && snapshot.state !== "finished" && snapshot.state !== "idle" ? (
+        {score && snapshot && isRunning ? (
           <section className="grid gap-6" aria-label="Nota atual">
             <ScrollingStaff
               score={score}
@@ -223,40 +242,59 @@ export function TocarPage() {
           </section>
         ) : null}
 
-        {snapshot?.state === "finished" && score ? (
-          <section className="grid justify-items-center gap-4 text-center" aria-label="Resultado">
-            <Stars count={saved?.stars ?? 0} />
-            <p className="font-display text-display">{Math.round(snapshot.stats.accuracyPct)}% de precisão</p>
-            {saveError ? <p className="text-caption text-off">{saveError}</p> : null}
-            <p className="text-ink-muted">
-              {snapshot.stats.meanSignedCents > 3
-                ? `Tendência de ${Math.round(snapshot.stats.meanSignedCents)} cents alto.`
-                : snapshot.stats.meanSignedCents < -3
-                  ? `Tendência de ${Math.round(-snapshot.stats.meanSignedCents)} cents baixo.`
-                  : "Afinação centrada."}
-            </p>
-            <div className="flex gap-3">
-              <Button variant="primary" onClick={() => void begin()}>
-                Tocar de novo
-              </Button>
-              <Link to={exercise ? "/praticar" : "/musicas"} className="inline-flex h-11 items-center rounded-pill bg-surface-soft px-5 font-semibold md:h-10">
-                Voltar
-              </Link>
-            </div>
+        {snapshot?.state === "finished" && score && limits && loop ? (
+          <section className="grid justify-items-center gap-3 text-center" aria-label="Trecho concluído">
+            <p className="font-display text-display">{Math.round(snapshot.stats.accuracyPct)}%</p>
+            <p className="text-ink-muted">Recomeçando o trecho…</p>
           </section>
         ) : null}
 
-        {score && (!snapshot || snapshot.state === "idle") && !error ? (
+        {snapshot?.state === "finished" && score && limits && !loop ? (
+          <ResultScreen
+            score={score}
+            stats={snapshot.stats}
+            judgements={snapshot.judgements}
+            stars={saved?.stars ?? 0}
+            bpm={bpm}
+            limits={limits}
+            loop={loop}
+            saveError={saveError}
+            backTo={backTo}
+            onPlayAgain={() => void begin()}
+            onRepeatHardest={repeatHardest}
+            onChangeTempo={(next) => {
+              setBpm(next);
+              void begin();
+            }}
+          />
+        ) : null}
+
+        {isIdle && score ? (
           <section className="grid justify-items-center gap-4 text-center">
             <ScrollingStaff score={score} songTime={-LEAD_IN_SECONDS} currentNoteIndex={0} judgements={[]} className="h-44 w-full md:h-56" />
             {exercise ? <p className="max-w-prose text-ink-muted">{exercise.howTo}</p> : null}
             <p className="text-caption text-ink-subtle">
-              {score.noteCount} notas · {Math.round(score.beatsPerMinute * score.tempoScale)} bpm
+              {score.noteCount} notas · {bpm} bpm
             </p>
             <Button variant="primary" onClick={() => void begin()} disabled={needsHeadphones || mic.status.status === "starting"}>
               {mic.status.status === "starting" ? "Abrindo microfone…" : "Começar"}
             </Button>
           </section>
+        ) : null}
+
+        {score && limits && !isRunning ? (
+          <TocarControls
+            score={score}
+            fullMeasureCount={fullMeasureCount}
+            limits={limits}
+            bpm={bpm}
+            loop={loop}
+            droneOn={droneOn}
+            droneLabel={droneLabel}
+            onBpm={setBpm}
+            onLoop={setLoop}
+            onDrone={setDroneOn}
+          />
         ) : null}
       </main>
 
