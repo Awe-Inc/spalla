@@ -183,8 +183,11 @@ clicável inteiro ganha `elevation.raised` no hover e borda `focus` no teclado.
 pílulas com a cor da corda; linha de agora em `ink`; barras de compasso em `hairline-strong`. Acerto pinta a nota de
 `in-tune`, erro de `off`, quase de `close`.
 
-**Pauta.** Linhas em `ink-muted` a 60%, cabeças em `ink`, nota atual em `primary`, nota avaliada na cor semântica.
-Preferir uma engine de notação pronta (VexFlow) a desenhar à mão.
+**Pauta.** Canvas próprio em `apps/web/src/areas/tocar/ScrollingStaff.tsx` (portado do `StaffView` nativo; VexFlow foi
+descartado em 28/10 porque a pauta precisa rolar a 60 fps e seguir os tokens). Fundo `surface-sunken`, linhas em
+`ink-muted` a 60%, barras em `hairline-strong`, cabeças em `ink`, nota atual e linha de agora em `primary`, nota
+avaliada em `in-tune` (Perfeita/Ótima), `close` (Boa) ou `off` (Errada), nota passada sem veredito em `ink` a 40%.
+A linha de agora fica a 20% da largura e a tela mostra 6 s à frente; as notas vêm da direita.
 
 **Anel de progresso.** Para "minutos de hoje" e "estrelas do módulo". Trilho `surface-sunken`, preenchimento
 `primary`, número em `numeric` no centro.

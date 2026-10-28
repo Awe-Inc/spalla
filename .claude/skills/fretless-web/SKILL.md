@@ -41,6 +41,8 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
                                  PitchInput.ts (mic + context), usePitchInput.ts, latency.ts
 apps/web/src/data/               db.ts (Dexie: results, routines, practiceDays, settings), library.ts
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
+apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested
+apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolling into the playhead
 ```
 
 ## Rules

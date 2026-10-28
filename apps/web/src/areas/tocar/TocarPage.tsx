@@ -1,4 +1,4 @@
-import type { Exercise, GameStats, PracticeSession, Score, SessionState } from "@fretless/core";
+import type { Exercise, GameStats, NoteJudgement, PracticeSession, Score, SessionState } from "@fretless/core";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
@@ -11,16 +11,18 @@ import { Button, HeadphoneNotice, InlineError, Stars, StringChip } from "@/desig
 import { Tuner } from "@/design/Tuner";
 import { displayNoteName } from "@/music/noteNames";
 
+import { ScrollingStaff } from "./ScrollingStaff";
+
 interface Snapshot {
   state: SessionState;
   songTime: number;
   currentNoteIndex: number;
   liveCents: number | null;
   stats: GameStats;
+  judgements: NoteJudgement[];
 }
 
 const LEAD_IN_SECONDS = 2;
-const UPCOMING_NOTES = 4;
 
 function readSnapshot(session: PracticeSession): Snapshot {
   return {
@@ -29,6 +31,7 @@ function readSnapshot(session: PracticeSession): Snapshot {
     currentNoteIndex: session.currentNoteIndex,
     liveCents: session.liveCents,
     stats: session.stats,
+    judgements: session.judgements,
   };
 }
 
@@ -150,7 +153,6 @@ export function TocarPage() {
   }
 
   const currentEvent = score && snapshot ? score.events[snapshot.currentNoteIndex] : undefined;
-  const upcoming = score && snapshot ? score.events.slice(snapshot.currentNoteIndex + 1, snapshot.currentNoteIndex + 1 + UPCOMING_NOTES) : [];
 
   return (
     <div data-theme="dark" className="grid min-h-dvh grid-rows-[auto_1fr_auto] bg-canvas px-4 py-4 text-ink md:px-8">
@@ -173,24 +175,21 @@ export function TocarPage() {
 
         {score && snapshot && snapshot.state !== "finished" && snapshot.state !== "idle" ? (
           <section className="grid gap-6" aria-label="Nota atual">
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <div className="grid gap-2">
-                <span className="text-caption text-ink-subtle">
-                  {snapshot.state === "countdown" ? "Prepare o arco" : `Compasso ${currentEvent?.measure ?? "—"}`}
-                </span>
-                <span className="font-display text-[72px] leading-none">
-                  {currentEvent && !currentEvent.isRest ? displayNoteName(currentEvent.noteName, naming) : "pausa"}
-                </span>
-                {currentEvent && !currentEvent.isRest ? <StringChip index={currentEvent.string} /> : null}
-              </div>
-              <ol className="flex gap-3" aria-label="Próximas notas">
-                {upcoming.map((event, index) => (
-                  <li key={`${event.startQuarters}-${index}`} className="grid gap-1 text-center">
-                    <span className="font-display text-title text-ink-muted">{event.isRest ? "·" : displayNoteName(event.noteName, naming)}</span>
-                    {!event.isRest ? <StringChip index={event.string} /> : <span className="h-7" />}
-                  </li>
-                ))}
-              </ol>
+            <ScrollingStaff
+              score={score}
+              songTime={snapshot.songTime}
+              currentNoteIndex={snapshot.currentNoteIndex}
+              judgements={snapshot.judgements}
+              className="h-44 md:h-56"
+            />
+            <div className="grid gap-2">
+              <span className="text-caption text-ink-subtle">
+                {snapshot.state === "countdown" ? "Prepare o arco" : `Compasso ${currentEvent?.measure ?? "—"}`}
+              </span>
+              <span className="font-display text-[72px] leading-none">
+                {currentEvent && !currentEvent.isRest ? displayNoteName(currentEvent.noteName, naming) : "pausa"}
+              </span>
+              {currentEvent && !currentEvent.isRest ? <StringChip index={currentEvent.string} /> : null}
             </div>
             <Tuner
               compact
@@ -249,6 +248,7 @@ export function TocarPage() {
 
         {score && (!snapshot || snapshot.state === "idle") && !error ? (
           <section className="grid justify-items-center gap-4 text-center">
+            <ScrollingStaff score={score} songTime={-LEAD_IN_SECONDS} currentNoteIndex={0} judgements={[]} className="h-44 w-full md:h-56" />
             {exercise ? <p className="max-w-prose text-ink-muted">{exercise.howTo}</p> : null}
             <p className="text-caption text-ink-subtle">
               {score.noteCount} notas · {Math.round(score.beatsPerMinute * score.tempoScale)} bpm
