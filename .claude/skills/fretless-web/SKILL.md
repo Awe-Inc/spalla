@@ -36,7 +36,7 @@ packages/core/src/index.ts       loadCore(), typed wrappers: curriculum, exercis
                                  createSession, createPitchTracker, noteName, centsBetween
 apps/web/src/design/tokens.css   the only place a colour, font or radius is written (from DESIGN.md)
 apps/web/src/design/fonts.css    Fontsource imports (Fraunces Variable, Figtree Variable, JetBrains Mono 500);
-                                 self-hosted woff2 land in the precache, no Google Fonts
+                                 self-hosted woff2 (and the woff fallbacks) land in the precache, no Google Fonts
 .github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
                                  variable DEPLOY_PAGES is "true" (private repo on the free plan has no Pages)
