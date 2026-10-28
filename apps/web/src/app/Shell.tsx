@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { NavLink, Outlet, useLocation } from "react-router";
+import { Navigate, NavLink, Outlet, useLocation } from "react-router";
 
 import { resolveTheme, useSettings } from "./settings";
 
@@ -37,6 +37,10 @@ function bottomClass({ isActive }: { isActive: boolean }): string {
 
 export function useApplyTheme(): void {
   const theme = useSettings((state) => state.theme);
+  const accent = useSettings((state) => state.accent);
+  useEffect(() => {
+    document.documentElement.dataset.accent = accent;
+  }, [accent]);
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -51,7 +55,13 @@ export function useApplyTheme(): void {
 export function Shell() {
   useApplyTheme();
   const location = useLocation();
-  const isFullscreen = location.pathname.startsWith("/tocar");
+  const onboardedAt = useSettings((state) => state.onboardedAt);
+  const isOnboarding = location.pathname.startsWith("/boas-vindas");
+  const isFullscreen = location.pathname.startsWith("/tocar") || isOnboarding;
+
+  if (onboardedAt === null && !isOnboarding) {
+    return <Navigate to="/boas-vindas" replace />;
+  }
 
   if (isFullscreen) {
     return <Outlet />;

@@ -1,32 +1,33 @@
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { useCore } from "@/core/useCore";
-import { bestResultsByExercise, currentStreak, db, localDayKey } from "@/data/db";
-import { Card, EmptyState, PageTitle } from "@/design/components";
+import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, localDayKey } from "@/data/db";
+import { levelForXp } from "@/data/gamification";
+import { Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
 
-const WEEKDAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"] as const;
-
-function lastSevenDays(today: Date): Date[] {
-  return Array.from({ length: 7 }, (_, offset) => new Date(today.getTime() - (6 - offset) * 86_400_000));
-}
+import { Conquistas } from "./Conquistas";
+import { Heatmap } from "./Heatmap";
+import { HistoricoPrecisao } from "./HistoricoPrecisao";
+import { Loja } from "./Loja";
 
 export function ProgressoPage() {
   const core = useCore();
   const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
   const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const achievements = useLiveQuery(() => db.achievements.toArray(), []) ?? [];
+  const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
   const today = new Date();
-  const streak = currentStreak(days, localDayKey(today));
+  const streak = currentStreak(days, localDayKey(today), stats.frozenDays);
   const best = bestResultsByExercise(results);
-  const minutesByDay = new Map(days.map((day) => [day.day, day.minutes]));
-  const week = lastSevenDays(today).map((date) => ({ date, minutes: minutesByDay.get(localDayKey(date)) ?? 0 }));
-  const weekMax = Math.max(1, ...week.map((entry) => entry.minutes));
+  const level = levelForXp(stats.xp);
   const totalMinutes = Math.round(days.reduce((sum, day) => sum + day.minutes, 0));
+  const exercises = core.status === "ready" ? core.core.exercises : [];
 
   if (results.length === 0) {
     return (
       <>
         <PageTitle title="Progresso" />
-        <EmptyState title="Ainda sem registros." description="Toque um exercício e o resultado aparece aqui, com estrelas por módulo e minutos por dia." />
+        <EmptyState title="Ainda sem registros." description="Toque um exercício e o resultado aparece aqui: XP, sequência, calendário e estrelas por módulo." />
       </>
     );
   }
@@ -35,24 +36,14 @@ export function ProgressoPage() {
     <>
       <PageTitle title="Progresso" />
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Últimos 7 dias" className="lg:col-span-2">
-          <div className="flex h-40 items-end gap-3">
-            {week.map((entry) => (
-              <div key={entry.date.toISOString()} className="flex flex-1 flex-col items-center gap-2">
-                <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(entry.minutes)}</span>
-                <div className="flex w-full flex-1 items-end">
-                  <div
-                    className={`w-full rounded-sm ${entry.minutes > 0 ? "bg-primary" : "bg-surface-sunken"}`}
-                    style={{ height: `${Math.max(4, (entry.minutes / weekMax) * 100)}%` }}
-                    aria-label={`${Math.round(entry.minutes)} minutos`}
-                  />
-                </div>
-                <span className="text-caption text-ink-subtle">{WEEKDAY_LABELS[entry.date.getDay()]}</span>
-              </div>
-            ))}
+        <Card className="flex items-center gap-5">
+          <ProgressRing value={level.intoLevel} max={level.needed} caption={`de ${level.needed} XP`} size={104} />
+          <div className="grid gap-1">
+            <span className="text-caption text-ink-subtle">Nível</span>
+            <span className="font-display text-title">{level.level}</span>
+            <span className="text-caption text-ink-subtle">{stats.xp} XP no total</span>
           </div>
         </Card>
-
         <Card title="Resumo" className="grid content-start gap-3">
           <p>
             <span className="font-mono text-numeric tabular">{streak}</span>
@@ -67,10 +58,9 @@ export function ProgressoPage() {
             <span className="ml-2 text-ink-muted">execuções</span>
           </p>
         </Card>
-
-        {core.status === "ready" ? (
-          <Card title="Estrelas por módulo" className="lg:col-span-3">
-            <ul className="grid gap-3 md:grid-cols-3">
+        <Card title="Estrelas por módulo" className="grid content-start gap-3">
+          {core.status === "ready" ? (
+            <ul className="grid gap-3">
               {core.core.curriculum.map((module) => {
                 const playable = module.exercises.filter((exercise) => exercise.playable);
                 const stars = playable.reduce((sum, exercise) => sum + (best.get(exercise.id)?.stars ?? 0), 0);
@@ -90,8 +80,19 @@ export function ProgressoPage() {
                 );
               })}
             </ul>
-          </Card>
-        ) : null}
+          ) : (
+            <p className="text-ink-muted">Carregando o método…</p>
+          )}
+        </Card>
+
+        <div className="lg:col-span-2">
+          <Heatmap days={days} today={today} />
+        </div>
+        <HistoricoPrecisao results={results} exercises={exercises} />
+        <div className="lg:col-span-2">
+          <Conquistas unlocked={achievements} />
+        </div>
+        <Loja stats={stats} />
       </div>
     </>
   );

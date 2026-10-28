@@ -104,3 +104,8 @@ export async function buyItem(itemId: string, price: number): Promise<boolean> {
     return true;
   });
 }
+
+export async function setDailyGoal(dailyGoalXp: number): Promise<void> {
+  const stats = await readUserStats();
+  await db.userStats.put({ ...stats, dailyGoalXp });
+}

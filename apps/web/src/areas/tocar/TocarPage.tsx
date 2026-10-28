@@ -27,6 +27,7 @@ interface Snapshot {
 }
 
 const LOOP_RESTART_DELAY_MS = 1200;
+const STAFF_BASE_HEIGHT_PX = 208;
 
 function readSnapshot(session: PracticeSession): Snapshot {
   return {
@@ -47,6 +48,8 @@ export function TocarPage() {
   const { takeFrames, stop: stopMic, start: startMic } = mic;
   const isListening = mic.status.status === "listening";
   const naming = useSettings((state) => state.noteNaming);
+  const staffScale = useSettings((state) => state.staffScale);
+  const staffHeight = { height: `${Math.round(STAFF_BASE_HEIGHT_PX * staffScale)}px` };
   const headphonesConfirmedAt = useSettings((state) => state.headphonesConfirmedAt);
   const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -202,7 +205,7 @@ export function TocarPage() {
               songTime={snapshot.songTime}
               currentNoteIndex={snapshot.currentNoteIndex}
               judgements={snapshot.judgements}
-              className="h-44 md:h-56"
+              style={staffHeight}
             />
             <div className="grid gap-2">
               <span className="text-caption text-ink-subtle">
@@ -271,7 +274,7 @@ export function TocarPage() {
 
         {isIdle && score ? (
           <section className="grid justify-items-center gap-4 text-center">
-            <ScrollingStaff score={score} songTime={-LEAD_IN_SECONDS} currentNoteIndex={0} judgements={[]} className="h-44 w-full md:h-56" />
+            <ScrollingStaff score={score} songTime={-LEAD_IN_SECONDS} currentNoteIndex={0} judgements={[]} className="w-full" style={staffHeight} />
             {exercise ? <p className="max-w-prose text-ink-muted">{exercise.howTo}</p> : null}
             <p className="text-caption text-ink-subtle">
               {score.noteCount} notas · {bpm} bpm

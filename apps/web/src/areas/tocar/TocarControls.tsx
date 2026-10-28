@@ -1,8 +1,11 @@
 import type { MeasureRange, Score } from "@fretless/core";
 
+import { useLiveQuery } from "dexie-react-hooks";
+
 import { useSettings } from "@/app/settings";
 import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
+import { db, DEFAULT_USER_STATS } from "@/data/db";
 import { Button } from "@/design/components";
 
 import { BPM_STEP, type TempoLimits } from "./tempo";
@@ -27,6 +30,8 @@ const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
   { value: 4, label: "Semicolcheias" },
 ];
 
+const FREE_CLICK_SOUND: ClickSound = "madeira";
+
 const toggleClass = (on: boolean) =>
   `inline-flex h-9 items-center gap-2 rounded-pill px-4 text-caption font-semibold transition-colors duration-fast ease-fretless ${
     on ? "bg-primary text-on-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
@@ -34,6 +39,8 @@ const toggleClass = (on: boolean) =>
 
 export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, droneOn, droneLabel, onBpm, onLoop, onDrone }: TocarControlsProps) {
   const prefs = useSettings();
+  const unlockedItems = useLiveQuery(() => db.userStats.get("me"), [])?.unlockedItems ?? DEFAULT_USER_STATS.unlockedItems;
+  const soundUnlocked = (sound: ClickSound) => sound === FREE_CLICK_SOUND || unlockedItems.includes(`sound:${sound}`);
   const first = loop?.firstIndex ?? 0;
   const last = loop?.lastIndex ?? fullMeasureCount - 1;
   const measureOptions = Array.from({ length: fullMeasureCount }, (_, index) => index);
@@ -88,8 +95,9 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
               <span className="text-ink-subtle">Som</span>
               <select className="h-8 rounded-sm bg-surface-soft px-2 text-ink" value={prefs.metronomeSound} onChange={(event) => prefs.setPracticeAudio({ metronomeSound: event.target.value as ClickSound })}>
                 {(Object.keys(CLICK_SOUNDS) as ClickSound[]).map((sound) => (
-                  <option key={sound} value={sound}>
+                  <option key={sound} value={sound} disabled={!soundUnlocked(sound)}>
                     {CLICK_SOUNDS[sound].label}
+                    {soundUnlocked(sound) ? "" : " (na loja)"}
                   </option>
                 ))}
               </select>

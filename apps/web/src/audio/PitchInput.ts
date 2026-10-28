@@ -33,6 +33,7 @@ export class PitchInput {
   #node: AudioWorkletNode | null = null;
   #listeners = new Set<FrameListener>();
   #generation = 0;
+  #gain = 1;
 
   get context(): AudioContext | null {
     return this.#context;
@@ -40,6 +41,11 @@ export class PitchInput {
 
   get isOpen(): boolean {
     return this.#context !== null;
+  }
+
+  setGain(value: number): void {
+    this.#gain = value;
+    this.#node?.port.postMessage({ type: "gain", value });
   }
 
   onFrame(listener: FrameListener): () => void {
@@ -96,6 +102,7 @@ export class PitchInput {
       await context.resume();
       const requiredSamples = await ready;
       if (generation !== this.#generation) throw new PitchInputCancelled();
+      node.port.postMessage({ type: "gain", value: this.#gain });
       return {
         sampleRate: context.sampleRate,
         baseLatencySec: context.baseLatency,

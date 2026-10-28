@@ -1,5 +1,5 @@
 import type { NoteJudgement, Score } from "@fretless/core";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { type CSSProperties, useEffect, useRef, useState, type RefObject } from "react";
 
 import {
   accidentalOf,
@@ -36,6 +36,7 @@ interface ScrollingStaffProps {
   currentNoteIndex: number;
   judgements: NoteJudgement[];
   className?: string;
+  style?: CSSProperties;
 }
 
 interface Palette {
@@ -327,7 +328,7 @@ function useCanvasSize(ref: RefObject<HTMLCanvasElement | null>): CanvasSize {
   return size;
 }
 
-export function ScrollingStaff({ className = "", ...props }: ScrollingStaffProps) {
+export function ScrollingStaff({ className = "", style, ...props }: ScrollingStaffProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const size = useCanvasSize(canvasRef);
 
@@ -351,6 +352,7 @@ export function ScrollingStaff({ className = "", ...props }: ScrollingStaffProps
       role="img"
       aria-label="Partitura rolando: as notas vêm da direita até a linha de agora"
       className={`block w-full rounded-lg ${className}`}
+      style={style}
     />
   );
 }

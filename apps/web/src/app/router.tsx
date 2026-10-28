@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
 
+import { BoasVindasPage } from "@/areas/boas-vindas/BoasVindasPage";
 import { ConfiguracoesPage } from "@/areas/configuracoes/ConfiguracoesPage";
 import { FerramentasPage } from "@/areas/ferramentas/FerramentasPage";
 import { LatenciaPage } from "@/areas/ferramentas/LatenciaPage";
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
       { path: "progresso", Component: ProgressoPage },
       { path: "configuracoes", Component: ConfiguracoesPage },
       { path: "tocar/:exerciseId", Component: TocarPage },
+      { path: "boas-vindas", Component: BoasVindasPage },
     ],
   },
 ]);

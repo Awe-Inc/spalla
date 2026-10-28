@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { Link } from "react-router";
 
-import { useSettings, type NoteNaming, type ThemePreference } from "@/app/settings";
-import { listInputDevices } from "@/audio/PitchInput";
+import { STAFF_SCALES, useSettings, type Accent, type NoteNaming, type StaffScale, type ThemePreference } from "@/app/settings";
+import { db, DEFAULT_USER_STATS } from "@/data/db";
+import { setDailyGoal } from "@/data/progress";
 import { Card, PageTitle } from "@/design/components";
+
+import { DadosCard } from "./DadosCard";
+import { MicrofoneCard } from "./MicrofoneCard";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "Igual ao sistema" },
@@ -15,7 +20,10 @@ const NAMING_OPTIONS: { value: NoteNaming; label: string }[] = [
   { value: "letters", label: "C, D, E" },
 ];
 
-function RadioGroup<T extends string>({ name, value, options, onChange }: { name: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
+const STAFF_LABELS: Record<StaffScale, string> = { 1: "Normal", 1.25: "Grande", 1.5: "Enorme" };
+const GOAL_OPTIONS = [30, 60, 100] as const;
+
+function RadioGroup<T extends string | number>({ name, value, options, onChange }: { name: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
   return (
     <div className="flex flex-wrap gap-2" role="radiogroup">
       {options.map((option) => (
@@ -25,7 +33,7 @@ function RadioGroup<T extends string>({ name, value, options, onChange }: { name
             option.value === value ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
           }`}
         >
-          <input type="radio" name={name} value={option.value} checked={option.value === value} onChange={() => onChange(option.value)} className="sr-only" />
+          <input type="radio" name={name} value={String(option.value)} checked={option.value === value} onChange={() => onChange(option.value)} className="sr-only" />
           {option.label}
         </label>
       ))}
@@ -35,41 +43,52 @@ function RadioGroup<T extends string>({ name, value, options, onChange }: { name
 
 export function ConfiguracoesPage() {
   const settings = useSettings();
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-
-  useEffect(() => {
-    if (!navigator.mediaDevices) return;
-    listInputDevices()
-      .then(setDevices)
-      .catch(() => setDevices([]));
-  }, []);
+  const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
+  const sepiaUnlocked = stats.unlockedItems.includes("theme:sepia");
+  const accentOptions: { value: Accent; label: string }[] = [
+    { value: "padrao", label: "Verniz" },
+    ...(sepiaUnlocked ? [{ value: "sepia" as const, label: "Sépia" }] : []),
+  ];
 
   return (
     <>
       <PageTitle title="Configurações" />
       <div className="grid gap-6">
-        <Card title="Aparência">
+        <Card title="Aparência" className="grid gap-4">
           <RadioGroup name="theme" value={settings.theme} options={THEME_OPTIONS} onChange={settings.setTheme} />
+          <div className="grid gap-2">
+            <span className="text-caption text-ink-subtle">Paleta</span>
+            <RadioGroup name="accent" value={settings.accent} options={accentOptions} onChange={settings.setAccent} />
+            {!sepiaUnlocked ? (
+              <p className="text-caption text-ink-subtle">
+                O tema sépia se compra com resinas na{" "}
+                <Link to="/progresso" className="font-semibold text-primary">
+                  loja
+                </Link>
+                .
+              </p>
+            ) : null}
+          </div>
         </Card>
         <Card title="Nome das notas">
           <RadioGroup name="naming" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />
         </Card>
-        <Card title="Microfone" className="grid gap-3">
-          <select
-            className="h-11 rounded-md border border-hairline bg-surface px-3 text-body"
-            value={settings.inputDeviceId ?? ""}
-            onChange={(event) => settings.setInputDevice(event.target.value || null)}
-            aria-label="Microfone"
-          >
-            <option value="">Padrão do sistema</option>
-            {devices.map((device) => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.label || "Microfone sem nome"}
-              </option>
-            ))}
-          </select>
-          <p className="text-caption text-ink-subtle">Os nomes aparecem depois que você permitir o microfone uma vez no Afinador.</p>
+        <Card title="Tamanho da partitura" className="grid gap-2">
+          <RadioGroup name="staff" value={settings.staffScale} options={STAFF_SCALES.map((scale) => ({ value: scale, label: STAFF_LABELS[scale] }))} onChange={settings.setStaffScale} />
+          <p className="text-caption text-ink-subtle">Vale para a pauta rolando na tela Tocar.</p>
         </Card>
+        <Card title="Meta diária" className="grid gap-2">
+          <RadioGroup name="goal" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => void setDailyGoal(xp)} />
+          <p className="text-caption text-ink-subtle">Nota perfeita vale 3 XP, boa vale 1; a sessão completa dá 50.</p>
+        </Card>
+        <MicrofoneCard />
+        <Card title="Atraso do som" className="grid gap-2">
+          <p className="text-ink-muted">Mede quanto tempo o som leva do alto-falante até a detecção, para o jogo julgar o ritmo no tempo certo.</p>
+          <Link to="/ferramentas/latencia" className="font-semibold text-primary">
+            Abrir o teste de latência
+          </Link>
+        </Card>
+        <DadosCard />
       </div>
     </>
   );

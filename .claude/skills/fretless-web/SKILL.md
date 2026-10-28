@@ -36,7 +36,8 @@ apps/web/src/design/tokens.css   the only place a colour, font or radius is writ
 apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, ProgressRing, HeadphoneNotice, …
 apps/web/src/app/                Shell (sidebar ≥ lg, bottom bar below), router, settings store
 apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, ferramentas, progresso,
-                                 configuracoes, tocar (fullscreen, forced dark)
+                                 configuracoes, tocar (fullscreen, forced dark), boas-vindas (fullscreen
+                                 onboarding em 5 passos; Shell redireciona para lá enquanto `onboardedAt` é null)
 apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an AudioWorklet),
                                  PitchInput.ts (mic + context), usePitchInput.ts, latency.ts,
                                  clickTrack.ts (pure click schedule from a Score, tested), metronome.ts
@@ -51,7 +52,14 @@ apps/web/src/data/               db.ts (Dexie v2: results, routines, practiceDay
                                  loja), spaced.ts (prioridade espaçada), routines.ts (rotinas padrão 15/25/45,
                                  blocos ↔ ExerciseKind, variações), planner.ts (planSession: monta a sessão do
                                  dia), progress.ts (saveRun: resultado + XP + conquistas; bônus de sessão,
-                                 congelador, loja), library.ts — todos os .ts puros têm teste ao lado
+                                 congelador, loja, setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
+                                 de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
+                                 library.ts — todos os .ts puros têm teste ao lado
+apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
+                                 Conquistas, Loja
+apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da
+                                 partitura `staffScale`, meta diária) + MicrofoneCard (teste ao vivo, sensibilidade
+                                 → `PitchInput.setGain` → worklet "gain") + DadosCard
 apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia), HojePage
 apps/web/src/areas/praticar/     RoutinePicker (escolher/criar rotina; rotinas padrão têm id negativo)
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
@@ -68,7 +76,8 @@ Gamification is pure data in `data/gamification.ts`: XP per note (Perfect 3, Gre
 row, +50 when the day's session closes), five mastery levels per piece (`masteryOfRun`), achievements checked in
 `saveRun` after every saved result, Resinas = stars × 5. The streak counts days whose XP met `dailyGoalXp`; a
 frozen day bridges the streak without counting. `currentStreak` keeps yesterday's streak alive while today is
-still open. The session planner (`planSession`) assigns review blocks first (weak <70% → spaced), then new pieces
+still open. Shop items gate the UI by `userStats.unlockedItems` (`sound:<id>` in TocarControls, `theme:sepia`
+in Configurações; the sepia palette is `[data-accent="sepia"]` overrides in tokens.css). The session planner (`planSession`) assigns review blocks first (weak <70% → spaced), then new pieces
 (<2★, lowest level), then the rest by spaced priority with the day's seed; lesson tasks win their block.
 
 ## Rules

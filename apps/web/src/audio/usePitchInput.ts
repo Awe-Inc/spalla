@@ -35,6 +35,7 @@ export function usePitchInput() {
   const [status, setStatus] = useState<MicStatus>({ status: "idle" });
   const [frame, setFrame] = useState<PitchFrame | null>(null);
   const deviceId = useSettings((state) => state.inputDeviceId);
+  const inputGain = useSettings((state) => state.inputGain);
   const setInputDevice = useSettings((state) => state.setInputDevice);
 
   useEffect(() => {
@@ -63,6 +64,10 @@ export function usePitchInput() {
       inputRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    inputRef.current?.setGain(inputGain);
+  }, [inputGain]);
 
   const start = useCallback(async (): Promise<boolean> => {
     if (startingRef.current) return startingRef.current;
