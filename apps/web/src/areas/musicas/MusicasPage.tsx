@@ -19,6 +19,7 @@ import {
 } from "@/data/pieces";
 import { Button, Card, EmptyState, InlineError, PageTitle, Stars } from "@/design/components";
 
+import { MusicasTabs } from "./MusicasTabs";
 import { PieceFiltersBar } from "./PieceFilters";
 
 const STATUS_CLASS: Record<PieceStatus, string> = {
@@ -92,6 +93,7 @@ export function MusicasPage() {
           <input type="file" accept=".xml,.musicxml,.mxl" className="sr-only" onChange={(event) => void onFile(event)} disabled={core.status !== "ready" || isImporting} />
         </label>
       </PageTitle>
+      <MusicasTabs />
 
       {error ? <InlineError title="Esse arquivo não abriu." nextStep={error} /> : null}
 

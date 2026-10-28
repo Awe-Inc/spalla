@@ -54,8 +54,9 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  useAccompaniment (metronome + drone bound to the mic context), TocarControls
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
                                  tempo advice, "repetir compassos"), tempo.ts and measureMap.ts (pure, tested)
-apps/web/src/data/               db.ts (Dexie v2: results, routines, practiceDays, settings, userStats,
-                                 achievements, lessonTasks, pieces), gamification.ts (XP, maestria, conquistas,
+apps/web/src/data/               db.ts (Dexie v4: results, routines, practiceDays, settings, userStats,
+                                 achievements, lessonTasks, pieces, sheets + sheetFiles), sheets.ts (estante:
+                                 importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas,
                                  loja), spaced.ts (prioridade espaçada), routines.ts (rotinas padrão 15/25/45,
                                  blocos ↔ ExerciseKind, variações), planner.ts (planSession: monta a sessão do
                                  dia), progress.ts (saveRun: resultado + XP + conquistas; bônus de sessão,
@@ -67,7 +68,17 @@ apps/web/src/data/               db.ts (Dexie v2: results, routines, practiceDay
                                  `nextLessonSentence` a partir de `settings.lessonWeekday`) — todos os .ts puros
                                  têm teste ao lado
 apps/web/src/areas/musicas/      MusicasPage (catálogo + importadas com PieceFiltersBar); música importada toca em
-                                 `/tocar/musica/:pieceId` e grava resultado como `musica:<fileName>`
+                                 `/tocar/musica/:pieceId` e grava resultado como `musica:<fileName>`; MusicasTabs
+                                 (Catálogo | Estante)
+apps/web/src/areas/estante/      modo estante, sem nota nem XP: EstantePage (lista + Importar PDF), LeitorPage
+                                 (`/estante/:sheetId`, tela cheia, teclado e toque nas bordas, lembra `lastPage`),
+                                 PaginaPdf (canvas + ResizeObserver), PainelFerramentas (afinador, metrônomo e
+                                 pedal compactos, cada um com seu áudio). Rotas carregadas com `lazy` para o
+                                 pdf.js ficar fora do bundle principal
+apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/countPdfPages/renderPdfPage, worker
+                                 via `?url`), fit.ts (escala por ajuste, toque → página; testado)
+apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
+                                 implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
                                  Conquistas, Loja
 apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da
@@ -177,3 +188,14 @@ in Configurações; the sepia palette is `[data-accent="sepia"]` overrides in to
 - **`TempoClock.start()` awaits `resume()` before setting its timer.** Two clicks before the context resumed
   created two intervals and `dispose()` during the await left one running on a closed context; `#isStarting` and
   `#isDisposed` guard both (`tempoClock.test.ts`, fake `AudioContext`/`GainNode` + `vi.getTimerCount()`).
+- **pdf.js 6 fecha o documento pelo `loadingTask`, não por `document.destroy()`.** `PDFDocumentProxy` perdeu o
+  `destroy()` na versão 6 (só `cleanup()`); fechar é `document.loadingTask.destroy()`, embrulhado em `closePdf`.
+  O `getDocument({ data })` toma posse do buffer, então os bytes guardados no Dexie vão como cópia (`bytes.slice()`).
+- **Bytes de PDF ficam em tabela própria (`sheetFiles`).** `useLiveQuery` da lista relê a tabela inteira a cada
+  mudança; com os bytes dentro de `sheets` isso puxaria dezenas de MB do IndexedDB para listar títulos.
+- **Asset `.mjs` precisa estar no `globPatterns` do workbox.** O worker do pdf.js sai como `assets/pdf.worker.min-*.mjs`
+  e o padrão antigo (`{js,css,html,wasm,svg,woff2}`) não o incluía: offline, o PDF não abria. Qualquer extensão nova
+  em `dist/assets` entra no padrão em `vite.config.ts`.
+- **Troca rápida de página com pdf.js: cancelar pelo efeito, não só pelo canvas.** `getPage` de uma página fora do
+  cache resolve depois do `getPage` da seguinte; sem `AbortSignal` conferido depois do `await`, a página antiga
+  desenhava por cima da nova. `PaginaPdf` aborta no cleanup e `renderPdfPage` checa o sinal após `getPage`.

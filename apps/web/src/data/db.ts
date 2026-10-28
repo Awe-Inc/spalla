@@ -93,6 +93,21 @@ export interface StoredPiece {
   importedAt: number;
 }
 
+export interface StoredSheet {
+  id?: number;
+  fileName: string;
+  title: string;
+  pageCount: number;
+  lastPage: number;
+  importedAt: number;
+  openedAt: number;
+}
+
+export interface StoredSheetFile {
+  id: number;
+  bytes: Uint8Array;
+}
+
 export const DEFAULT_DAILY_GOAL_XP = 60;
 
 export const DEFAULT_USER_STATS: UserStats = {
@@ -115,6 +130,8 @@ export class FretlessDatabase extends Dexie {
   achievements!: EntityTable<Achievement, "id">;
   lessonTasks!: EntityTable<LessonTask, "id">;
   pieces!: EntityTable<StoredPiece, "id">;
+  sheets!: EntityTable<StoredSheet, "id">;
+  sheetFiles!: EntityTable<StoredSheetFile, "id">;
 
   constructor(name = "fretless") {
     super(name);
@@ -136,6 +153,10 @@ export class FretlessDatabase extends Dexie {
     });
     this.version(3).stores({
       pieces: "++id, fileName, title, composer, genre, level, importedAt",
+    });
+    this.version(4).stores({
+      sheets: "++id, fileName, title, importedAt, openedAt",
+      sheetFiles: "id",
     });
   }
 }

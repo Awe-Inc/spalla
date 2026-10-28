@@ -57,7 +57,7 @@ export function Shell() {
   const location = useLocation();
   const onboardedAt = useSettings((state) => state.onboardedAt);
   const isOnboarding = location.pathname.startsWith("/boas-vindas");
-  const isFullscreen = location.pathname.startsWith("/tocar") || location.pathname === "/ferramentas/afinador" || isOnboarding;
+  const isFullscreen = location.pathname.startsWith("/tocar") || location.pathname.startsWith("/estante/") || location.pathname === "/ferramentas/afinador" || isOnboarding;
 
   if (onboardedAt === null && !isOnboarding) {
     return <Navigate to="/boas-vindas" replace />;

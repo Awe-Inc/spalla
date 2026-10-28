@@ -10,6 +10,7 @@ describe("schema", () => {
   it("indexes every key the pages order or filter by", () => {
     expect(Object.keys(db.pieces.schema.idxByName)).toEqual(expect.arrayContaining(["fileName", "importedAt"]));
     expect(Object.keys(db.results.schema.idxByName)).toEqual(expect.arrayContaining(["exerciseId", "playedAt"]));
+    expect(Object.keys(db.sheets.schema.idxByName)).toEqual(expect.arrayContaining(["fileName", "openedAt"]));
   });
 });
 

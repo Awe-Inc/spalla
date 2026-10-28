@@ -7,7 +7,7 @@ import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
 import { Button, InlineError, STRING_NAMES, StringChip } from "@/design/components";
 import { Tuner } from "@/design/Tuner";
-import { displayNoteName } from "@/music/noteNames";
+import { tunerReading } from "@/music/tunerReading";
 
 export const OPEN_STRING_MIDI = [55, 62, 69, 76] as const;
 
@@ -51,16 +51,7 @@ export function AfinadorPage() {
     setReference(midi);
   }
 
-  const reading = (() => {
-    if (core.status !== "ready" || !mic.frame || mic.frame.silent || mic.frame.lowConfidence) return null;
-    const midi = Math.round(69 + 12 * Math.log2(mic.frame.frequencyHz / 440));
-    return {
-      midi,
-      note: displayNoteName(core.core.noteName(midi), naming),
-      cents: core.core.centsBetween(mic.frame.frequencyHz, core.core.midiToFrequency(midi)),
-      frequencyHz: mic.frame.frequencyHz,
-    };
-  })();
+  const reading = core.status === "ready" ? tunerReading(core.core, mic.frame, naming) : null;
 
   return (
     <div className="grid min-h-dvh content-start gap-8 bg-canvas px-4 py-6 text-ink md:px-10">

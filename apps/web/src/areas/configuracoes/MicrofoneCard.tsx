@@ -6,7 +6,7 @@ import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
 import { Button, Card, InlineError } from "@/design/components";
 import { Tuner } from "@/design/Tuner";
-import { displayNoteName } from "@/music/noteNames";
+import { tunerReading } from "@/music/tunerReading";
 
 export function MicrofoneCard() {
   const core = useCore();
@@ -21,11 +21,7 @@ export function MicrofoneCard() {
       .catch(() => setDevices([]));
   }, [mic.status.status]);
 
-  const reading = (() => {
-    if (core.status !== "ready" || !mic.frame || mic.frame.silent || mic.frame.lowConfidence) return null;
-    const midi = Math.round(69 + 12 * Math.log2(mic.frame.frequencyHz / 440));
-    return { note: displayNoteName(core.core.noteName(midi), settings.noteNaming), cents: core.core.centsBetween(mic.frame.frequencyHz, core.core.midiToFrequency(midi)) };
-  })();
+  const reading = core.status === "ready" ? tunerReading(core.core, mic.frame, settings.noteNaming) : null;
 
   return (
     <Card title="Microfone" className="grid gap-4">
