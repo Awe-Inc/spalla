@@ -8,9 +8,17 @@ so the answer to "what should I practise today" is on the first screen.
 scales; a drone and a metronome; sight reading that deals a new page every
 time; and a library of public-domain repertoire.
 
+Since October 2026 the app is web-first: the C++ core is compiled to
+WebAssembly and the interface is React, installable as a PWA. The native
+build still works and runs the same test suite.
+
 ```bash
-build.bat                        # configure + build (CMake/Ninja from VS Build Tools)
-build\bin\Fretless.exe          # the practice hub
+pnpm install && pnpm build:core  # Emscripten build of the core (needs emsdk)
+pnpm dev                         # the web app on http://localhost:5180
+pnpm test                        # C++ cases in WASM + vitest (core and web)
+
+build.bat                        # native configure + build (CMake/Ninja from VS Build Tools)
+build\bin\Fretless.exe          # the native practice hub
 python tools/fetch_library.py    # download CC0 repertoire into assets/songs
 ```
 

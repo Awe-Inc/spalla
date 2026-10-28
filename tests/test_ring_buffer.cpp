@@ -74,6 +74,7 @@ TEST(ring_buffer_pop_batch_drains_available) {
 
 // The whole point of the structure: a producer that never blocks and a
 // consumer that never sees a torn or out-of-order item.
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
 TEST(ring_buffer_is_correct_under_concurrent_producer_and_consumer) {
     constexpr int kItems = 200000;
     SpscRingBuffer<Payload, 256> queue;
@@ -119,3 +120,4 @@ TEST(ring_buffer_is_correct_under_concurrent_producer_and_consumer) {
     CHECK_EQ(corrupted, 0);
     CHECK_EQ(dropped.load(), 0);
 }
+#endif

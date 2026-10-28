@@ -509,6 +509,22 @@ void buildMeasureMap(const std::vector<RawMeasure>& raw, Score& score) {
 std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                                          std::string* error,
                                          const ParseOptions& options) {
+    // "PK\x03\x04" — a .mxl container regardless of where the bytes came from.
+    if (size >= 4 && data[0] == 'P' && data[1] == 'K') {
+#if FRETLESS_HAS_MINIZ
+        std::vector<char> inner;
+        if (!extractMxl(data, size, inner, error)) {
+            return std::nullopt;
+        }
+        return parseMusicXmlBuffer(inner.data(), inner.size(), error, options);
+#else
+        if (error != nullptr) {
+            *error = "Compressed .mxl files need miniz. Export as uncompressed MusicXML.";
+        }
+        return std::nullopt;
+#endif
+    }
+
     pugi::xml_document doc;
     const pugi::xml_parse_result result =
         doc.load_buffer(data, size, pugi::parse_default | pugi::parse_doctype);
@@ -844,22 +860,6 @@ std::optional<Score> parseMusicXml(const std::string& path, std::string* error,
             *error = path + " is empty or truncated.";
         }
         return std::nullopt;
-    }
-
-    // "PK\x03\x04" — a .mxl container regardless of the file extension.
-    if (bytes[0] == 'P' && bytes[1] == 'K') {
-#if FRETLESS_HAS_MINIZ
-        std::vector<char> inner;
-        if (!extractMxl(bytes.data(), bytes.size(), inner, error)) {
-            return std::nullopt;
-        }
-        bytes.swap(inner);
-#else
-        if (error != nullptr) {
-            *error = "Compressed .mxl files need miniz. Export as uncompressed MusicXML.";
-        }
-        return std::nullopt;
-#endif
     }
 
     auto score = parseMusicXmlBuffer(bytes.data(), bytes.size(), error, options);

@@ -50,13 +50,13 @@ Estimativas em dias de trabalho focado, para dar ordem de grandeza, não comprom
 | Fase | Entrega | Critério de pronto | Dias |
 |---|---|---|---|
 | **0. Spike de latência** | Página mínima: AudioWorklet + YIN em WASM; mede atraso e jitter no PC dele | ≤ 30 ms estável (jitter < 5 ms), ≤ 1 cent nas 4 cordas. Reprovou → stack B | 1–2 |
-| **1. Fundação** | Monorepo (`packages/core`, `audio`, `ui`, `data`; `apps/desktop`); core compila nativo e WASM; os 100 testes passam nos dois; design system em CSS vars + componentes base (botão, cartão, chip, anel, estrelas, toast); navegação com as 5 áreas vazias | `pnpm test` verde; Storybook ou página de componentes com todos os tokens do DESIGN.md | 6–8 |
+| **1. Fundação** | Monorepo (`packages/core`, `apps/web`); core compila nativo e WASM; os 100 testes passam nos dois; design system em código (tokens do DESIGN.md) + componentes base (botão, cartão, chip, anel, estrelas, toast); navegação com as 5 áreas; PWA instalável; dados local-first (Dexie) | `pnpm test` verde; página de componentes com todos os tokens do DESIGN.md; app abre offline | 6–8 |
 | **2. Tocar** | Tela Tocar completa: highway em canvas, pauta VexFlow, afinador compacto, metrônomo e drone em Web Audio, Resultado com mapa de compassos e "repetir os difíceis" | Fluxo "exercício → Tocar → Resultado" com o jogador sintético nos testes e2e; paridade com o jogo atual | 8–10 |
 | **3. Praticar** | Módulos e exercícios (lista, filtros, detalhe, histórico); rotinas (lista, editor arrastável, metas, variações); sessão em execução com contador de repetições; gerador de rotina (intercalação + espaçamento) com testes de data fixa | Fluxo 2 da IA ("Começar → 25 min → resumo") sem decisão além de Começar | 8–10 |
 | **4. Hoje, onboarding, Progresso** | Hoje (sessão, revisão pendente, caderno, atalhos); onboarding em 6 passos com calibração; Progresso (resumo, calendário, por módulo, histórico, exportar); Configurações; migração do `progress.txt` | Fluxos 1 e 5; migração testada com um `progress.txt` real | 5–7 |
 | **5. Músicas** | Trilha Suzuki (10 livros como cartões, estado por peça, "aprendi na aula"); biblioteca CC0 + importar MusicXML/MXL; detalhe da peça com trechos, loop e andamento; gravador com comparação | Fluxo 4 (peça nova → trecho → andamento → inteira → revisão) | 6–8 |
 | **6. Caderno da aula e Ferramentas** | Caderno (anotações, tarefas → rotina "Da aula", resumo da semana); Afinador tela cheia com modo ressonância; Metrônomo progressivo; Drone com aviso de fone | Fluxo 3 (voltar da aula → tarefas → praticar na semana) | 4–5 |
-| **7. Empacotar** | Electron (ou Tauri) + Steam com conquistas; Capacitor para tablet Android; CI (testes nativos, WASM, Vitest, Playwright, jitter); README e skills do repo reescritas (`fretless-engine` vira `fretless-core` + `fretless-ui`) | Build de Steam instalável; APK rodando num tablet com latência medida | 5–7 |
+| **7. Conta e publicação** | Deploy (GitHub Pages ou Render); conta e sincronização com Supabase; acesso da professora ao Caderno da aula; CI (testes nativos, WASM, Vitest, Playwright); README e skills do repo reescritas (`fretless-engine` vira `fretless-core` + `fretless-web`). Electron/Steam só como anexo opcional | URL pública instalável como PWA; dois dispositivos sincronizados; professora vê o resumo da semana | 5–7 |
 
 Total: ~45–55 dias focados. Ordem fixa 0 → 1 → 2; de 3 em diante as fases podem trocar de ordem conforme o que a
 pessoa quiser usar primeiro (a Hoje só faz sentido depois de Praticar).
@@ -73,14 +73,15 @@ pessoa quiser usar primeiro (a Hoje só faz sentido depois de Praticar).
 | Highway em canvas 2D a 60 fps no tablet | Baixa | Pouca geometria; medir na fase 2; WebGL só se precisar |
 | Perder os 100 testes na migração | Baixa | Core não muda de linguagem; testes rodam nativos e em WASM desde a fase 1 |
 
-## 6. Decisões em aberto (para o dono)
+## 6. Decisões
 
-1. **Stack**: C (React + WASM, com fase 0) · B (Electron + addon nativo) · A (seguir C++). Recomendação: **C**.
-2. **Empacotador desktop**: Electron (maduro, steamworks.js pronto) ou Tauri (menor, Rust na ponte). Recomendação:
-   Electron, pela integração Steam.
-3. **Tablet na fase 7 ou antes?** Se o uso principal for tablet na estante, puxar Capacitor para a fase 1.
-4. **Nome das áreas e idioma**: PT-BR como proposto (Hoje · Praticar · Músicas · Ferramentas · Progresso)?
-5. **O que entra primeiro depois da fase 2**: Praticar (rotinas) ou Músicas (Suzuki/trechos)?
+Tomadas em 28/10: **stack C, web-first** (PWA, local-first, Steam opcional). Veja `stack.md` §3.
+
+Em aberto:
+
+1. **Qual tablet** fica na estante (Android ou iPad)? Define se a fase 0 roda também no Safari.
+2. **Nome das áreas e idioma**: PT-BR como proposto (Hoje · Praticar · Músicas · Ferramentas · Progresso)?
+3. **O que entra primeiro depois da fase 2**: Praticar (rotinas) ou Músicas (Suzuki/trechos)?
 
 ## 7. Fontes
 

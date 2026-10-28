@@ -1,0 +1,19 @@
+{
+  "name": "fretless",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Plataforma de estudo de violino: core C++ em WebAssembly, interface React.",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:core": "pnpm --filter @fretless/core build",
+    "dev": "pnpm --filter @fretless/web dev",
+    "test": "pnpm -r test",
+    "test:core": "pnpm --filter @fretless/core test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

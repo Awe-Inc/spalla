@@ -107,6 +107,7 @@ find_package(Threads REQUIRED)
 # ---------------------------------------------------------------------------
 set(FRETLESS_AUDIO_SOURCES
     src/audio/AudioEngine.cpp
+    src/audio/NoteMath.cpp
     src/audio/PitchDetector.cpp
     src/audio/ToneEngine.cpp
 )

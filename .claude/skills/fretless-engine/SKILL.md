@@ -5,9 +5,10 @@ description: Working in the Fretless C++20 engine — the realtime audio contrac
 
 # The Fretless engine
 
-A native C++20 violin practice tool: PortAudio capture → YIN pitch detection →
-one verdict per note → an OpenGL 3.3 renderer. No web stack, no notation
-engine, no test framework.
+The C++20 core of the violin practice tool: YIN pitch detection → one verdict
+per note, plus the native shell (PortAudio capture, OpenGL 3.3 renderer). Since
+28/10/2026 the same core also compiles to WebAssembly for the React app; that
+side is the `fretless-web` skill. No notation engine, no test framework.
 
 ## Build and run
 

@@ -1,0 +1,166 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --canvas: #faf6ef;
+  --surface: #ffffff;
+  --surface-soft: #f3eee5;
+  --surface-sunken: #ece6db;
+  --hairline: #e4ddd1;
+  --hairline-strong: #cfc6b7;
+  --ink: #1f1b17;
+  --ink-muted: #5d564e;
+  --ink-subtle: #8c847a;
+  --primary: #c2571d;
+  --primary-hover: #a84912;
+  --primary-soft: #fbe9dd;
+  --on-primary: #ffffff;
+  --shadow-ink: 31 27 23;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --canvas: #16130f;
+  --surface: #201c17;
+  --surface-soft: #2a241e;
+  --surface-sunken: #121009;
+  --hairline: #3a332b;
+  --hairline-strong: #4d453b;
+  --ink: #f4efe7;
+  --ink-muted: #b7aea2;
+  --ink-subtle: #867d71;
+  --primary: #e07a3a;
+  --primary-hover: #f08d50;
+  --primary-soft: #3a2518;
+  --on-primary: #16130f;
+  --shadow-ink: 0 0 0;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+  --color-in-tune: #2e8b57;
+  --color-in-tune-soft: #dff3e6;
+  --color-close: #d9a21b;
+  --color-close-soft: #fcf1cf;
+  --color-off: #d64545;
+  --color-off-soft: #fbe1e1;
+  --color-info: #3b6fd6;
+  --color-info-soft: #e3ebfb;
+  --color-string-g: #3aa86a;
+  --color-string-d: #3a8fd6;
+  --color-string-a: #7c5cd6;
+  --color-string-e: #e07a2c;
+  --color-focus: #3b6fd6;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --text-display: 40px;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.5px;
+  --text-title: 28px;
+  --text-title--line-height: 1.2;
+  --text-heading: 20px;
+  --text-heading--line-height: 1.3;
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.2px;
+  --text-numeric: 32px;
+  --text-numeric--line-height: 1;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgb(var(--shadow-ink) / 0.06);
+  --shadow-raised: 0 8px 24px rgb(var(--shadow-ink) / 0.1);
+  --shadow-overlay: 0 24px 64px rgb(var(--shadow-ink) / 0.18);
+
+  --ease-fretless: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 320ms;
+}
+
+@layer base {
+  html {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--canvas);
+  }
+
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background: var(--primary-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      transition-duration: 1ms !important;
+    }
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 48, "SOFT" 60;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}

@@ -37,3 +37,12 @@ steam_appid.txt
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ── Web (pnpm monorepo) ───────────────────────────────────────────────────
+node_modules/
+dist/
+packages/core/build/
+packages/core/dist/
+apps/web/dev-dist/
+*.tsbuildinfo
+.claude/settings.local.json
