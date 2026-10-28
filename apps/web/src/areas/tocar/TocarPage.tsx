@@ -1,6 +1,6 @@
 import type { GameStats, MeasureRange, NoteJudgement, PracticeSession, SessionState } from "@fretless/core";
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { useSettings } from "@/app/settings";
 import { useBlockGoal } from "@/areas/hoje/useTodayPlan";
@@ -17,6 +17,7 @@ import { ScrollingStaff } from "./ScrollingStaff";
 import { TocarControls } from "./TocarControls";
 import { useAccompaniment } from "./useAccompaniment";
 import { LEAD_IN_SECONDS, useSession } from "./useSession";
+import { advanceWithSyntheticPlayer, isSyntheticPlayerRequested, useSyntheticPlayer } from "./useSyntheticPlayer";
 
 interface Snapshot {
   state: SessionState;
@@ -43,11 +44,19 @@ function readSnapshot(session: PracticeSession): Snapshot {
 
 export function TocarPage() {
   const { exerciseId, pieceId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId, pieceId);
   const mic = usePitchInput();
   const { takeFrames, stop: stopMic, start: startMic } = mic;
-  const isListening = mic.status.status === "listening";
+  const isSynthetic = isSyntheticPlayerRequested(searchParams, import.meta.env.VITE_JOGADOR_SINTETICO);
+  const synthetic = useSyntheticPlayer(session);
+  const { start: startSynthetic, stop: stopSynthetic } = synthetic;
+  const isListening = isSynthetic ? synthetic.isPlaying : mic.status.status === "listening";
+  const stopInput = useCallback(() => {
+    if (isSynthetic) stopSynthetic();
+    else void stopMic();
+  }, [isSynthetic, stopSynthetic, stopMic]);
   const naming = useSettings((state) => state.noteNaming);
   const staffScale = useSettings((state) => state.staffScale);
   const staffHeight = { height: `${Math.round(STAFF_BASE_HEIGHT_PX * staffScale)}px` };
@@ -84,12 +93,16 @@ export function TocarPage() {
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      const frames = takeFrames();
-      if (frames.length === 0) {
-        session.update(dt, null);
+      if (isSynthetic) {
+        advanceWithSyntheticPlayer(session, dt);
       } else {
-        const slice = dt / frames.length;
-        for (const frame of frames) session.update(slice, frame);
+        const frames = takeFrames();
+        if (frames.length === 0) {
+          session.update(dt, null);
+        } else {
+          const slice = dt / frames.length;
+          for (const frame of frames) session.update(slice, frame);
+        }
       }
       const state = session.state;
       if (state === "countdown" || state === "playing") accompaniment.sync(session.songTime);
@@ -98,7 +111,7 @@ export function TocarPage() {
     };
     handle = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(handle);
-  }, [session, isListening, takeFrames, accompaniment]);
+  }, [session, isListening, isSynthetic, takeFrames, accompaniment]);
 
   useEffect(() => {
     if (!session || snapshot?.state !== "finished" || !loop) return;
@@ -130,12 +143,12 @@ export function TocarPage() {
       .then(setOutcome)
       .catch(() => setSaveError("O resultado não foi salvo neste aparelho. As estrelas valem só por agora."));
     accompaniment.stopDrone();
-    void stopMic();
-  }, [snapshot, score, resultId, limits, bpm, loop, droneOn, stopMic, accompaniment]);
+    stopInput();
+  }, [snapshot, score, resultId, limits, bpm, loop, droneOn, stopInput, accompaniment]);
 
   async function begin() {
     if (!session) return;
-    if (!isListening && !(await startMic())) return;
+    if (!isListening && !(isSynthetic ? startSynthetic() : await startMic())) return;
     session.restart();
     startedAtRef.current = Date.now();
     savedRunRef.current = false;
@@ -152,7 +165,7 @@ export function TocarPage() {
     session.stop();
     setLoop(null);
     accompaniment.stopDrone();
-    void stopMic();
+    stopInput();
     setSnapshot(null);
   }
 
@@ -163,7 +176,7 @@ export function TocarPage() {
 
   function leave() {
     accompaniment.stopDrone();
-    void stopMic();
+    stopInput();
     void navigate(exercise ? "/praticar" : "/musicas");
   }
 
@@ -305,7 +318,7 @@ export function TocarPage() {
       </main>
 
       <footer className="flex items-center justify-between text-caption text-ink-subtle">
-        <span>{mic.status.status === "listening" ? "Microfone ligado" : "Microfone desligado"}</span>
+        <span>{isSynthetic ? "Jogador sintético" : mic.status.status === "listening" ? "Microfone ligado" : "Microfone desligado"}</span>
         {mic.frame?.clipped ? <span className="text-off">Sinal saturando</span> : null}
         {snapshot ? <span className="font-mono tabular">{snapshot.songTime.toFixed(1)} s</span> : null}
       </footer>

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -278,6 +279,19 @@ const char* stateName(game::GameState state) {
     return "idle";
 }
 
+val frameToVal(const audio::PitchFrame& f) {
+    val o = val::object();
+    o.set("streamTimeSec", f.streamTimeSec);
+    o.set("blockIndex", static_cast<double>(f.blockIndex));
+    o.set("frequencyHz", f.frequencyHz);
+    o.set("confidence", f.confidence);
+    o.set("rmsLinear", f.rmsLinear);
+    o.set("silent", (f.flags & audio::kFlagSilent) != 0);
+    o.set("lowConfidence", (f.flags & audio::kFlagLowConfidence) != 0);
+    o.set("clipped", (f.flags & audio::kFlagClipped) != 0);
+    return o;
+}
+
 class LivePitchTracker {
 public:
     LivePitchTracker(double sampleRate, int windowSize) {
@@ -346,19 +360,6 @@ public:
     int requiredSamples() const { return static_cast<int>(window_.size()); }
 
 private:
-    static val frameToVal(const audio::PitchFrame& f) {
-        val o = val::object();
-        o.set("streamTimeSec", f.streamTimeSec);
-        o.set("blockIndex", static_cast<double>(f.blockIndex));
-        o.set("frequencyHz", f.frequencyHz);
-        o.set("confidence", f.confidence);
-        o.set("rmsLinear", f.rmsLinear);
-        o.set("silent", (f.flags & audio::kFlagSilent) != 0);
-        o.set("lowConfidence", (f.flags & audio::kFlagLowConfidence) != 0);
-        o.set("clipped", (f.flags & audio::kFlagClipped) != 0);
-        return o;
-    }
-
     audio::PitchDetector detector_;
     std::vector<float>   window_;
     std::vector<float>   input_;
@@ -449,6 +450,29 @@ public:
         frame.rmsLinear     = rms;
         frame.flags         = silent ? audio::kFlagSilent : audio::kFlagNone;
         engine_.update(deltaSeconds, &frame, 1);
+    }
+
+    // The browser e2e drives the real page without a microphone: the same
+    // SyntheticPlayer the headless simulate() uses, but streamed one tick at
+    // a time so the page's own loop, staff and result screen are exercised.
+    void configureSyntheticPlayer(float centsBias, float centsJitter, float missProbability, std::uint32_t seed) {
+        game::SyntheticPlayerConfig config;
+        config.centsBias       = centsBias;
+        config.centsJitter     = centsJitter;
+        config.missProbability = missProbability;
+        config.seed            = seed;
+        player_.configure(config);
+        player_.reset();
+    }
+
+    val synthesize(double fromSeconds, double toSeconds) {
+        std::array<audio::PitchFrame, kMaxSynthesizedFramesPerCall> frames{};
+        const std::size_t count = player_.generate(score_, fromSeconds, toSeconds, frames.data(), frames.size());
+        val out = val::array();
+        for (std::size_t i = 0; i < count; ++i) {
+            out.call<void>("push", frameToVal(frames[i]));
+        }
+        return out;
     }
 
     std::string state() const { return stateName(engine_.state()); }
@@ -555,7 +579,10 @@ private:
     score::Score            score_;
     std::pair<int, int>     range_{-1, -1};
     game::GameEngine        engine_;
+    game::SyntheticPlayer   player_;
     std::uint64_t           blockIndex_ = 0;
+
+    static constexpr std::size_t kMaxSynthesizedFramesPerCall = 64;
 };
 
 std::string noteName(int midi, int fifths) { return latinName(midi, fifths); }
@@ -626,5 +653,7 @@ EMSCRIPTEN_BINDINGS(fretless_core) {
         .function("stats", &Session::stats)
         .function("liveCents", &Session::liveCents)
         .function("judgements", &Session::judgements)
-        .function("simulate", &Session::simulate);
+        .function("simulate", &Session::simulate)
+        .function("configureSyntheticPlayer", &Session::configureSyntheticPlayer)
+        .function("synthesize", &Session::synthesize);
 }

@@ -31,7 +31,7 @@ O que roda agora, verificado nesta data:
 | Core C++ nativo (`build.bat`, `test.bat`) | 100 testes, 0 falhas |
 | Core em WASM (`pnpm build:core`) | os mesmos 99 casos passam no Node (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
-| `apps/web` | 177 testes vitest em 35 arquivos, typecheck limpo, `vite build` gera a PWA (213 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática |
+| `apps/web` | 179 testes vitest em 36 arquivos, typecheck limpo, `vite build` gera a PWA (213 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática; 1 teste e2e Playwright (`pnpm --filter @fretless/web test:e2e`) toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado |
 | CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`; deploy no Pages desligado (ver §11, item 6) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
 | Afinador no AudioWorklet | WASM carrega dentro do worklet e detecta 440,02 Hz de um oscilador com confiança 0,99999 (testado sem microfone) |
@@ -158,7 +158,8 @@ A sequência de dias usa o dia do calendário local (`localDayKey`); UTC quebrav
 - `pnpm typecheck`, `pnpm --filter @fretless/web build`.
 - Regra do repo: bug que chegou ao usuário deixa um teste que falha sem o fix e uma entrada em "Armadilhas" na
   skill (`.claude/skills/fretless-web/SKILL.md` já tem 10 entradas).
-- Ainda não existe: teste e2e (Playwright) com o jogador sintético no navegador, CI, teste visual.
+- E2E (Playwright, `apps/web/e2e/`): o `SyntheticPlayer` nativo é exposto pelo WASM (`Session.configureSyntheticPlayer` + `synthesize`) e a página Tocar o usa no lugar do microfone quando a URL traz `?jogador=sintetico` e o build tem `VITE_JOGADOR_SINTETICO=1` (só o `webServer` do Playwright liga isso). O teste abre `/tocar/scales.1oct.69`, confirma o fone, clica em Começar, espera a região "Resultado" (~30 s) e confere precisão > 70% e o XP salvo.
+- Ainda não existe: CI, teste visual.
 
 ## 9. O que falta para o "sistema completo"
 
@@ -169,7 +170,7 @@ escolha).
 |---|---|---|
 | 0. Spike de latência | **quase**: pipeline funciona, teste pronto | medir no PC/tablet: meta ≤ 30 ms, jitter < 5 ms, ≤ 1 cent nas 4 cordas; reprovou → Capacitor/Tauri com a mesma UI |
 | 1. Fundação | **feita**: monorepo, core nos dois mundos, tokens em código, 5 áreas, PWA, Dexie, página `/componentes` com todos os tokens e componentes (28/10); app conferido offline no navegador com o servidor desligado (28/10): raiz, Praticar, Músicas, Progresso, Metrônomo e `/componentes` servidos pelo service worker, core WASM vindo do cache, sem erro no console | — |
-| 2. Tocar | **feita (28/10)**: pauta rolando, metrônomo com subdivisão e 3 sons, drone, andamento ±5, loop A-B, mapa de compassos, "repetir os difíceis", XP e maestria por execução | highway como modo alternativo, auto-slowdown, e2e com jogador sintético |
+| 2. Tocar | **feita (28/10)**: pauta rolando, metrônomo com subdivisão e 3 sons, drone, andamento ±5, loop A-B, mapa de compassos, "repetir os difíceis", XP e maestria por execução, e2e Playwright com jogador sintético | highway como modo alternativo, auto-slowdown |
 | 3. Praticar | **feita (28/10)**: rotinas padrão 15/25/45 e rotinas próprias, blocos ↔ tipo de exercício, planejador do dia com revisão espaçada e semente diária, filtros por módulo, contador de repetições limpas (≥ 90%, erro zera, bloco fecha com 3 seguidas; 3 séries em dias diferentes pedem andamento novo), editor de rotina com blocos arrastáveis (ou Subir/Descer no teclado), minutos e meta por bloco, edição das rotinas próprias, histórico por exercício | — |
 | 4. Hoje, onboarding, Progresso | **feita (28/10)**: onboarding em 5 passos, sessão do dia na Hoje, nível e XP, heatmap de 12 semanas, histórico de precisão, conquistas, medalhas de constância em bronze/prata/ouro (só lembrança, sem desbloquear nada; a loja de resinas saiu em 28/10 e sons e paleta sépia ficaram livres); configurações com teste de microfone, sensibilidade, tamanho da partitura, backup `.json`, limpar cache, resetar, importar o `progress.txt` do app nativo (28/10: melhor resultado de cada exercício vira um resultado, a linha `days` vira dias de prática; o que já existe fica) | — |
 | 5. Músicas | **feita (28/10)**: catálogo do core + importações persistidas no Dexie (8 MB), filtros por nível, compositor, gênero e status (não iniciada, em estudo, dominada), tocar em `/tocar/musica/:id`; **estante de PDF (28/10)**: métodos e partituras em PDF lidos dentro do app (pdf.js), com afinador, metrônomo e pedal ao lado, sem julgamento nem XP | biblioteca CC0 maior, gravador com comparação (decisão 8 em §11) |

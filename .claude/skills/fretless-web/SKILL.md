@@ -14,8 +14,11 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (99 cases) + vitest core (12) + vitest web (20)
+pnpm test                          # WASM harness (99 cases) + vitest core (14) + vitest web (179)
 pnpm typecheck                     # tsc in both packages
+pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
+                                   # scales.1oct.69 with the synthetic player (~35 s); first run needs
+                                   # `pnpm --filter @fretless/web exec playwright install chromium`
 pnpm --filter @fretless/web build  # tsc -b + vite build → apps/web/dist (PWA, service worker, 404.html = SPA fallback)
 BASE_PATH=/fretless/ pnpm --filter @fretless/web build   # sub-path build (GitHub Pages); from PowerShell on Windows,
                                    # Git Bash rewrites "/fretless/" into a Windows path
@@ -59,6 +62,8 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
                                  "senoidal"; fades in and out), tempoClock.ts (TempoClock: metrônomo autônomo
                                  com AudioContext próprio, compasso, acento e andamento progressivo; puro testado)
 apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),
+                                 useSyntheticPlayer (`?jogador=sintetico` + build flag → the WASM SyntheticPlayer
+                                 feeds the session instead of the mic; pure helpers tested; used by e2e/),
                                  useAccompaniment (metronome + drone bound to the mic context), TocarControls
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
                                  tempo advice, "repetir compassos", cartão da meta do bloco com GoalDots e a
@@ -249,3 +254,13 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 - **Troca rápida de página com pdf.js: cancelar pelo efeito, não só pelo canvas.** `getPage` de uma página fora do
   cache resolve depois do `getPage` da seguinte; sem `AbortSignal` conferido depois do `await`, a página antiga
   desenhava por cima da nova. `PaginaPdf` aborta no cleanup e `renderPdfPage` checa o sinal após `getPage`.
+- **Script que chama `pnpm` por dentro falha nesta máquina.** `pnpm build:core` (script raiz que roda
+  `pnpm --filter @fretless/core build`) e o `webServer` do Playwright com `pnpm exec vite` morrem com
+  `'"...npm\node_modules\pnpm\pnpm"' não é reconhecido`: o shim do pnpm instalado pelo npm resolve um caminho
+  quebrado quando é um processo filho que o chama. Da shell direto funciona; dentro de um script, chamar a ferramenta
+  sem pnpm: `cd packages/core && node scripts/build.mjs` para o core e `node ./node_modules/vite/bin/vite.js` no
+  `playwright.config.ts`.
+- **Jogador sintético só com a flag de build.** `?jogador=sintetico` troca o microfone pelo `SyntheticPlayer` do WASM
+  em `TocarPage`, mas só quando `import.meta.env.VITE_JOGADOR_SINTETICO === "1"`; o `webServer` do Playwright é quem
+  liga isso. Sem a flag a URL é ignorada, então um build normal nunca toca sozinho. Em modo sintético `isListening`
+  vem do hook e o contexto de áudio do mic é nulo: metrônomo e drone ficam mudos de propósito.

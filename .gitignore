@@ -46,3 +46,7 @@ packages/core/dist/
 apps/web/dev-dist/
 *.tsbuildinfo
 .claude/settings.local.json
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/

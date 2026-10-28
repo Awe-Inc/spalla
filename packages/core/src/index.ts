@@ -27,6 +27,7 @@ export interface CoreLoadOptions {
 
 export const DEFAULT_SAMPLE_RATE = 48_000;
 export const DEFAULT_WINDOW_SIZE = 2048;
+export const SYNTHETIC_PLAYER_DEFAULTS: Required<SimulationConfig> = { centsBias: 0, centsJitter: 7, missProbability: 0.04, seed: 0x5eed1234 };
 
 export class PitchTracker {
   readonly #module: MainModule;
@@ -177,6 +178,19 @@ export class PracticeSession {
       config.missProbability ?? 0,
       (config.seed ?? 1) >>> 0,
     ) as GameStats;
+  }
+
+  configureSyntheticPlayer(config: SimulationConfig = {}): void {
+    this.#raw.configureSyntheticPlayer(
+      config.centsBias ?? SYNTHETIC_PLAYER_DEFAULTS.centsBias,
+      config.centsJitter ?? SYNTHETIC_PLAYER_DEFAULTS.centsJitter,
+      config.missProbability ?? SYNTHETIC_PLAYER_DEFAULTS.missProbability,
+      (config.seed ?? SYNTHETIC_PLAYER_DEFAULTS.seed) >>> 0,
+    );
+  }
+
+  synthesize(fromSeconds: number, toSeconds: number): PitchFrame[] {
+    return this.#raw.synthesize(fromSeconds, toSeconds) as PitchFrame[];
   }
 
   dispose(): void {
