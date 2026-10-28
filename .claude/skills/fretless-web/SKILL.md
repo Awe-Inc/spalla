@@ -269,3 +269,8 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
   e `practiceDaysFromNative` agrupa por dia local. Todo timestamp de teste que vira dia local fica ao meio-dia UTC
   (`Date.UTC(ano, mês, dia, 12) / 1000`), que cai no mesmo dia em qualquer fuso entre −11 e +11. Para reproduzir o
   CI: `TZ=UTC pnpm --filter @fretless/web exec vitest run <arquivo>` no Git Bash.
+- **`BASE_PATH=/fretless/` no Git Bash vira `C:/Program Files/Git/fretless/`.** O MSYS converte variável de
+  ambiente que começa com `/` em caminho do Windows antes de entregar ao Node, e o build sai com `src="/Program
+  Files/Git/fretless/assets/..."` e `scope` absoluto do disco. Para gerar o site do Pages localmente:
+  `MSYS2_ENV_CONV_EXCL=BASE_PATH BASE_PATH=/fretless/ pnpm --filter @fretless/web run build` (`MSYS_NO_PATHCONV`
+  não basta para variáveis). No CI (Linux) não existe conversão.

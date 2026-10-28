@@ -203,7 +203,7 @@ tamanhos soltos do Tailwind viraram tokens (`text-note`, `max-w-page`, `grid-col
    como ferramentas separadas (`/ferramentas/metronomo` com andamento progressivo, `/ferramentas/pedal`).
 5. ~~Conta e sincronização~~ **Decidido em 28/10: pausado.** Só local até a fundação offline estar impecável.
 6. **Publicação**: o CI já gera o site com `BASE_PATH=/fretless/` e o job de deploy no GitHub Pages existe, mas a
-   API respondeu em 28/10 que **o plano atual não oferece Pages para repositório privado**. Para publicar: tornar o
+   API respondeu em 28/10 (e de novo às 19h) que **o plano atual não oferece Pages para repositório privado**. Para publicar: tornar o
    repo público (ou assinar o Pro) e criar a variável `DEPLOY_PAGES=true` em Settings → Secrets and variables →
    Actions; ou apontar um Static Site do Render para `apps/web/dist` (build `pnpm install && pnpm build:core &&
    pnpm --filter @fretless/web build`, que precisa do emsdk na imagem). PWA basta por enquanto; loja (Capacitor)
@@ -222,7 +222,8 @@ pnpm build:core                    # Emscripten (precisa de C:\Users\Usuario\ems
 pnpm test
 pnpm typecheck
 pnpm dev                           # http://localhost:5180
-pnpm --filter @fretless/web build  # apps/web/dist; com BASE_PATH=/fretless/ gera o site para o sub-caminho do Pages
+pnpm --filter @fretless/web build  # apps/web/dist
+MSYS2_ENV_CONV_EXCL=BASE_PATH BASE_PATH=/fretless/ pnpm --filter @fretless/web build  # site para o sub-caminho do Pages; o prefixo MSYS2_ evita a conversão de caminho do Git Bash
 ```
 
 O CI (`.github/workflows/ci.yml`) roda a mesma sequência a cada push na `main` e em pull requests, com o Emscripten
