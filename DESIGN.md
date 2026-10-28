@@ -36,6 +36,10 @@ colors:
   dark-ink: "#f4efe7"
   dark-ink-muted: "#b7aea2"
   dark-primary: "#e07a3a"
+  dark-in-tune-soft: "#1e3b2a"
+  dark-close-soft: "#3d3012"
+  dark-off-soft: "#3f1f1f"
+  dark-info-soft: "#1d2b47"
 typography:
   display:
     fontFamily: Fraunces
