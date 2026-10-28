@@ -125,6 +125,11 @@
   --text-caption--letter-spacing: 0.2px;
   --text-numeric: 32px;
   --text-numeric--line-height: 1;
+  --text-note: 72px;
+  --text-note--line-height: 1;
+
+  --container-page: 1120px;
+  --grid-template-columns-shell: 240px 1fr;
 
   --radius-sm: 8px;
   --radius-md: 12px;

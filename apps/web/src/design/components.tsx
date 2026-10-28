@@ -49,7 +49,8 @@ export function StringChip({ index }: { index: number }) {
   const name = STRING_NAMES[index] ?? "?";
   const color = stringClass[index] ?? "bg-ink-subtle";
   return (
-    <span className={`inline-flex h-7 items-center rounded-pill px-3 text-caption font-medium text-white ${color}`}>
+    <span className="inline-flex h-7 items-center gap-2 rounded-pill bg-surface-soft pl-2.5 pr-3 text-caption font-medium text-ink">
+      <span aria-hidden className={`size-2.5 rounded-pill ${color}`} />
       {name}
     </span>
   );
@@ -57,7 +58,7 @@ export function StringChip({ index }: { index: number }) {
 
 export function Stars({ count, label }: { count: 0 | 1 | 2 | 3; label?: string }) {
   return (
-    <span className="inline-flex items-center gap-1" aria-label={`${count} de 3 estrelas`}>
+    <span className="inline-flex items-center gap-1" role="img" aria-label={label ?? `${count} de 3 estrelas`}>
       {[0, 1, 2].map((i) => (
         <svg key={i} viewBox="0 0 20 20" className={`size-5 ${i < count ? "fill-close" : "fill-hairline-strong"}`} aria-hidden>
           <path d="M10 1.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L10 14.9l-5.3 2.8 1.1-5.9L1.5 7.7l5.9-.8z" />

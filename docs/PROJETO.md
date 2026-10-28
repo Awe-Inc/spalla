@@ -31,7 +31,7 @@ O que roda agora, verificado nesta data:
 | Core C++ nativo (`build.bat`, `test.bat`) | 100 testes, 0 falhas |
 | Core em WASM (`pnpm build:core`) | os mesmos 99 casos passam no Node (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
-| `apps/web` | 89 testes vitest, typecheck limpo, `vite build` gera a PWA (e `404.html` para hospedagem estática) |
+| `apps/web` | 123 testes vitest em 23 arquivos, typecheck limpo, `vite build` gera a PWA (210 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática |
 | CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`; deploy no Pages desligado (ver §11, item 6) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
 | Afinador no AudioWorklet | WASM carrega dentro do worklet e detecta 440,02 Hz de um oscilador com confiança 0,99999 (testado sem microfone) |
@@ -178,15 +178,15 @@ escolha).
 
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 
-Todas pequenas; nenhuma bloqueia uso.
-
-- Alguns valores arbitrários do Tailwind; `aria-label` em spans genéricos; contraste do `StringChip`.
-- Highway e pauta não desenhados (é a fase 2, não dívida).
+Nenhuma aberta em 28/10. Highway e pauta alternativa não são dívida: o highway ficou como modo opcional da fase 2.
 
 Fechadas em 28/10: músicas importadas agora ficam no Dexie (`pieces`); o select de microfone zera um id que não
 existe mais (`audio/devices.ts`); foco visível nos radios `sr-only` e nos botões de importar (`has-focus-visible:`);
 o título do módulo em Praticar é `<h2>` com `<button>` dentro; fontes auto-hospedadas (Fontsource, `design/fonts.css`)
-e no precache, sem Google Fonts; tabela `settings` do Dexie removida (versão 5), `routines` está em uso.
+e no precache, sem Google Fonts; tabela `settings` do Dexie removida (versão 5), `routines` está em uso; `StringChip`
+passou a chip neutro com bolinha na cor da corda (o branco sobre a cor dava ~3:1); `Stars` tem `role="img"`; os
+tamanhos soltos do Tailwind viraram tokens (`text-note`, `max-w-page`, `grid-cols-shell`). Os grids
+`[auto_1fr]` e afins são declarativos e ficam.
 
 ## 11. Decisões que o planejamento precisa tomar
 

@@ -7,7 +7,12 @@ import { Button, HeadphoneNotice, ProgressRing, Stars, StringChip } from "./comp
 describe("Stars", () => {
   it("announces the count out of three", () => {
     render(<Stars count={2} />);
-    expect(screen.getByLabelText("2 de 3 estrelas")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "2 de 3 estrelas" })).toBeInTheDocument();
+  });
+
+  it("uses the visible label as the accessible name when one is given", () => {
+    render(<Stars count={3} label="3 de 3 estrelas" />);
+    expect(screen.getAllByRole("img", { name: "3 de 3 estrelas" })).toHaveLength(1);
   });
 });
 

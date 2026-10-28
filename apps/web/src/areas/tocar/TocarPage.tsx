@@ -211,7 +211,7 @@ export function TocarPage() {
               <span className="text-caption text-ink-subtle">
                 {snapshot.state === "countdown" ? "Prepare o arco" : `Compasso ${currentEvent?.measure ?? "—"}`}
               </span>
-              <span className="font-display text-[72px] leading-none">
+              <span className="font-display text-note">
                 {currentEvent && !currentEvent.isRest ? displayNoteName(currentEvent.noteName, naming) : "pausa"}
               </span>
               {currentEvent && !currentEvent.isRest ? <StringChip index={currentEvent.string} /> : null}

@@ -73,7 +73,7 @@ export function Shell() {
     icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7-3 2-1-1-3-2 .2a7 7 0 0 0-1.5-1.5L16.7 4l-3-1-1 2a7 7 0 0 0-2.1 0l-1-2-3 1 .2 2.3A7 7 0 0 0 5.4 7.8L3 7.6l-1 3 2 1a7 7 0 0 0 0 2.1l-2 1 1 3 2.3-.2a7 7 0 0 0 1.5 1.5L7.3 20l3 1 1-2a7 7 0 0 0 2.1 0l1 2 3-1-.2-2.3a7 7 0 0 0 1.5-1.5l2.3.2 1-3-2-1a7 7 0 0 0 0-2.1z",
   };
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[240px_1fr]">
+    <div className="min-h-dvh lg:grid lg:grid-cols-shell">
       <aside className="hidden lg:flex lg:flex-col lg:gap-1 lg:border-r lg:border-hairline lg:px-4 lg:py-6">
         <NavLink to="/" className="mb-6 px-3 font-display text-title text-ink" end>
           Fretless
@@ -92,7 +92,7 @@ export function Shell() {
         </NavLink>
       </aside>
 
-      <main className="mx-auto w-full max-w-[1120px] px-4 pb-28 pt-6 md:px-6 lg:px-8 lg:pb-12 lg:pt-10">
+      <main className="mx-auto w-full max-w-page px-4 pb-28 pt-6 md:px-6 lg:px-8 lg:pb-12 lg:pt-10">
         <Outlet />
       </main>
 
