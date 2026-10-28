@@ -34,8 +34,21 @@ describe("currentStreak", () => {
     expect(currentStreak(days, "2026-10-28")).toBe(2);
   });
 
-  it("is zero when today has no practice", () => {
-    expect(currentStreak([{ day: "2026-10-27", minutes: 5, exercisesPlayed: 1 }], "2026-10-28")).toBe(0);
+  it("keeps yesterday's streak alive while today is still open", () => {
+    expect(currentStreak([{ day: "2026-10-27", minutes: 5, exercisesPlayed: 1 }], "2026-10-28")).toBe(1);
+  });
+
+  it("is zero when yesterday was missed too", () => {
+    expect(currentStreak([{ day: "2026-10-26", minutes: 5, exercisesPlayed: 1 }], "2026-10-28")).toBe(0);
+  });
+
+  it("bridges a frozen day without counting it", () => {
+    const days = [
+      { day: "2026-10-28", minutes: 10, exercisesPlayed: 2 },
+      { day: "2026-10-26", minutes: 5, exercisesPlayed: 1 },
+    ];
+    expect(currentStreak(days, "2026-10-28", ["2026-10-27"])).toBe(2);
+    expect(currentStreak(days, "2026-10-28")).toBe(1);
   });
 
   it("ignores days with zero minutes", () => {

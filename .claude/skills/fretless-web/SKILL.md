@@ -46,7 +46,14 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  useAccompaniment (metronome + drone bound to the mic context), TocarControls
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
                                  tempo advice, "repetir compassos"), tempo.ts and measureMap.ts (pure, tested)
-apps/web/src/data/               db.ts (Dexie: results, routines, practiceDays, settings), library.ts
+apps/web/src/data/               db.ts (Dexie v2: results, routines, practiceDays, settings, userStats,
+                                 achievements, lessonTasks, pieces), gamification.ts (XP, maestria, conquistas,
+                                 loja), spaced.ts (prioridade espaçada), routines.ts (rotinas padrão 15/25/45,
+                                 blocos ↔ ExerciseKind, variações), planner.ts (planSession: monta a sessão do
+                                 dia), progress.ts (saveRun: resultado + XP + conquistas; bônus de sessão,
+                                 congelador, loja), library.ts — todos os .ts puros têm teste ao lado
+apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia), HojePage
+apps/web/src/areas/praticar/     RoutinePicker (escolher/criar rotina; rotinas padrão têm id negativo)
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
 apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested
 apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolling into the playhead
@@ -56,6 +63,13 @@ Loop A-B lives in the core binding, not in the web: `session.setMeasureRange({fi
 session's score by a copy cut to those bars (time and `measureIndex` rebased to zero, tempo map and tempo scale
 kept), so the engine, the staff, the metronome and the result all see "the piece" as just that excerpt.
 `setMeasureRange(null)` restores the full score. A loop run is never saved as a result and restarts by itself.
+
+Gamification is pure data in `data/gamification.ts`: XP per note (Perfect 3, Great 1, ×2 after 20 perfect in a
+row, +50 when the day's session closes), five mastery levels per piece (`masteryOfRun`), achievements checked in
+`saveRun` after every saved result, Resinas = stars × 5. The streak counts days whose XP met `dailyGoalXp`; a
+frozen day bridges the streak without counting. `currentStreak` keeps yesterday's streak alive while today is
+still open. The session planner (`planSession`) assigns review blocks first (weak <70% → spaced), then new pieces
+(<2★, lowest level), then the rest by spaced priority with the day's seed; lesson tasks win their block.
 
 ## Rules
 

@@ -20,6 +20,8 @@ interface SettingsState extends PracticeAudioPrefs {
   noteNaming: NoteNaming;
   inputDeviceId: string | null;
   headphonesConfirmedAt: number | null;
+  routineId: number;
+  setRoutine: (routineId: number) => void;
   setTheme: (theme: ThemePreference) => void;
   setNoteNaming: (naming: NoteNaming) => void;
   setInputDevice: (deviceId: string | null) => void;
@@ -34,6 +36,8 @@ export const useSettings = create<SettingsState>()(
       noteNaming: "latin",
       inputDeviceId: null,
       headphonesConfirmedAt: null,
+      routineId: -25,
+      setRoutine: (routineId) => set({ routineId }),
       metronomeOn: false,
       metronomeSubdivision: 1,
       metronomeVolume: 0.5,
@@ -47,10 +51,11 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume }) => ({
         theme,
         noteNaming,
         inputDeviceId,
+        routineId,
         metronomeOn,
         metronomeSubdivision,
         metronomeVolume,

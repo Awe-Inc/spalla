@@ -5,11 +5,12 @@ import { useNavigate, useParams } from "react-router";
 import { useSettings } from "@/app/settings";
 import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
-import { recordResult, starsFor } from "@/data/db";
+import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
 import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
 import { Tuner } from "@/design/Tuner";
 import { displayNoteName } from "@/music/noteNames";
 
+import { ComboBar } from "./ComboBar";
 import { ResultScreen } from "./ResultScreen";
 import { ScrollingStaff } from "./ScrollingStaff";
 import { TocarControls } from "./TocarControls";
@@ -49,7 +50,7 @@ export function TocarPage() {
   const headphonesConfirmedAt = useSettings((state) => state.headphonesConfirmedAt);
   const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [saved, setSaved] = useState<{ stars: 0 | 1 | 2 | 3 } | null>(null);
+  const [outcome, setOutcome] = useState<RunOutcome | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [droneOn, setDroneOn] = useState(false);
   const startedAtRef = useRef<number | null>(null);
@@ -96,6 +97,7 @@ export function TocarPage() {
 
   useEffect(() => {
     if (!session || snapshot?.state !== "finished" || !loop) return;
+    void recordLoopCompleted();
     const timer = window.setTimeout(() => {
       session.restart();
       accompaniment.rewind(-LEAD_IN_SECONDS);
@@ -108,22 +110,23 @@ export function TocarPage() {
   useEffect(() => {
     if (!score || !resultId || !limits || loop || snapshot?.state !== "finished" || savedRunRef.current || startedAtRef.current === null) return;
     savedRunRef.current = true;
-    const stars = starsFor(snapshot.stats.accuracyPct, bpm, limits.writtenBpm);
     const durationSeconds = (Date.now() - startedAtRef.current) / 1000;
-    recordResult({
+    saveRun({
       exerciseId: resultId,
-      playedAt: Date.now(),
-      accuracyPct: snapshot.stats.accuracyPct,
-      meanSignedCents: snapshot.stats.meanSignedCents,
+      stats: snapshot.stats,
+      judgements: snapshot.judgements,
       bpm,
-      stars,
+      writtenBpm: limits.writtenBpm,
       durationSeconds,
+      withDrone: droneOn,
+      fromMemory: false,
+      playedAt: Date.now(),
     })
-      .then(() => setSaved({ stars }))
+      .then(setOutcome)
       .catch(() => setSaveError("O resultado não foi salvo neste aparelho. As estrelas valem só por agora."));
     accompaniment.stopDrone();
     void stopMic();
-  }, [snapshot, score, resultId, limits, bpm, loop, stopMic, accompaniment]);
+  }, [snapshot, score, resultId, limits, bpm, loop, droneOn, stopMic, accompaniment]);
 
   async function begin() {
     if (!session) return;
@@ -131,7 +134,7 @@ export function TocarPage() {
     session.restart();
     startedAtRef.current = Date.now();
     savedRunRef.current = false;
-    setSaved(null);
+    setOutcome(null);
     setSaveError(null);
     accompaniment.rewind(-LEAD_IN_SECONDS);
     accompaniment.startDrone();
@@ -215,14 +218,11 @@ export function TocarPage() {
               noteLabel={snapshot.liveCents === null ? null : displayNoteName(currentEvent?.noteName ?? "", naming)}
               cents={snapshot.liveCents}
             />
-            <dl className="grid grid-cols-3 gap-4 text-center md:grid-cols-5">
+            <ComboBar combo={snapshot.stats.combo} />
+            <dl className="grid grid-cols-2 gap-4 text-center md:grid-cols-4">
               <div>
                 <dt className="text-caption text-ink-subtle">Precisão</dt>
                 <dd className="font-mono text-numeric tabular">{Math.round(snapshot.stats.accuracyPct)}%</dd>
-              </div>
-              <div>
-                <dt className="text-caption text-ink-subtle">Sequência</dt>
-                <dd className="font-mono text-numeric tabular">{snapshot.stats.combo}</dd>
               </div>
               <div>
                 <dt className="text-caption text-ink-subtle">Notas</dt>
@@ -254,7 +254,7 @@ export function TocarPage() {
             score={score}
             stats={snapshot.stats}
             judgements={snapshot.judgements}
-            stars={saved?.stars ?? 0}
+            outcome={outcome}
             bpm={bpm}
             limits={limits}
             loop={loop}

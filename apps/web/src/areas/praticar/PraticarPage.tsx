@@ -3,9 +3,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 import { Link } from "react-router";
 
+import { useRoutines } from "@/areas/hoje/useTodayPlan";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, db, type ExerciseResult } from "@/data/db";
 import { Card, InlineError, PageTitle, Stars } from "@/design/components";
+
+import { RoutinePicker } from "./RoutinePicker";
 
 function ModuleCard({ module, best }: { module: CurriculumModule; best: Map<string, ExerciseResult> }) {
   const [open, setOpen] = useState(false);
@@ -47,10 +50,14 @@ export function PraticarPage() {
   const core = useCore();
   const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
   const best = bestResultsByExercise(results);
+  const routines = useRoutines();
 
   return (
     <>
-      <PageTitle title="Praticar" eyebrow="Módulos do método" />
+      <PageTitle title="Praticar" eyebrow="Rotina e módulos do método" />
+      <div className="mb-6">
+        <RoutinePicker routines={routines} />
+      </div>
       {core.status === "loading" ? <p className="text-ink-muted">Carregando módulos…</p> : null}
       {core.status === "error" ? <InlineError title="Os módulos não carregaram." nextStep={core.message} /> : null}
       {core.status === "ready" ? (
