@@ -7,6 +7,7 @@ import { grantSessionBonus, useFreezer } from "@/data/progress";
 import { BLOCK_LABELS } from "@/data/routines";
 import { Button, Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
 
+import { CadernoDaAula } from "./CadernoDaAula";
 import { useTodayPlan } from "./useTodayPlan";
 
 function greeting(hour: number): string {
@@ -134,6 +135,9 @@ export function HojePage() {
             </div>
           ) : null}
         </Card>
+        <div className="md:col-span-2">
+          <CadernoDaAula />
+        </div>
       </div>
     </>
   );

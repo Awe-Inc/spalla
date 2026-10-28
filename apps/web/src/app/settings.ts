@@ -28,6 +28,8 @@ interface SettingsState extends PracticeAudioPrefs {
   inputGain: number;
   staffScale: StaffScale;
   accent: Accent;
+  lessonWeekday: number | null;
+  setLessonWeekday: (weekday: number | null) => void;
   setRoutine: (routineId: number) => void;
   completeOnboarding: () => void;
   setInputGain: (gain: number) => void;
@@ -52,6 +54,8 @@ export const useSettings = create<SettingsState>()(
       inputGain: 1,
       staffScale: 1,
       accent: "padrao",
+      lessonWeekday: null,
+      setLessonWeekday: (lessonWeekday) => set({ lessonWeekday }),
       setRoutine: (routineId) => set({ routineId }),
       completeOnboarding: () => set({ onboardedAt: Date.now() }),
       setInputGain: (inputGain) => set({ inputGain: Math.max(0.25, Math.min(4, inputGain)) }),
@@ -70,8 +74,9 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, accent, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume }) => ({
         theme,
+        lessonWeekday,
         noteNaming,
         inputDeviceId,
         routineId,

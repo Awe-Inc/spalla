@@ -6,11 +6,14 @@ export function midiToHz(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
 
+export type DroneTimbre = "corda" | "senoidal";
+
 export class Drone {
   readonly #context: AudioContext;
   readonly #output: GainNode;
   #voices: OscillatorNode[] = [];
   #midi: number | null = null;
+  #timbre: DroneTimbre = "corda";
 
   constructor(context: AudioContext, volume = 0.35) {
     this.#context = context;
@@ -26,6 +29,15 @@ export class Drone {
     return this.#midi;
   }
 
+  setTimbre(timbre: DroneTimbre): void {
+    if (this.#timbre === timbre) return;
+    this.#timbre = timbre;
+    const playing = this.#midi;
+    if (playing === null) return;
+    this.#silence();
+    this.start(playing);
+  }
+
   setVolume(volume: number): void {
     this.#targetVolume = Math.max(0, Math.min(1, volume));
     if (this.#midi !== null) this.#output.gain.setTargetAtTime(this.#targetVolume, this.#context.currentTime, 0.05);
@@ -37,7 +49,7 @@ export class Drone {
     const now = this.#context.currentTime;
     const fundamental = midiToHz(midi);
     this.#voices = [
-      new OscillatorNode(this.#context, { type: "sawtooth", frequency: fundamental }),
+      new OscillatorNode(this.#context, { type: this.#timbre === "corda" ? "sawtooth" : "sine", frequency: fundamental }),
       new OscillatorNode(this.#context, { type: "sine", frequency: fundamental * 2 }),
     ];
     const partialGain = new GainNode(this.#context, { gain: 0.25 });

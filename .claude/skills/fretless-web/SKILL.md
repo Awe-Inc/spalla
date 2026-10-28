@@ -42,7 +42,9 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
                                  PitchInput.ts (mic + context), usePitchInput.ts, latency.ts,
                                  clickTrack.ts (pure click schedule from a Score, tested), metronome.ts
                                  (Metronome: look-ahead scheduler on the mic AudioContext, 3 sounds),
-                                 drone.ts (Drone: sawtooth + octave through a low-pass, fades in and out)
+                                 drone.ts (Drone: timbre "corda" = sawtooth + octave through a low-pass, ou
+                                 "senoidal"; fades in and out), tempoClock.ts (TempoClock: metrônomo autônomo
+                                 com AudioContext próprio, compasso, acento e andamento progressivo; puro testado)
 apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),
                                  useAccompaniment (metronome + drone bound to the mic context), TocarControls
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
@@ -56,7 +58,9 @@ apps/web/src/data/               db.ts (Dexie v2: results, routines, practiceDay
                                  de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
                                  pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
                                  estudo/dominada, filtros), importPiece.ts (MusicXML → `db.pieces`, 8 MB, mesmo
-                                 fileName substitui) — todos os .ts puros têm teste ao lado
+                                 fileName substitui), lessons.ts (caderno da aula: CRUD de `lessonTasks`,
+                                 `nextLessonSentence` a partir de `settings.lessonWeekday`) — todos os .ts puros
+                                 têm teste ao lado
 apps/web/src/areas/musicas/      MusicasPage (catálogo + importadas com PieceFiltersBar); música importada toca em
                                  `/tocar/musica/:pieceId` e grava resultado como `musica:<fileName>`
 apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
@@ -64,7 +68,12 @@ apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por mó
 apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da
                                  partitura `staffScale`, meta diária) + MicrofoneCard (teste ao vivo, sensibilidade
                                  → `PitchInput.setGain` → worklet "gain") + DadosCard
-apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia), HojePage
+apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia), HojePage,
+                                 CadernoDaAula (tarefas da professora; aberta + bloco combinando vira "Da aula")
+apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela cheia; corda provável = corda solta
+                                 mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage
+                                 (TempoClock; som gated pela loja), PedalPage (Drone próprio, nota/oitava/timbre),
+                                 LatenciaPage
 apps/web/src/areas/praticar/     RoutinePicker (escolher/criar rotina; rotinas padrão têm id negativo)
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
 apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested

@@ -2,8 +2,11 @@ import { createBrowserRouter } from "react-router";
 
 import { BoasVindasPage } from "@/areas/boas-vindas/BoasVindasPage";
 import { ConfiguracoesPage } from "@/areas/configuracoes/ConfiguracoesPage";
+import { AfinadorPage } from "@/areas/ferramentas/AfinadorPage";
 import { FerramentasPage } from "@/areas/ferramentas/FerramentasPage";
 import { LatenciaPage } from "@/areas/ferramentas/LatenciaPage";
+import { MetronomoPage } from "@/areas/ferramentas/MetronomoPage";
+import { PedalPage } from "@/areas/ferramentas/PedalPage";
 import { HojePage } from "@/areas/hoje/HojePage";
 import { MusicasPage } from "@/areas/musicas/MusicasPage";
 import { PraticarPage } from "@/areas/praticar/PraticarPage";
@@ -22,6 +25,9 @@ export const router = createBrowserRouter([
       { path: "musicas", Component: MusicasPage },
       { path: "ferramentas", Component: FerramentasPage },
       { path: "ferramentas/latencia", Component: LatenciaPage },
+      { path: "ferramentas/afinador", Component: AfinadorPage },
+      { path: "ferramentas/metronomo", Component: MetronomoPage },
+      { path: "ferramentas/pedal", Component: PedalPage },
       { path: "progresso", Component: ProgressoPage },
       { path: "configuracoes", Component: ConfiguracoesPage },
       { path: "tocar/musica/:pieceId", Component: TocarPage },
