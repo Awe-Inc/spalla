@@ -81,6 +81,9 @@ apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDay
                                  exercício, não um Set de ids: um bloco só fecha quando a meta fecha), progress.ts (saveRun: resultado + XP + conquistas + medalhas novas; bônus de sessão,
                                  setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
                                  de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
+                                 nativeProgress.ts (progress.txt do app nativo → Dexie: parser puro, melhor
+                                 resultado por exercício com cents assinados 0, dias com minutes 1; exercício ou
+                                 dia que já existe não é tocado),
                                  pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
                                  estudo/dominada, filtros), importPiece.ts (MusicXML → `db.pieces`, 8 MB, mesmo
                                  fileName substitui), lessons.ts (caderno da aula: CRUD de `lessonTasks`,
@@ -110,7 +113,8 @@ apps/web/src/areas/componentes/  ComponentesPage em /componentes (link em Config
                                  componente de components.tsx em todas as variantes, mais o campo de formulário)
 apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da
                                  partitura `staffScale`, meta diária) + MicrofoneCard (teste ao vivo, sensibilidade
-                                 → `PitchInput.setGain` → worklet "gain") + DadosCard
+                                 → `PitchInput.setGain` → worklet "gain") + DadosCard (backup, cache, reset e
+                                 importar progress.txt)
 apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia; `runsToday` e
                                  `useBlockGoal(exerciseId)` para o Tocar), HojePage (pontos + "n de 3 limpas
                                  seguidas" em cada bloco com meta),
