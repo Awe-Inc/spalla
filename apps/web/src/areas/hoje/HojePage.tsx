@@ -2,10 +2,11 @@ import { useEffect } from "react";
 import { Link } from "react-router";
 
 import { SESSION_COMPLETE_XP } from "@/data/gamification";
-import type { PlannedBlock } from "@/data/planner";
+import { blockProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
 import { freezeDay, grantSessionBonus } from "@/data/progress";
+import { goalSentence } from "@/data/repetitions";
 import { BLOCK_LABELS } from "@/data/routines";
-import { Button, Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
+import { Button, Card, EmptyState, GoalDots, PageTitle, ProgressRing } from "@/design/components";
 
 import { CadernoDaAula } from "./CadernoDaAula";
 import { useTodayPlan } from "./useTodayPlan";
@@ -22,8 +23,11 @@ function streakSentence(streak: number, frozenToday: boolean): string {
   return `${streak} ${streak === 1 ? "dia seguido" : "dias seguidos"} batendo a meta.`;
 }
 
-function BlockRow({ planned, done, isNext }: { planned: PlannedBlock; done: boolean; isNext: boolean }) {
+function BlockRow({ planned, runsToday, isNext }: { planned: PlannedBlock; runsToday: RunsByExercise; isNext: boolean }) {
   const exercise = planned.exercise;
+  const progress = blockProgress(planned, runsToday);
+  const done = progress?.complete ?? false;
+  const goal = progress ? goalSentence(planned.block, progress) : null;
   const toneClass = done ? "text-ink-subtle line-through" : isNext ? "text-ink" : "text-ink-muted";
   return (
     <li className={`grid gap-1 py-3 ${isNext ? "border-l-2 border-primary pl-4" : "pl-4"}`}>
@@ -45,6 +49,12 @@ function BlockRow({ planned, done, isNext }: { planned: PlannedBlock; done: bool
         <span className="text-caption text-ink-subtle">
           {planned.reason}
           {planned.variation ? ` · Hoje: ${planned.variation}.` : ""}
+        </span>
+      ) : null}
+      {progress && goal ? (
+        <span className="flex items-center gap-2 text-caption text-ink-muted">
+          <GoalDots recentClean={progress.recentClean} total={progress.total} label={goal} />
+          <span aria-hidden>{goal}</span>
         </span>
       ) : null}
     </li>
@@ -119,7 +129,7 @@ export function HojePage() {
                   <BlockRow
                     key={`${planned.block.type}-${index}`}
                     planned={planned}
-                    done={planned.exercise ? today.doneToday.has(planned.exercise.id) : false}
+                    runsToday={today.runsToday}
                     isNext={planned === today.next}
                   />
                 ))}

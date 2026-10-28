@@ -1,6 +1,7 @@
 import type { ExerciseKind } from "@fretless/core";
 
 import type { BlockKind, Routine, RoutineBlock } from "./db";
+import { DEFAULT_CLEAN_REPETITIONS } from "./repetitions";
 
 export const BLOCK_LABELS: Record<BlockKind, string> = {
   aquecimento: "Aquecimento",
@@ -48,11 +49,17 @@ export const DEFAULT_ROUTINE_MINUTES: Record<15 | 25 | 45, RoutineMinutes> = {
   45: { aquecimento: 5, afinacao: 5, escalas: 9, tecnica: 8, "peca-nova": 10, revisao: 6, leitura: 2 },
 };
 
+const REPEATED_BLOCKS: readonly BlockKind[] = ["escalas", "tecnica", "estudo"];
+
+export function goalFor(type: BlockKind): Pick<RoutineBlock, "goal" | "goalValue"> {
+  return REPEATED_BLOCKS.includes(type) ? { goal: "repeticoes-limpas", goalValue: DEFAULT_CLEAN_REPETITIONS } : { goal: "uma-vez", goalValue: 1 };
+}
+
 export function blocksFromMinutes(minutes: RoutineMinutes): RoutineBlock[] {
   return ROUTINE_ORDER.flatMap((type) => {
     const durationMinutes = minutes[type] ?? 0;
     if (durationMinutes <= 0) return [];
-    return [{ type, itemId: "", goal: "uma-vez" as const, goalValue: 1, durationMinutes }];
+    return [{ type, itemId: "", ...goalFor(type), durationMinutes }];
   });
 }
 

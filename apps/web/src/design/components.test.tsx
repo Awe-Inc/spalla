@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { Button, HeadphoneNotice, ProgressRing, Stars, StringChip } from "./components";
+import { Button, GoalDots, HeadphoneNotice, ProgressRing, Stars, StringChip } from "./components";
 
 describe("Stars", () => {
   it("announces the count out of three", () => {
@@ -13,6 +13,18 @@ describe("Stars", () => {
   it("uses the visible label as the accessible name when one is given", () => {
     render(<Stars count={3} label="3 de 3 estrelas" />);
     expect(screen.getAllByRole("img", { name: "3 de 3 estrelas" })).toHaveLength(1);
+  });
+});
+
+describe("GoalDots", () => {
+  it("draws one dot per repetition and names the series for screen readers", () => {
+    const { container } = render(<GoalDots recentClean={[true, false]} total={3} label="1 de 3 limpas seguidas" />);
+    expect(screen.getByRole("img", { name: "1 de 3 limpas seguidas" })).toBeInTheDocument();
+    const dots = container.querySelectorAll("span > span");
+    expect(dots).toHaveLength(3);
+    expect(dots[0]?.className).toContain("bg-in-tune");
+    expect(dots[1]?.className).toContain("bg-off");
+    expect(dots[2]?.className).toContain("bg-hairline-strong");
   });
 });
 

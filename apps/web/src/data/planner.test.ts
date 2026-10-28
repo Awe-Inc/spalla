@@ -3,10 +3,16 @@ import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult } from "./db";
 import { nextOpenBlock, planSession, sessionProgress, studentLevel } from "./planner";
+import { runsByExercise } from "./repetitions";
 import { defaultRoutines, hasRepeatedNeighbours } from "./routines";
 
 const DAY_MS = 86_400_000;
 const now = Date.parse("2026-10-28T12:00:00");
+const startOfDay = Date.parse("2026-10-28T00:00:00");
+
+function today(...results: ExerciseResult[]) {
+  return runsByExercise(results, startOfDay);
+}
 
 function exercise(id: string, kind: ExerciseKind, level = 1, playable = true): Exercise {
   return { id, kind, level, playable, moduleId: "m", title: id, subtitle: "", focus: "", howTo: "", source: "", defaultBpm: 60, minBpm: 40, maxBpm: 120, droneMidi: 0, metronome: false, freshEveryTime: false, recipe: {} } as unknown as Exercise;
@@ -41,7 +47,7 @@ describe("planSession", () => {
     const planned = plan(results, [], new Set(["piece-1"]));
     const review = planned.find((item) => item.block.type === "revisao");
     expect(review?.exercise?.id).toBe("piece-1");
-    expect(sessionProgress(planned, new Set(["piece-1"])).done).toBe(1);
+    expect(sessionProgress(planned, today(results[0]!)).done).toBe(1);
   });
 
   it("fills every block of the routine with a distinct exercise and never repeats a type", () => {
@@ -92,8 +98,24 @@ describe("session progress", () => {
   it("points at the first block not yet played today", () => {
     const planned = plan([]);
     const first = planned[0]!.exercise!.id;
-    expect(nextOpenBlock(planned, new Set())?.exercise?.id).toBe(first);
-    expect(nextOpenBlock(planned, new Set([first]))?.exercise?.id).toBe(planned[1]!.exercise!.id);
-    expect(sessionProgress(planned, new Set([first]))).toEqual({ done: 1, total: planned.filter((item) => item.exercise).length });
+    const firstRun = result(first, 1, 60, 0);
+    expect(planned[0]!.block.goal).toBe("uma-vez");
+    expect(nextOpenBlock(planned, today())?.exercise?.id).toBe(first);
+    expect(nextOpenBlock(planned, today(firstRun))?.exercise?.id).toBe(planned[1]!.exercise!.id);
+    expect(sessionProgress(planned, today(firstRun))).toEqual({ done: 1, total: planned.filter((item) => item.exercise).length });
+  });
+
+  it("keeps a clean-repetitions block open until the streak is complete", () => {
+    const planned = plan([]);
+    const scales = planned.find((item) => item.block.type === "escalas")!;
+    const id = scales.exercise!.id;
+    expect(scales.block).toMatchObject({ goal: "repeticoes-limpas", goalValue: 3 });
+    const twoClean = today(result(id, 3, 96, 0), result(id, 3, 97, 0));
+    expect(sessionProgress(planned, twoClean).done).toBe(0);
+    const broken = today(result(id, 3, 96, 0), result(id, 3, 97, 0), result(id, 1, 50, 0), result(id, 3, 98, 0));
+    expect(sessionProgress(planned, broken).done).toBe(0);
+    const closed = today(result(id, 3, 96, 0), result(id, 3, 97, 0), result(id, 3, 98, 0));
+    expect(sessionProgress(planned, closed).done).toBe(1);
+    expect(nextOpenBlock(planned, closed)?.exercise?.id).not.toBe(id);
   });
 });

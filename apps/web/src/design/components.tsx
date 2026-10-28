@@ -69,6 +69,17 @@ export function Stars({ count, label }: { count: 0 | 1 | 2 | 3; label?: string }
   );
 }
 
+export function GoalDots({ recentClean, total, label }: { recentClean: readonly boolean[]; total: number; label: string }) {
+  const slots = Array.from({ length: total }, (_, index) => recentClean[index] ?? null);
+  return (
+    <span className="inline-flex items-center gap-1.5" role="img" aria-label={label}>
+      {slots.map((clean, index) => (
+        <span key={index} className={`size-2.5 rounded-pill ${clean === null ? "bg-hairline-strong" : clean ? "bg-in-tune" : "bg-off"}`} />
+      ))}
+    </span>
+  );
+}
+
 interface ProgressRingProps {
   value: number;
   max: number;

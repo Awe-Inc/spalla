@@ -40,7 +40,8 @@ apps/web/src/design/fonts.css    Fontsource imports (Fraunces Variable, Figtree 
 .github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
                                  variable DEPLOY_PAGES is "true" (private repo on the free plan has no Pages)
-apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, ProgressRing, HeadphoneNotice, …
+apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, GoalDots (pontos da série de repetições),
+                                 ProgressRing, HeadphoneNotice, …
 apps/web/src/app/                Shell (sidebar ≥ lg, bottom bar below), router, settings store
 apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, ferramentas, progresso,
                                  configuracoes, tocar (fullscreen, forced dark), boas-vindas (fullscreen
@@ -56,13 +57,19 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
 apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),
                                  useAccompaniment (metronome + drone bound to the mic context), TocarControls
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
-                                 tempo advice, "repetir compassos"), tempo.ts and measureMap.ts (pure, tested)
-apps/web/src/data/               db.ts (Dexie v4: results, routines, practiceDays, settings, userStats,
+                                 tempo advice, "repetir compassos", cartão da meta do bloco com GoalDots e a
+                                 frase da série), tempo.ts and measureMap.ts (pure, tested)
+apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles), sheets.ts (estante:
                                  importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas,
                                  loja), spaced.ts (prioridade espaçada), routines.ts (rotinas padrão 15/25/45,
-                                 blocos ↔ ExerciseKind, variações), planner.ts (planSession: monta a sessão do
-                                 dia), progress.ts (saveRun: resultado + XP + conquistas; bônus de sessão,
+                                 blocos ↔ ExerciseKind, variações, `goalFor`: escalas/tecnica/estudo nascem com
+                                 meta de 3 repetições limpas, o resto "uma-vez"), repetitions.ts (limpa = ≥ 90%;
+                                 `cleanStreak` conta do fim e um erro zera; `goalProgress` por tipo de meta;
+                                 `closedSeriesDays`/`shouldRaiseTempo`: 3 séries fechadas em dias diferentes pedem
+                                 andamento novo), planner.ts (planSession: monta a sessão do dia;
+                                 `blockProgress`/`nextOpenBlock`/`sessionProgress` recebem os runs de hoje por
+                                 exercício, não um Set de ids: um bloco só fecha quando a meta fecha), progress.ts (saveRun: resultado + XP + conquistas; bônus de sessão,
                                  congelador, loja, setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
                                  de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
                                  pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
@@ -89,7 +96,9 @@ apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por mó
 apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da
                                  partitura `staffScale`, meta diária) + MicrofoneCard (teste ao vivo, sensibilidade
                                  → `PitchInput.setGain` → worklet "gain") + DadosCard
-apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia), HojePage,
+apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia; `runsToday` e
+                                 `useBlockGoal(exerciseId)` para o Tocar), HojePage (pontos + "n de 3 limpas
+                                 seguidas" em cada bloco com meta),
                                  CadernoDaAula (tarefas da professora; aberta + bloco combinando vira "Da aula")
 apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela cheia; corda provável = corda solta
                                  mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage

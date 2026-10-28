@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { useSettings } from "@/app/settings";
+import { useBlockGoal } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
@@ -54,6 +55,7 @@ export function TocarPage() {
   const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [outcome, setOutcome] = useState<RunOutcome | null>(null);
+  const goal = useBlockGoal(exercise?.id ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [droneOn, setDroneOn] = useState(false);
   const startedAtRef = useRef<number | null>(null);
@@ -258,6 +260,7 @@ export function TocarPage() {
             stats={snapshot.stats}
             judgements={snapshot.judgements}
             outcome={outcome}
+            goal={goal}
             bpm={bpm}
             limits={limits}
             loop={loop}

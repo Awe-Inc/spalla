@@ -1,9 +1,11 @@
 import type { GameStats, MeasureRange, NoteJudgement, Score } from "@fretless/core";
 import { Link } from "react-router";
 
+import type { BlockGoal } from "@/areas/hoje/useTodayPlan";
 import { ACHIEVEMENTS, MASTERY_LEVELS, type MasteryLevel } from "@/data/gamification";
 import type { RunOutcome } from "@/data/progress";
-import { Button, Stars } from "@/design/components";
+import { goalSentence } from "@/data/repetitions";
+import { Button, GoalDots, Stars } from "@/design/components";
 
 import { hardestRange, measureStats, measureTone, type MeasureStat } from "./measureMap";
 import { adviseTempo, type TempoLimits } from "./tempo";
@@ -13,6 +15,7 @@ interface ResultScreenProps {
   stats: GameStats;
   judgements: readonly NoteJudgement[];
   outcome: RunOutcome | null;
+  goal: BlockGoal | null;
   bpm: number;
   limits: TempoLimits;
   loop: MeasureRange | null;
@@ -53,10 +56,20 @@ function measureTitle(stat: MeasureStat): string {
   return `Compasso ${stat.measureNumber}: ${Math.round(stat.accuracyPct)}% certas`;
 }
 
-export function ResultScreen({ score, stats, judgements, outcome, bpm, limits, loop, saveError, backTo, onPlayAgain, onRepeatHardest, onChangeTempo }: ResultScreenProps) {
+function seriesSentence(goal: BlockGoal): string {
+  if (goal.raiseTempo) return "Três séries fechadas em dias diferentes: hora de subir o andamento ou trocar a variação.";
+  if (goal.progress.complete) return "Série fechada. Amanhã ela conta de novo.";
+  const lastClean = goal.progress.recentClean.at(-1) ?? true;
+  if (lastClean) return "Toque de novo para seguir a série.";
+  const hadStreak = goal.progress.recentClean.slice(0, -1).some((clean) => clean);
+  return hadStreak ? "A série zerou. Mais devagar e de novo." : "Essa não contou: a série pede 90% ou mais.";
+}
+
+export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, saveError, backTo, onPlayAgain, onRepeatHardest, onChangeTempo }: ResultScreenProps) {
   const perMeasure = measureStats(score, judgements);
   const hardest = loop ? null : hardestRange(perMeasure);
   const advice = adviseTempo(stats.accuracyPct, bpm, limits);
+  const goalLabel = goal ? goalSentence(goal.block, goal.progress) : null;
 
   return (
     <section className="grid justify-items-center gap-5 text-center" aria-label="Resultado">
@@ -65,6 +78,16 @@ export function ResultScreen({ score, stats, judgements, outcome, bpm, limits, l
       <p className="font-display text-display">{Math.round(stats.accuracyPct)}% de precisão</p>
       {saveError ? <p className="text-caption text-off">{saveError}</p> : null}
       <p className="text-ink-muted">{driftSentence(stats.meanSignedCents)}</p>
+
+      {goal && goalLabel && outcome ? (
+        <div className="grid justify-items-center gap-2 rounded-md bg-surface-soft px-5 py-3" aria-label="Meta do bloco">
+          <GoalDots recentClean={goal.progress.recentClean} total={goal.progress.total} label={goalLabel} />
+          <p className="font-medium" aria-hidden>
+            {goalLabel}
+          </p>
+          <p className="text-caption text-ink-muted">{seriesSentence(goal)}</p>
+        </div>
+      ) : null}
 
       {outcome ? (
         <dl className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-center">

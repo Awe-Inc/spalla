@@ -3,8 +3,9 @@ import { useMemo } from "react";
 
 import { useSettings } from "@/app/settings";
 import { useCore } from "@/core/useCore";
-import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, latestResultsByExercise, localDayKey, type Routine, type UserStats } from "@/data/db";
-import { nextOpenBlock, planSession, sessionProgress, type PlannedBlock } from "@/data/planner";
+import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, latestResultsByExercise, localDayKey, type ExerciseResult, type Routine, type RoutineBlock, type UserStats } from "@/data/db";
+import { blockProgress, nextOpenBlock, planSession, sessionProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
+import { runsByExercise, shouldRaiseTempo, type GoalProgress } from "@/data/repetitions";
 import { defaultRoutines } from "@/data/routines";
 
 export interface TodayPlan {
@@ -12,7 +13,7 @@ export interface TodayPlan {
   routine: Routine;
   routines: Routine[];
   plan: PlannedBlock[];
-  doneToday: Set<string>;
+  runsToday: RunsByExercise;
   next: PlannedBlock | null;
   progress: { done: number; total: number };
   todayXp: number;
@@ -43,7 +44,8 @@ export function useTodayPlan(): TodayPlan {
   const exercises = useMemo(() => loadedCore?.exercises ?? [], [loadedCore]);
 
   const startOfDay = new Date(`${today}T00:00:00`).getTime();
-  const doneToday = useMemo(() => new Set(results.filter((result) => result.playedAt >= startOfDay).map((result) => result.exerciseId)), [results, startOfDay]);
+  const runsToday = useMemo(() => runsByExercise(results, startOfDay), [results, startOfDay]);
+  const doneToday = useMemo(() => new Set(runsToday.keys()), [runsToday]);
 
   const plan = useMemo(() => {
     if (exercises.length === 0) return [];
@@ -58,9 +60,9 @@ export function useTodayPlan(): TodayPlan {
     routine,
     routines,
     plan,
-    doneToday,
-    next: nextOpenBlock(plan, doneToday),
-    progress: sessionProgress(plan, doneToday),
+    runsToday,
+    next: nextOpenBlock(plan, runsToday),
+    progress: sessionProgress(plan, runsToday),
     todayXp: todayRecord?.xp ?? 0,
     todayMinutes: Math.round(todayRecord?.minutes ?? 0),
     sessionCompleted: todayRecord?.sessionCompleted ?? false,
@@ -68,4 +70,20 @@ export function useTodayPlan(): TodayPlan {
     stats,
     coreReady: core.status === "ready",
   };
+}
+
+export interface BlockGoal {
+  block: RoutineBlock;
+  progress: GoalProgress;
+  raiseTempo: boolean;
+}
+
+export function useBlockGoal(exerciseId: string | null): BlockGoal | null {
+  const today = useTodayPlan();
+  const allRuns = useLiveQuery(() => (exerciseId ? db.results.where("exerciseId").equals(exerciseId).toArray() : Promise.resolve<ExerciseResult[]>([])), [exerciseId]) ?? [];
+  const planned = today.plan.find((item) => item.exercise?.id === exerciseId);
+  if (!planned || !exerciseId) return null;
+  const progress = blockProgress(planned, today.runsToday);
+  if (!progress || planned.block.goal === "uma-vez") return null;
+  return { block: planned.block, progress, raiseTempo: progress.complete && shouldRaiseTempo(planned.block, allRuns) };
 }

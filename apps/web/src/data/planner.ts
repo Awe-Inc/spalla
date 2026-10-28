@@ -1,6 +1,7 @@
 import type { Exercise } from "@fretless/core";
 
 import type { BlockKind, ExerciseResult, LessonTask, Routine, RoutineBlock } from "./db";
+import { goalProgress, type GoalProgress } from "./repetitions";
 import { BLOCK_KINDS, BLOCK_VARIATIONS } from "./routines";
 import { daySeed, pickSeeded, rankBySpacing } from "./spaced";
 
@@ -123,11 +124,17 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
   return planned;
 }
 
-export function nextOpenBlock(plan: readonly PlannedBlock[], doneToday: ReadonlySet<string>): PlannedBlock | null {
-  return plan.find((planned) => planned.exercise && !doneToday.has(planned.exercise.id)) ?? null;
+export type RunsByExercise = ReadonlyMap<string, readonly ExerciseResult[]>;
+
+export function blockProgress(planned: PlannedBlock, runsToday: RunsByExercise): GoalProgress | null {
+  return planned.exercise ? goalProgress(planned.block, runsToday.get(planned.exercise.id) ?? []) : null;
 }
 
-export function sessionProgress(plan: readonly PlannedBlock[], doneToday: ReadonlySet<string>): { done: number; total: number } {
+export function nextOpenBlock(plan: readonly PlannedBlock[], runsToday: RunsByExercise): PlannedBlock | null {
+  return plan.find((planned) => planned.exercise && !blockProgress(planned, runsToday)?.complete) ?? null;
+}
+
+export function sessionProgress(plan: readonly PlannedBlock[], runsToday: RunsByExercise): { done: number; total: number } {
   const playable = plan.filter((planned) => planned.exercise);
-  return { done: playable.filter((planned) => doneToday.has(planned.exercise!.id)).length, total: playable.length };
+  return { done: playable.filter((planned) => blockProgress(planned, runsToday)?.complete).length, total: playable.length };
 }
