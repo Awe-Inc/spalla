@@ -83,3 +83,78 @@ export const DEFAULT_ROUTINE_ID = -25;
 export function hasRepeatedNeighbours(blocks: readonly RoutineBlock[]): boolean {
   return blocks.some((block, index) => index > 0 && blocks[index - 1]?.type === block.type);
 }
+
+export type RoutineGoal = RoutineBlock["goal"];
+
+export const GOAL_LABELS: Record<RoutineGoal, string> = {
+  "uma-vez": "Tocar uma vez",
+  "repeticoes-limpas": "Repetições limpas seguidas",
+  estrelas: "Chegar às estrelas",
+  tempo: "Cumprir os minutos",
+};
+
+export const GOAL_ORDER: readonly RoutineGoal[] = ["uma-vez", "repeticoes-limpas", "estrelas", "tempo"];
+
+export const GOAL_VALUE_RANGE: Partial<Record<RoutineGoal, { min: number; max: number }>> = {
+  "repeticoes-limpas": { min: 2, max: 6 },
+  estrelas: { min: 1, max: 3 },
+};
+
+export const NEW_BLOCK_MINUTES = 3;
+export const MAX_BLOCK_MINUTES = 30;
+
+function defaultGoalValue(goal: RoutineGoal): number {
+  if (goal === "repeticoes-limpas") return DEFAULT_CLEAN_REPETITIONS;
+  if (goal === "estrelas") return 2;
+  return 1;
+}
+
+export function clampGoalValue(goal: RoutineGoal, value: number): number {
+  const range = GOAL_VALUE_RANGE[goal];
+  if (!range) return defaultGoalValue(goal);
+  return Math.max(range.min, Math.min(range.max, Math.round(value)));
+}
+
+export function moveBlock(blocks: readonly RoutineBlock[], from: number, to: number): RoutineBlock[] {
+  if (from === to || from < 0 || to < 0 || from >= blocks.length || to >= blocks.length) return [...blocks];
+  const moving = blocks[from]!;
+  const without = blocks.filter((_, index) => index !== from);
+  return [...without.slice(0, to), moving, ...without.slice(to)];
+}
+
+export function addBlock(blocks: readonly RoutineBlock[], type: BlockKind): RoutineBlock[] {
+  return [...blocks, { type, itemId: "", ...goalFor(type), durationMinutes: NEW_BLOCK_MINUTES }];
+}
+
+export function removeBlock(blocks: readonly RoutineBlock[], index: number): RoutineBlock[] {
+  return blocks.filter((_, position) => position !== index);
+}
+
+export function updateBlock(blocks: readonly RoutineBlock[], index: number, patch: Partial<RoutineBlock>): RoutineBlock[] {
+  return blocks.map((block, position) => (position === index ? { ...block, ...patch } : block));
+}
+
+export function setBlockMinutes(blocks: readonly RoutineBlock[], index: number, minutes: number): RoutineBlock[] {
+  const durationMinutes = Math.max(1, Math.min(MAX_BLOCK_MINUTES, Math.round(Number.isFinite(minutes) ? minutes : 1)));
+  return updateBlock(blocks, index, { durationMinutes });
+}
+
+export function setBlockGoal(blocks: readonly RoutineBlock[], index: number, goal: RoutineGoal, goalValue?: number): RoutineBlock[] {
+  const current = blocks[index];
+  const sameGoal = current?.goal === goal;
+  const value = goalValue ?? (sameGoal ? current.goalValue : defaultGoalValue(goal));
+  return updateBlock(blocks, index, { goal, goalValue: clampGoalValue(goal, value) });
+}
+
+export function goalSummary(block: RoutineBlock): string {
+  switch (block.goal) {
+    case "repeticoes-limpas":
+      return `${block.goalValue} limpas seguidas`;
+    case "estrelas":
+      return `${block.goalValue} ${block.goalValue === 1 ? "estrela" : "estrelas"}`;
+    case "tempo":
+      return `${block.durationMinutes} min`;
+    case "uma-vez":
+      return "uma vez";
+  }
+}

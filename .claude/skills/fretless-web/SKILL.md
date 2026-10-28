@@ -64,7 +64,9 @@ apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDay
                                  importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas,
                                  loja), spaced.ts (prioridade espaçada), routines.ts (rotinas padrão 15/25/45,
                                  blocos ↔ ExerciseKind, variações, `goalFor`: escalas/tecnica/estudo nascem com
-                                 meta de 3 repetições limpas, o resto "uma-vez"), repetitions.ts (limpa = ≥ 90%;
+                                 meta de 3 repetições limpas, o resto "uma-vez"; moveBlock/addBlock/removeBlock/
+                                 setBlockMinutes/setBlockGoal/goalSummary: helpers puros do editor de rotina,
+                                 testados em routines.test.ts), repetitions.ts (limpa = ≥ 90%;
                                  `cleanStreak` conta do fim e um erro zera; `goalProgress` por tipo de meta;
                                  `closedSeriesDays`/`shouldRaiseTempo`: 3 séries fechadas em dias diferentes pedem
                                  andamento novo), planner.ts (planSession: monta a sessão do dia;
@@ -104,7 +106,10 @@ apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela ch
                                  mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage
                                  (TempoClock; som gated pela loja), PedalPage (Drone próprio, nota/oitava/timbre),
                                  LatenciaPage
-apps/web/src/areas/praticar/     RoutinePicker (escolher/criar rotina; rotinas padrão têm id negativo)
+apps/web/src/areas/praticar/     RoutinePicker (escolher/criar/editar/apagar rotina; rotinas padrão têm id
+                                 negativo e não se editam), RoutineEditor (lista ordenada de blocos: arrastar
+                                 com HTML5 drag-and-drop ou Subir/Descer no teclado, minutos e meta por bloco,
+                                 adicionar/tirar bloco, aviso de vizinhos iguais; testado em RoutinePicker.test.tsx)
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
 apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested
 apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolling into the playhead
