@@ -199,6 +199,20 @@ escolha).
 | 8. Plataforma com professores | **feita (29/10)**: API (`apps/api`, Fastify + Postgres/PGlite) com contas, papéis e permissões editáveis, convites, auditoria; área do professor (turmas com código, avisos, tarefas com exercícios do app, materiais em PDF ou link, planos de estudo que viram rotina, progresso de cada aluno); área do aluno em `/aulas`; administração completa em `/admin`. Detalhe em `docs/plataforma/arquitetura.md` | hospedagem da API e do banco, bucket dos PDFs, primeiro admin de produção, textos legais, e-mail transacional (decisões do dono) |
 | 7. Publicação | **Feita (29/10)**: repo público, site em https://pataxo-inc.github.io/spalla/ publicado pelo CI (repo em Pataxo-Inc/spalla desde 29/10) | Conta e sync (Supabase) e acesso da professora seguem pausados |
 
+### Ideias para depois
+
+- **Converter PDF em partitura tocável dentro do app** (adiada pelo dono em 29/10). Hoje o PDF da estante só é lido;
+  a conversão para MusicXML foi feita fora do app, com o Audiveris 5.11 em lote no PC do dono. Desenho pensado:
+  - botão "Converter em partitura tocável" na Estante, só com conta;
+  - upload pela rota de arquivos da API, que enfileira um job;
+  - um worker em Docker (Java + Audiveris rodando sem modificação, como processo separado, então a AGPL dele não
+    contamina o app) gera o `.mxl`, a cerca de 12 s por página;
+  - prévia antes de salvar (o reconhecimento erra, e nota errada num app que julga afinação é pior que nenhuma);
+  - importação pelo `importPiece` que já existe.
+  - Custo: o worker pede pelo menos 2 GB de RAM (cerca de US$ 25/mês no Render; o plano grátis tem 512 MB). Não há
+    OMR com qualidade de produção em JS/WASM (oemer e homr são Python), então não roda no navegador.
+  - Antes de decidir: medir a qualidade da conversão em lote das partituras do dono (`_relatorio.csv` e amostras).
+
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 
 Abertas em 29/10, da revisão de segurança da plataforma (as de nível médio já foram corrigidas):
