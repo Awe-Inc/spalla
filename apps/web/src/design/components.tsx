@@ -1,41 +1,30 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+import { Button } from "./actions";
+import { Icon } from "./icons";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  icon?: ReactNode;
-}
+export { Button, ButtonLink, buttonClass, ConfirmButton, IconButton, Menu } from "./actions";
+export { PageHeader, PageTitle } from "./layout";
 
-const buttonVariantClass: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-on-primary hover:bg-primary-hover",
-  secondary: "bg-surface-soft text-ink hover:bg-surface-sunken",
-  ghost: "bg-transparent text-ink-muted hover:text-ink hover:bg-surface-soft",
+export type CardTone = "plain" | "inset" | "hero";
+
+const CARD_TONE: Record<CardTone, string> = {
+  plain: "rounded-lg bg-surface p-6 shadow-card",
+  inset: "rounded-lg bg-surface-sunken p-6 ring-1 ring-inset ring-hairline",
+  hero: "relative overflow-hidden rounded-xl bg-surface p-6 shadow-raised md:p-8",
 };
-
-export function Button({ variant = "secondary", icon, className = "", children, ...rest }: ButtonProps) {
-  return (
-    <button
-      type="button"
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-body font-semibold transition-colors duration-fast ease-spalla disabled:cursor-not-allowed disabled:opacity-50 md:h-10 ${buttonVariantClass[variant]} ${className}`}
-      {...rest}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
 
 interface CardProps {
   title?: string;
   children: ReactNode;
   className?: string;
   as?: "section" | "article" | "div";
+  tone?: CardTone;
 }
 
-export function Card({ title, children, className = "", as: Tag = "section" }: CardProps) {
+export function Card({ title, children, className = "", as: Tag = "section", tone = "plain" }: CardProps) {
   return (
-    <Tag className={`rounded-lg bg-surface p-6 shadow-card ${className}`}>
+    <Tag className={`${CARD_TONE[tone]} ${className}`}>
       {title ? <h2 className="mb-3 text-heading font-semibold">{title}</h2> : null}
       {children}
     </Tag>
@@ -49,7 +38,7 @@ export function StringChip({ index }: { index: number }) {
   const name = STRING_NAMES[index] ?? "?";
   const color = stringClass[index] ?? "bg-ink-subtle";
   return (
-    <span className="inline-flex h-7 items-center gap-2 rounded-pill bg-surface-soft pl-2.5 pr-3 text-caption font-medium text-ink">
+    <span className="inline-flex h-7 items-center gap-2 rounded-sm bg-surface-soft pl-2 pr-2.5 text-caption font-medium text-ink">
       <span aria-hidden className={`size-2.5 rounded-pill ${color}`} />
       {name}
     </span>
@@ -147,13 +136,9 @@ export function ProgressRing({ value, max, caption, size = 112 }: ProgressRingPr
 export function HeadphoneNotice({ onConfirm }: { onConfirm: () => void }) {
   return (
     <aside className="flex flex-wrap items-center gap-4 rounded-md bg-info-soft p-4 text-ink" role="note">
-      <svg viewBox="0 0 24 24" className="size-6 shrink-0 stroke-info" fill="none" strokeWidth="1.8" aria-hidden>
-        <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
-        <rect x="3" y="13" width="4" height="7" rx="1.5" />
-        <rect x="17" y="13" width="4" height="7" rx="1.5" />
-      </svg>
-      <p className="flex-1 text-body">Este exercício toca um drone. Use fone para o microfone ouvir só o violino.</p>
-      <Button variant="ghost" onClick={onConfirm}>
+      <Icon name="fone" className="size-6 text-info" />
+      <p className="flex-1 text-body">Este exercício toca uma nota pedal. Use fone para o microfone ouvir só o violino.</p>
+      <Button variant="secondary" onClick={onConfirm}>
         Estou de fone
       </Button>
     </aside>
@@ -191,17 +176,5 @@ export function InlineError({ title, nextStep }: InlineErrorProps) {
       <p className="font-semibold">{title}</p>
       <p className="text-ink-muted">{nextStep}</p>
     </div>
-  );
-}
-
-export function PageTitle({ eyebrow, title, children }: { eyebrow?: string; title: string; children?: ReactNode }) {
-  return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        {eyebrow ? <p className="mb-1 text-body text-ink-muted">{eyebrow}</p> : null}
-        <h1 className="font-display text-display">{title}</h1>
-      </div>
-      {children}
-    </header>
   );
 }

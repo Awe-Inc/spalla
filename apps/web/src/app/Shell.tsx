@@ -157,7 +157,7 @@ export function Shell() {
         </header>
       ) : null}
 
-      <main className="mx-auto w-full max-w-page px-4 pb-28 pt-6 md:px-6 lg:px-8 lg:pb-12 lg:pt-10">
+      <main className="mx-auto w-full min-w-0 max-w-page px-4 pb-28 pt-6 md:px-6 lg:px-8 lg:pb-12 lg:pt-10">
         <Outlet />
       </main>
 
