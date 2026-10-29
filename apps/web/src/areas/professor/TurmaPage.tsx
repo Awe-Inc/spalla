@@ -4,12 +4,12 @@ import { Link, useParams } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import type { TeacherClassDetail } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
+import { signupLink } from "@/account/links";
 import { Badge, FormError, formatDate, formatDateTime, LINK_PRIMARY_CLASS, LINK_SECONDARY_CLASS, LoadState, Notice, TextAreaField, TextField } from "@/account/ui";
 import { Button, Card, PageTitle } from "@/design/components";
 
 function inviteLink(code: string): string {
-  const base = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}`;
-  return `${base}/criar-conta?turma=${encodeURIComponent(code)}`;
+  return signupLink({ turma: code });
 }
 
 function CodeCard({ klass, onChanged }: { klass: TeacherClassDetail; onChanged: () => void }) {
