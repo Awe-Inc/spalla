@@ -121,3 +121,21 @@ Rodar local: `cp apps/api/.env.example apps/api/.env`, `pnpm --filter @fretless/
 - **Texto de termos de uso e política de privacidade** (há um rascunho nas telas; precisa de revisão jurídica).
 - **E-mail transacional** (recuperar senha, avisar responsável): sem provedor, a recuperação é feita pelo admin, que
   gera um código de redefinição.
+
+## Deploy no Render
+
+`render.yaml` na raiz descreve tudo: Postgres `fretless-db` e o serviço `fretless-api` (Node 22, `/health`,
+`TRUST_PROXY=true`, CORS só para `https://henriquerl55.github.io`, `DATABASE_URL` ligado ao banco pelo próprio
+Render). Aplicar em Dashboard → New → Blueprint, escolhendo o repositório. Os PDFs ficam no Postgres
+(`FILES_STORE=database`, tabela `file_blobs`) porque o disco do plano free é apagado a cada deploy; quando houver
+bucket, troca-se o `FileStore`.
+
+Depois do primeiro deploy:
+
+1. Variável `VITE_API_URL` do repositório no GitHub com o endereço do serviço (ex.: `https://fretless-api.onrender.com`);
+   o próximo build do Pages já sai apontando para a API.
+2. Admin de produção pelo Shell do serviço no Render:
+   `ADMIN_EMAIL=... ADMIN_NAME=... ADMIN_PASSWORD=... node apps/api/dist/adminCli.js`.
+
+Plano free: o serviço dorme após 15 min sem uso (primeira requisição leva ~1 min) e o Postgres free expira 30 dias
+depois de criado; para uso com professores, passar o banco para `basic_256mb` antes disso.
