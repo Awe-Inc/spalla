@@ -1,10 +1,13 @@
 import { useLiveQuery } from "dexie-react-hooks";
+import { Link } from "react-router";
 
 import { useCore } from "@/core/useCore";
+import { downloadBlob } from "@/data/backup";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, localDayKey } from "@/data/db";
+import { csvFileName, resultsToCsv } from "@/data/exportCsv";
 import { levelForXp } from "@/data/gamification";
 import { medalProgress } from "@/data/medals";
-import { Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
+import { Button, Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
 
 import { Conquistas } from "./Conquistas";
 import { Gravacoes } from "./Gravacoes";
@@ -26,6 +29,11 @@ export function ProgressoPage() {
   const totalMinutes = Math.round(days.reduce((sum, day) => sum + day.minutes, 0));
   const medals = medalProgress({ results, days, frozenDays: stats.frozenDays });
   const exercises = core.status === "ready" ? core.core.exercises : [];
+
+  function exportCsv() {
+    const modules = core.status === "ready" ? core.core.curriculum : [];
+    downloadBlob(csvFileName(), new Blob([resultsToCsv(results, exercises, modules)], { type: "text/csv;charset=utf-8" }));
+  }
 
   if (results.length === 0) {
     return (
@@ -61,6 +69,9 @@ export function ProgressoPage() {
             <span className="font-mono text-numeric tabular">{results.length}</span>
             <span className="ml-2 text-ink-muted">execuções</span>
           </p>
+          <Button className="justify-self-start" onClick={exportCsv}>
+            Exportar histórico (CSV)
+          </Button>
         </Card>
         <Card title="Estrelas por módulo" className="grid content-start gap-3">
           {core.status === "ready" ? (
@@ -70,16 +81,18 @@ export function ProgressoPage() {
                 const stars = playable.reduce((sum, exercise) => sum + (best.get(exercise.id)?.stars ?? 0), 0);
                 const max = playable.length * 3;
                 return (
-                  <li key={module.id} className="grid gap-1">
-                    <div className="flex justify-between gap-4">
-                      <span className="font-medium">{module.title}</span>
-                      <span className="font-mono text-caption text-ink-subtle tabular">
-                        {stars}/{max}
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-pill bg-surface-sunken">
-                      <div className="h-full rounded-pill bg-close" style={{ width: `${max > 0 ? (stars / max) * 100 : 0}%` }} />
-                    </div>
+                  <li key={module.id}>
+                    <Link to={`/progresso/modulo/${module.id}`} className="group grid gap-1 rounded-sm">
+                      <div className="flex justify-between gap-4">
+                        <span className="font-medium group-hover:text-primary">{module.title}</span>
+                        <span className="font-mono text-caption text-ink-subtle tabular">
+                          {stars}/{max}
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-pill bg-surface-sunken">
+                        <div className="h-full rounded-pill bg-close" style={{ width: `${max > 0 ? (stars / max) * 100 : 0}%` }} />
+                      </div>
+                    </Link>
                   </li>
                 );
               })}

@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
+import { openClassTasks, refreshClassAssignments, useClassAssignments } from "@/account/classAssignments";
 import { useSettings } from "@/app/settings";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, latestResultsByExercise, localDayKey, type ExerciseResult, type Routine, type RoutineBlock, type UserStats } from "@/data/db";
@@ -38,6 +39,8 @@ export function useTodayPlan(): TodayPlan {
   const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
   const lessonTasks = useLiveQuery(() => db.lessonTasks.toArray(), []) ?? [];
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
+  const classAssignments = useClassAssignments();
+  const classTasks = useMemo(() => openClassTasks(classAssignments), [classAssignments]);
 
   const routine = routines.find((item) => item.id === routineId) ?? routines[1] ?? routines[0]!;
   const loadedCore = core.status === "ready" ? core.core : null;
@@ -51,8 +54,8 @@ export function useTodayPlan(): TodayPlan {
     if (exercises.length === 0) return [];
     const best = bestResultsByExercise(results);
     const latest = latestResultsByExercise(results);
-    return planSession({ routine, exercises, best, latest, lessonTasks, playedToday: doneToday, now: Date.now(), day: today });
-  }, [exercises, results, routine, lessonTasks, doneToday, today]);
+    return planSession({ routine, exercises, best, latest, lessonTasks, classTasks, playedToday: doneToday, now: Date.now(), day: today });
+  }, [exercises, results, routine, lessonTasks, classTasks, doneToday, today]);
   const todayRecord = days.find((day) => day.day === today);
 
   return {
@@ -70,6 +73,14 @@ export function useTodayPlan(): TodayPlan {
     stats,
     coreReady: core.status === "ready",
   };
+}
+
+export function useClassAssignmentsRefresh(): void {
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshClassAssignments(undefined, controller.signal).catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 }
 
 export interface BlockGoal {

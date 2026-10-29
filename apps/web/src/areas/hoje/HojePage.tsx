@@ -12,7 +12,8 @@ import { dueReviews } from "@/data/suzuki";
 import { Card, EmptyState, GoalDots, PageTitle, ProgressRing } from "@/design/components";
 
 import { CadernoDaAula } from "./CadernoDaAula";
-import { useTodayPlan } from "./useTodayPlan";
+import { TarefasDaTurma } from "./TarefasDaTurma";
+import { useClassAssignmentsRefresh, useTodayPlan } from "./useTodayPlan";
 
 function greeting(hour: number): string {
   if (hour < 12) return "Bom dia";
@@ -38,6 +39,7 @@ function BlockRow({ planned, runsToday, isNext }: { planned: PlannedBlock; runsT
         <span className="text-caption text-ink-subtle">
           {BLOCK_LABELS[planned.block.type]} · {planned.block.durationMinutes} min
         </span>
+        {planned.assignmentId ? <span className="rounded-pill bg-primary-soft px-2 text-caption text-primary">Da turma</span> : null}
         {planned.fromLesson ? <span className="rounded-pill bg-info-soft px-2 text-caption text-info">Da aula</span> : null}
       </div>
       {item ? (
@@ -84,6 +86,7 @@ export function HojePage() {
   const today = useTodayPlan();
   const allDone = today.progress.total > 0 && today.progress.done === today.progress.total;
   const frozenToday = today.stats.frozenDays.includes(today.today);
+  useClassAssignmentsRefresh();
 
   useEffect(() => {
     if (allDone && !today.sessionCompleted) void grantSessionBonus(today.today);
@@ -158,7 +161,8 @@ export function HojePage() {
             </div>
           ) : null}
         </Card>
-        <div className="md:col-span-2">
+        <div className="grid gap-6 md:col-span-2">
+          <TarefasDaTurma />
           <CadernoDaAula />
         </div>
       </div>

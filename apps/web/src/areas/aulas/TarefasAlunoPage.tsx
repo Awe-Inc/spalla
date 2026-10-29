@@ -1,11 +1,14 @@
+import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 import { Link } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
 import type { Lessons, StudentAssignment, StudentMaterial } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
+import { assignmentProgress, refreshClassAssignments, setAssignmentDone } from "@/account/classAssignments";
 import { openPdf } from "@/account/files";
 import { Badge, formatDate, FormError, LINK_PRIMARY_CLASS, LoadState, TextAreaField } from "@/account/ui";
+import { db, type ExerciseResult } from "@/data/db";
 import { Button, EmptyState, PageTitle } from "@/design/components";
 
 import { formatDueOn, ITEM_KIND_LABELS, todayIso } from "../professor/teaching";
@@ -13,14 +16,27 @@ import { isOverdue, pendingCount, safeExternalUrl, safePlayPath } from "./lesson
 
 const MAX_NOTE = 2000;
 
-function ItemLine({ item }: { item: StudentAssignment["items"][number] }) {
+async function loadLessons(signal: AbortSignal): Promise<Lessons> {
+  const lessons = await api.get<Lessons>("/me/lessons", signal);
+  const completed = await refreshClassAssignments(lessons).catch(() => []);
+  return completed.length > 0 ? api.get<Lessons>("/me/lessons", signal) : lessons;
+}
+
+function ItemLine({ item, met }: { item: StudentAssignment["items"][number]; met: boolean }) {
   const playPath = safePlayPath(item.playPath);
   const details = [item.bpm ? `${item.bpm} BPM` : null, item.minutes ? `${item.minutes} min` : null, item.stars ? `meta ${item.stars} ★` : null].filter(Boolean).join(" · ");
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-surface-soft px-4 py-3">
       <div className="grid min-w-0 gap-0.5">
         <span className="text-caption text-ink-muted">{ITEM_KIND_LABELS[item.kind]}</span>
-        <span className="font-medium text-ink">{item.title}</span>
+        <span className="font-medium text-ink">
+          {met ? (
+            <span className="mr-2 text-in-tune" aria-label="Cumprido">
+              ✓
+            </span>
+          ) : null}
+          {item.title}
+        </span>
         {details ? <span className="text-caption text-ink-muted">{details}</span> : null}
         {item.note ? <span className="whitespace-pre-line text-body text-ink-muted">{item.note}</span> : null}
       </div>
@@ -64,19 +80,27 @@ function AttachedMaterial({ material }: { material: StudentMaterial }) {
   );
 }
 
-function AssignmentCard({ assignment, materials, onChanged }: { assignment: StudentAssignment; materials: StudentMaterial[]; onChanged: () => void }) {
+interface AssignmentCardProps {
+  assignment: StudentAssignment;
+  materials: StudentMaterial[];
+  results: readonly ExerciseResult[];
+  onChanged: () => void;
+}
+
+function AssignmentCard({ assignment, materials, results, onChanged }: AssignmentCardProps) {
   const [note, setNote] = useState(assignment.studentNote);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const done = assignment.doneAt !== null;
   const attached = materials.filter((material) => assignment.materialIds.includes(material.id));
   const overdue = isOverdue(assignment, todayIso());
+  const progress = assignmentProgress(assignment, results);
 
   async function save(nextDone: boolean) {
     setPending(true);
     setError(null);
     try {
-      await api.put(`/me/assignments/${assignment.id}/status`, { done: nextDone, note: note.trim() });
+      await setAssignmentDone(assignment, nextDone, note.trim());
       onChanged();
     } catch (cause) {
       setError(errorMessage(cause));
@@ -100,8 +124,8 @@ function AssignmentCard({ assignment, materials, onChanged }: { assignment: Stud
       {assignment.instructions ? <p className="whitespace-pre-line text-body text-ink">{assignment.instructions}</p> : null}
       {assignment.items.length > 0 ? (
         <ul className="grid gap-2" aria-label="O que estudar">
-          {assignment.items.map((item, index) => (
-            <ItemLine key={`${item.ref ?? item.title}-${index}`} item={item} />
+          {progress.items.map(({ item, met }, index) => (
+            <ItemLine key={`${item.ref ?? item.title}-${index}`} item={item} met={met} />
           ))}
         </ul>
       ) : null}
@@ -144,7 +168,8 @@ function AssignmentCard({ assignment, materials, onChanged }: { assignment: Stud
 }
 
 export function TarefasAlunoPage() {
-  const lessons = useApiData((signal) => api.get<Lessons>("/me/lessons", signal), []);
+  const lessons = useApiData(loadLessons, []);
+  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
   const [showDone, setShowDone] = useState(false);
 
   return (
@@ -172,7 +197,7 @@ export function TarefasAlunoPage() {
               <p className="text-body text-ink-muted">{pendingCount(assignments) === 0 ? "Tudo em dia." : `${pendingCount(assignments)} para fazer.`}</p>
               <ul className="grid gap-4">
                 {open.map((assignment) => (
-                  <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} onChanged={lessons.reload} />
+                  <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} results={results} onChanged={lessons.reload} />
                 ))}
               </ul>
               {done.length > 0 ? (
@@ -183,7 +208,7 @@ export function TarefasAlunoPage() {
                   {showDone ? (
                     <ul className="grid gap-4">
                       {done.map((assignment) => (
-                        <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} onChanged={lessons.reload} />
+                        <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} results={results} onChanged={lessons.reload} />
                       ))}
                     </ul>
                   ) : null}

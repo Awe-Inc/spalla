@@ -2,6 +2,7 @@ import type { GameStats, MeasureRange, NoteJudgement, PracticeSession, SessionSt
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
+import { completeAssignmentsAfterRun } from "@/account/classAssignments";
 import { useSettings } from "@/app/settings";
 import { useBlockGoal } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
@@ -66,6 +67,7 @@ export function TocarPage() {
   const [slowdown, setSlowdown] = useState<Slowdown | null>(null);
   const slowedRunRef = useRef(false);
   const [outcome, setOutcome] = useState<RunOutcome | null>(null);
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const goal = useBlockGoal(resultId ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [droneOn, setDroneOn] = useState(false);
@@ -158,7 +160,12 @@ export function TocarPage() {
       fromMemory: false,
       playedAt: Date.now(),
     })
-      .then(setOutcome)
+      .then((saved) => {
+        setOutcome(saved);
+        return completeAssignmentsAfterRun(resultId)
+          .then((completed) => setCompletedTasks(completed.map((assignment) => `Tarefa de ${assignment.teacherName} concluída: ${assignment.title}`)))
+          .catch(() => undefined);
+      })
       .catch(() => setSaveError("O resultado não foi salvo neste aparelho. As estrelas valem só por agora."));
     accompaniment.stopDrone();
     stopInput();
@@ -173,6 +180,7 @@ export function TocarPage() {
     slowedRunRef.current = false;
     setSlowdown(null);
     setOutcome(null);
+    setCompletedTasks([]);
     setSaveError(null);
     accompaniment.rewind(-LEAD_IN_SECONDS);
     accompaniment.startDrone();
@@ -298,6 +306,7 @@ export function TocarPage() {
             loop={loop}
             slowdown={slowdown}
             saveError={saveError}
+            completedTasks={completedTasks}
             backTo={backTo}
             onPlayAgain={() => void begin()}
             onRepeatHardest={repeatHardest}

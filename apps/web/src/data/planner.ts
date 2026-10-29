@@ -17,6 +17,18 @@ export interface PlannedBlock {
   variation: string | null;
   targetBpm: number | null;
   fromLesson: boolean;
+  assignmentId: string | null;
+}
+
+export interface ClassTaskItem {
+  assignmentId: string;
+  assignmentTitle: string;
+  teacherName: string;
+  exerciseId: string;
+  bpm: number | null;
+  stars: number | null;
+  dueOn: string | null;
+  createdAt: number;
 }
 
 export interface PlannerInput {
@@ -25,6 +37,7 @@ export interface PlannerInput {
   best: ReadonlyMap<string, ExerciseResult>;
   latest: ReadonlyMap<string, ExerciseResult>;
   lessonTasks: readonly LessonTask[];
+  classTasks?: readonly ClassTaskItem[];
   playedToday: ReadonlySet<string>;
   now: number;
   day: string;
@@ -109,21 +122,31 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
       variation: null,
       targetBpm: exercise ? targetBpmFor(exercise, input.best.get(exercise.id)) : null,
       fromLesson: false,
+      assignmentId: null,
     };
   });
 
   for (const index of pickingOrder(input.routine.blocks)) {
     const block = input.routine.blocks[index]!;
     if (planned[index]) continue;
+    const classTask = (input.classTasks ?? []).find((task) => {
+      if (used.has(task.exerciseId)) return false;
+      const exercise = input.exercises.find((candidate) => candidate.id === task.exerciseId);
+      return exercise !== undefined && exercise.playable && BLOCK_KINDS[block.type].includes(exercise.kind);
+    });
+    const classExercise = classTask ? input.exercises.find((exercise) => exercise.id === classTask.exerciseId) : undefined;
     const lessonTask = openTasks.find((task) => task.blockType === block.type && task.itemId && !used.has(task.itemId));
     const lessonExercise = lessonTask ? input.exercises.find((exercise) => exercise.id === lessonTask.itemId) : undefined;
     const candidates = input.exercises.filter((exercise) => BLOCK_KINDS[block.type].includes(exercise.kind) && withinReach(exercise, level));
 
     const playedExercise = candidates.find((exercise) => input.playedToday.has(exercise.id) && !used.has(exercise.id));
 
-    const pick = lessonExercise
-      ? { exercise: lessonExercise, reason: `Da aula: ${lessonTask?.text ?? ""}`.trim() }
-      : playedExercise
+    const pick =
+      classExercise && classTask
+        ? { exercise: classExercise, reason: `Tarefa de ${classTask.teacherName}: ${classTask.assignmentTitle}` }
+        : lessonExercise
+        ? { exercise: lessonExercise, reason: `Da aula: ${lessonTask?.text ?? ""}`.trim() }
+        : playedExercise
         ? { exercise: playedExercise, reason: "Já tocado hoje." }
         : block.type === "revisao"
         ? pickReview(candidates, input, used)
@@ -140,8 +163,9 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
       item: pick ? exerciseItem(pick.exercise) : null,
       reason: pick?.reason ?? "Nada disponível neste nível ainda.",
       variation,
-      targetBpm: pick ? targetBpmFor(pick.exercise, bestResult) : null,
-      fromLesson: Boolean(lessonExercise),
+      targetBpm: classExercise && classTask?.bpm ? classTask.bpm : pick ? targetBpmFor(pick.exercise, bestResult) : null,
+      fromLesson: !classExercise && Boolean(lessonExercise),
+      assignmentId: classExercise && classTask ? classTask.assignmentId : null,
     };
   }
   return planned;

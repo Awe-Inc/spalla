@@ -1,5 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
+import type { StudentAssignment } from "@/api/types";
+
 export interface ExerciseResult {
   id?: number;
   exerciseId: string;
@@ -147,6 +149,10 @@ export interface StoredRecordingFile {
   bytes: Uint8Array;
 }
 
+export interface StoredClassAssignment extends StudentAssignment {
+  syncedAt: number;
+}
+
 export class FretlessDatabase extends Dexie {
   results!: EntityTable<ExerciseResult, "id">;
   routines!: EntityTable<Routine, "id">;
@@ -161,6 +167,7 @@ export class FretlessDatabase extends Dexie {
   pieceSections!: EntityTable<StoredSection, "id">;
   recordings!: EntityTable<StoredRecording, "id">;
   recordingFiles!: EntityTable<StoredRecordingFile, "id">;
+  classAssignments!: EntityTable<StoredClassAssignment, "id">;
 
   constructor(name = "fretless") {
     super(name);
@@ -199,6 +206,9 @@ export class FretlessDatabase extends Dexie {
     this.version(8).stores({
       recordings: "++id, pieceKey, createdAt",
       recordingFiles: "id",
+    });
+    this.version(9).stores({
+      classAssignments: "id, createdAt, doneAt",
     });
   }
 }

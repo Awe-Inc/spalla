@@ -2,7 +2,7 @@ import type { Exercise, ExerciseKind } from "@fretless/core";
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult } from "./db";
-import { nextOpenBlock, planSession, sessionProgress, studentLevel } from "./planner";
+import { nextOpenBlock, planSession, sessionProgress, studentLevel, type ClassTaskItem } from "./planner";
 import { runsByExercise } from "./repetitions";
 import { defaultRoutines, hasRepeatedNeighbours, withPinnedItem } from "./routines";
 
@@ -84,6 +84,39 @@ describe("planSession", () => {
     const scales = planned.find((item) => item.block.type === "escalas");
     expect(scales?.exercise?.id).toBe("scale-2");
     expect(scales?.fromLesson).toBe(true);
+  });
+});
+
+function classTask(exerciseId: string, overrides: Partial<ClassTaskItem> = {}): ClassTaskItem {
+  return { assignmentId: `a-${exerciseId}`, assignmentTitle: "Semana 3", teacherName: "Ana", exerciseId, bpm: null, stars: null, dueOn: null, createdAt: now, ...overrides };
+}
+
+function planWithClass(classTasks: ClassTaskItem[], lessonTasks: Parameters<typeof planSession>[0]["lessonTasks"] = []) {
+  return planSession({ routine, exercises, best: new Map(), latest: new Map(), lessonTasks, classTasks, playedToday: new Set(), now, day: "2026-10-28" });
+}
+
+describe("planSession com tarefas da turma", () => {
+  it("põe a tarefa do professor no bloco antes do caderno e da regra, mesmo acima do nível", () => {
+    const planned = planWithClass([classTask("piece-9")], [{ text: "Revisar", blockType: "revisao", itemId: "piece-1", createdAt: now, doneAt: null }]);
+    const review = planned.find((item) => item.block.type === "revisao");
+    expect(review?.exercise?.id).toBe("piece-9");
+    expect(review?.assignmentId).toBe("a-piece-9");
+    expect(review?.fromLesson).toBe(false);
+    expect(review?.reason).toBe("Tarefa de Ana: Semana 3");
+  });
+
+  it("só usa a tarefa no bloco do tipo certo e com o bpm pedido", () => {
+    const planned = planWithClass([classTask("scale-2", { bpm: 84 })]);
+    const scales = planned.find((item) => item.block.type === "escalas");
+    expect(scales?.exercise?.id).toBe("scale-2");
+    expect(scales?.targetBpm).toBe(84);
+    const others = planned.filter((item) => item.block.type !== "escalas");
+    expect(others.some((item) => item.assignmentId !== null)).toBe(false);
+  });
+
+  it("não repete o mesmo exercício de tarefa em dois blocos", () => {
+    const planned = planWithClass([classTask("piece-1"), classTask("piece-1", { assignmentId: "outra" })]);
+    expect(planned.filter((item) => item.exercise?.id === "piece-1")).toHaveLength(1);
   });
 });
 

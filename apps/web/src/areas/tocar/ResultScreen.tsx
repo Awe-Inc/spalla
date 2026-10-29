@@ -24,6 +24,7 @@ interface ResultScreenProps {
   loop: MeasureRange | null;
   slowdown: Slowdown | null;
   saveError: string | null;
+  completedTasks: readonly string[];
   backTo: string;
   onPlayAgain: () => void;
   onRepeatHardest: (range: MeasureRange) => void;
@@ -66,7 +67,7 @@ function seriesSentence(goal: BlockGoal): string {
   return hadStreak ? "A série zerou. Mais devagar e de novo." : "Essa não contou: a série pede 90% ou mais.";
 }
 
-export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, slowdown, saveError, backTo, onPlayAgain, onRepeatHardest, onChangeTempo, onKeepTempo }: ResultScreenProps) {
+export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, slowdown, saveError, completedTasks, backTo, onPlayAgain, onRepeatHardest, onChangeTempo, onKeepTempo }: ResultScreenProps) {
   const perMeasure = measureStats(score, judgements);
   const hardest = loop ? null : hardestRange(perMeasure);
   const advice = slowdown ? KEEP_TEMPO : adviseTempo(stats.accuracyPct, bpm, limits);
@@ -78,6 +79,11 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
       <Stars count={outcome?.stars ?? 0} />
       <p className="font-display text-display">{Math.round(stats.accuracyPct)}% de precisão</p>
       {saveError ? <p className="text-caption text-off">{saveError}</p> : null}
+      {completedTasks.map((sentence) => (
+        <p key={sentence} className="rounded-pill bg-in-tune-soft px-3 py-1 text-caption font-semibold text-in-tune">
+          {sentence}
+        </p>
+      ))}
       <p className="text-ink-muted">{driftSentence(stats.meanSignedCents)}</p>
 
       {goal && goalLabel && outcome ? (

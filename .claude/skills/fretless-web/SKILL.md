@@ -81,9 +81,12 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  frase da série), tempo.ts, measureMap.ts and autoSlowdown.ts (pure, tested; the "Diminuir ao errar" toggle lives in settings.autoSlowdown),
                                  ScoreView (picks the view from settings.playView: "pauta" | "pistas" | "ambos"),
                                  Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
-apps/web/src/data/               db.ts (Dexie v8: results, routines, practiceDays, userStats,
+apps/web/src/data/               db.ts (Dexie v9: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections,
-                                 recordings + recordingFiles), recordings.ts (gravador: metadados em `recordings`, bytes em
+                                 recordings + recordingFiles, classAssignments = cópia offline das tarefas da turma de
+                                 `GET /me/lessons`), moduleProgress.ts (moduleSummary: estrelas, tocados, minutos,
+                                 nível firme e lista por nível de um módulo), exportCsv.ts (histórico em CSV: `;`, BOM,
+                                 vírgula decimal, para o Excel em português), recordings.ts (gravador: metadados em `recordings`, bytes em
                                  `recordingFiles`, `pieceKey` = resultId, `?peca=&titulo=`, par antes/depois só da mesma
                                  peça; fora do backup e do reset), sections.ts (detalhe da peça:
                                  frases de 4 compassos, rótulo 1-based, `?de=&ate=&bpm=` de/para o Tocar, trechos por `pieceKey` = resultId), suzuki.ts (trilha
@@ -103,6 +106,8 @@ apps/web/src/data/               db.ts (Dexie v8: results, routines, practiceDay
                                  `cleanStreak` conta do fim e um erro zera; `goalProgress` por tipo de meta;
                                  `closedSeriesDays`/`shouldRaiseTempo`: 3 séries fechadas em dias diferentes pedem
                                  andamento novo), planner.ts (planSession: monta a sessão do dia;
+                                 ordem: fixado → tarefa da turma (`classTasks`, ignora o nível, `assignmentId`) →
+                                 caderno → regra;
                                  `blockProgress`/`nextOpenBlock`/`sessionProgress` recebem os runs de hoje por
                                  exercício, não um Set de ids: um bloco só fecha quando a meta fecha; cada
                                  PlannedBlock tem `item` {id,title,playPath}, que a Hoje e o progresso usam no
@@ -139,8 +144,8 @@ apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/
                                  `fretless:pdfjs-assets` do vite.config; testado)
 apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
-apps/web/src/areas/progresso/    ProgressoPage (nível, resumo, estrelas por módulo) + Heatmap, HistoricoPrecisao,
-                                 Conquistas, Medalhas
+apps/web/src/areas/progresso/    ProgressoPage (nível, resumo + exportar CSV, estrelas por módulo com link) + Heatmap,
+                                 HistoricoPrecisao, Conquistas, Medalhas; ModuloPage em /progresso/modulo/:moduleId
 apps/web/src/areas/componentes/  ComponentesPage em /componentes (link em Configurações › Aparência): TokensSection
                                  (cores com swatch e papel, prévia dos 4 temas via `data-theme`/`data-accent` na
                                  subárvore, tipografia, raio/sombra/movimento/layout) + ComponentesSection (cada
@@ -171,7 +176,8 @@ apps/web/src/areas/praticar/     PraticarPage (módulos e exercícios; botão "H
 apps/api/src/                    Fastify 5 + Zod 4 + SQL puro; routes/{auth,teacher,student,admin,files,access}.ts,
                                  auth/permissions.ts (catálogo de permissões e papéis do sistema), db/migrations
 apps/web/src/api/                client.ts (api.get/post/…, queryString, errorMessage), useApiData + LoadState, types
-apps/web/src/account/            store da sessão, ui.tsx (TextField, SelectField, Badge, RequireAccount, SubNav…),
+apps/web/src/account/            classAssignments.ts (tarefas da turma: guarda no Dexie, progresso por item, conclui
+                                 sozinha após o saveRun no Tocar e no refresh; card TarefasDaTurma na Hoje), store da sessão, ui.tsx (TextField, SelectField, Badge, RequireAccount, SubNav…),
                                  links.ts (signupLink), practiceSync, files (PDF autenticado)
 apps/web/src/areas/conta/        entrar, criar conta (convite e código de turma pela URL), minha conta
 apps/web/src/areas/professor/    turmas, alunos e progresso, tarefas, materiais (PDF/link), planos de estudo
