@@ -11,7 +11,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   signupOpen: true,
   teacherApprovalRequired: true,
-  platformName: "Fretless",
+  platformName: "Spalla",
   supportEmail: "",
 };
 

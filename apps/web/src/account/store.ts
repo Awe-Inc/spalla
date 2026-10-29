@@ -91,5 +91,5 @@ export function homePathFor(user: Me): string {
   if (isAdminUser(user)) return "/admin";
   if (isTeacherUser(user)) return "/professor";
   if (isStudentUser(user)) return "/aulas";
-  return "/conta";
+  return "/voce/conta";
 }

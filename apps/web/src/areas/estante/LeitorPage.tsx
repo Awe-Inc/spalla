@@ -64,7 +64,7 @@ function useSheetDocument(sheetId: number) {
 function NaoEncontrada() {
   return (
     <main className="grid min-h-dvh place-items-center p-6">
-      <EmptyState title="Essa partitura não está na estante." description="Ela pode ter sido removida." action={<Link to="/musicas/estante">Voltar para a estante</Link>} />
+      <EmptyState title="Essa partitura não está na estante." description="Ela pode ter sido removida." action={<Link to="/repertorio/estante">Voltar para a estante</Link>} />
     </main>
   );
 }
@@ -115,7 +115,7 @@ function Leitor({ sheetId }: { sheetId: number }) {
   return (
     <div className="relative flex h-dvh flex-col bg-surface-soft">
       <header className="flex items-center gap-3 border-b border-hairline bg-surface px-4 py-2">
-        <Link to="/musicas/estante" className="text-ink-muted hover:text-ink">
+        <Link to="/repertorio/estante" className="text-ink-muted hover:text-ink">
           ← Estante
         </Link>
         <h1 className="min-w-0 flex-1 truncate font-semibold">{sheet?.title ?? "…"}</h1>

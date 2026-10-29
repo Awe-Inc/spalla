@@ -62,7 +62,7 @@ function PlanCard({ plan, adoptedRoutineId }: { plan: StudentPlan; adoptedRoutin
         {isActive ? (
           <>
             <span className="text-body font-medium text-in-tune">É a sua rotina agora.</span>
-            <Link to="/praticar" className={LINK_PRIMARY_CLASS}>
+            <Link to="/estudar" className={LINK_PRIMARY_CLASS}>
               Praticar
             </Link>
             <Button variant="ghost" disabled={pending} onClick={() => void adopt()}>

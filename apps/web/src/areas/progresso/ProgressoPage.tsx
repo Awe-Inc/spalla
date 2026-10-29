@@ -7,6 +7,7 @@ import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, localDayK
 import { csvFileName, resultsToCsv } from "@/data/exportCsv";
 import { levelForXp } from "@/data/gamification";
 import { medalProgress } from "@/data/medals";
+import { VoceTabs } from "@/areas/voce/VoceTabs";
 import { Button, Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
 
 import { Conquistas } from "./Conquistas";
@@ -38,7 +39,8 @@ export function ProgressoPage() {
   if (results.length === 0) {
     return (
       <>
-        <PageTitle title="Progresso" />
+        <PageTitle title="Você" />
+      <VoceTabs />
         <EmptyState title="Ainda sem registros." description="Toque um exercício e o resultado aparece aqui: XP, sequência, calendário e estrelas por módulo." />
       </>
     );
@@ -46,7 +48,8 @@ export function ProgressoPage() {
 
   return (
     <>
-      <PageTitle title="Progresso" />
+      <PageTitle title="Você" />
+      <VoceTabs />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="flex items-center gap-5">
           <ProgressRing value={level.intoLevel} max={level.needed} caption={`de ${level.needed} XP`} size={104} />
@@ -82,7 +85,7 @@ export function ProgressoPage() {
                 const max = playable.length * 3;
                 return (
                   <li key={module.id}>
-                    <Link to={`/progresso/modulo/${module.id}`} className="group grid gap-1 rounded-sm">
+                    <Link to={`/estudar/modulo/${module.id}`} className="group grid gap-1 rounded-sm">
                       <div className="flex justify-between gap-4">
                         <span className="font-medium group-hover:text-primary">{module.title}</span>
                         <span className="font-mono text-caption text-ink-subtle tabular">

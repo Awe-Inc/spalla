@@ -32,7 +32,7 @@ export function CriarContaPage() {
   const [pending, setPending] = useState(false);
 
   if (!isPlatformEnabled()) {
-    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Fretless funciona só no aparelho, sem contas." />;
+    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Spalla funciona só no aparelho, sem contas." />;
   }
   if (user) return <Navigate to={homePathFor(user)} replace />;
 
@@ -50,7 +50,7 @@ export function CriarContaPage() {
     try {
       const session = await signup(toSignupInput(draft));
       const target = homePathFor(session.user);
-      navigate(target === "/conta" ? "/conta?nova=1" : target, { replace: true });
+      navigate(target === "/voce/conta" ? "/voce/conta?nova=1" : target, { replace: true });
     } catch (cause) {
       setServerError(errorMessage(cause));
       if (cause instanceof ApiError) setErrors(cause.fields as SignupErrors);
@@ -64,7 +64,7 @@ export function CriarContaPage() {
       <PageTitle title="Criar conta" eyebrow="Aulas com professor" />
       <form onSubmit={submit} className="grid gap-6" noValidate>
         <fieldset className="grid gap-3 md:grid-cols-2">
-          <legend className="mb-3 text-heading font-semibold">Como você vai usar o Fretless?</legend>
+          <legend className="mb-3 text-heading font-semibold">Como você vai usar o Spalla?</legend>
           {ACCOUNT_TYPES.map((option) => {
             const selected = draft.accountType === option.value;
             return (

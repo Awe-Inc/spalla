@@ -81,7 +81,7 @@ export function ModuloPage() {
           title="Esse módulo não existe mais."
           description="Volte ao Progresso e escolha um dos módulos da lista."
           action={
-            <Link to="/progresso" className="font-semibold text-primary">
+            <Link to="/voce" className="font-semibold text-primary">
               Ir para Progresso
             </Link>
           }
@@ -96,7 +96,7 @@ export function ModuloPage() {
   return (
     <>
       <PageTitle eyebrow="Progresso" title={module.title}>
-        <Link to="/progresso" className="text-caption font-semibold text-primary">
+        <Link to="/voce" className="text-caption font-semibold text-primary">
           Voltar ao Progresso
         </Link>
       </PageTitle>

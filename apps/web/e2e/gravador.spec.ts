@@ -25,7 +25,7 @@ test("duas gravações da mesma peça ficam guardadas, aparecem no detalhe e se 
     [SETTINGS_STORAGE_KEY, ONBOARDED_SETTINGS] as const,
   );
 
-  await page.goto("/musicas");
+  await page.goto("/repertorio");
   await page.getByRole("link", { name: `Trechos e andamento: ${LIBRARY_TITLE}` }).click();
   await page.waitForURL(/\/musicas\/peca\/biblioteca\//);
   const detailUrl = page.url();

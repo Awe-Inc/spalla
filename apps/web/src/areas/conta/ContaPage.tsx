@@ -1,15 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
-import { api, apiBlob, errorMessage } from "@/api/client";
+import { api, apiBlob, errorMessage, isPlatformEnabled } from "@/api/client";
 import type { AccountSession, Me } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { MIN_PASSWORD_LENGTH } from "@/account/forms";
 import { syncPractice } from "@/account/practiceSync";
 import { can, isAdminUser, isStudentUser, isTeacherUser, logout, useAccount } from "@/account/store";
-import { Badge, FormError, formatDateTime, LoadState, Notice, RequireAccount, TextAreaField, TextField } from "@/account/ui";
+import { Badge, FormError, formatDateTime, LoadState, Notice, TextAreaField, TextField } from "@/account/ui";
 import { downloadBlob } from "@/data/backup";
-import { Button, Card, PageTitle } from "@/design/components";
+import { VoceTabs } from "@/areas/voce/VoceTabs";
+import { Button, ButtonLink, Card, EmptyState, PageTitle } from "@/design/components";
 
 const APPLICATION_TEXT: Record<NonNullable<Me["teacherApplication"]>, { label: string; tone: "warn" | "good" | "bad"; text: string }> = {
   pending: { label: "Em análise", tone: "warn", text: "A equipe está analisando seu pedido de conta de professor. Você recebe acesso às turmas assim que for aprovado." },
@@ -212,7 +213,7 @@ function DataCard() {
   async function exportData() {
     setError(null);
     try {
-      downloadBlob("fretless-meus-dados.json", await apiBlob("/auth/export"));
+      downloadBlob("spalla-meus-dados.json", await apiBlob("/auth/export"));
     } catch (cause) {
       setError(errorMessage(cause));
     }
@@ -299,7 +300,7 @@ function AccountContent({ user }: { user: Me }) {
   const [params] = useSearchParams();
   return (
     <div className="grid gap-6">
-      <PageTitle title="Minha conta" eyebrow={user.name}>
+      <PageTitle title="Você" eyebrow={`Conta de ${user.name}`}>
         <Button
           variant="ghost"
           onClick={async () => {
@@ -310,7 +311,8 @@ function AccountContent({ user }: { user: Me }) {
           Sair
         </Button>
       </PageTitle>
-      {params.get("nova") ? <Notice>Conta criada. Bem-vindo ao Fretless.</Notice> : null}
+      <VoceTabs />
+      {params.get("nova") ? <Notice>Conta criada. Bem-vindo ao Spalla.</Notice> : null}
       <AreaLinks user={user} />
       <div className="grid gap-6 lg:grid-cols-2">
         <ProfileCard user={user} />
@@ -323,7 +325,32 @@ function AccountContent({ user }: { user: Me }) {
   );
 }
 
+function SignedOut() {
+  return (
+    <>
+      <PageTitle title="Você" />
+      <VoceTabs />
+      {isPlatformEnabled() ? (
+        <Card tone="hero" className="grid max-w-2xl gap-4">
+          <h2 className="text-heading font-semibold">Entre para estudar com uma turma.</h2>
+          <p className="text-body text-ink-muted">A conta liga você a uma professora: tarefas da aula, materiais e seu progresso compartilhado. Tudo o que você toca continua guardado neste aparelho, com ou sem conta.</p>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink to="/entrar?voltar=%2Fvoce%2Fconta" variant="primary" icon="entrar">
+              Entrar
+            </ButtonLink>
+            <ButtonLink to="/criar-conta" variant="secondary">
+              Criar conta
+            </ButtonLink>
+          </div>
+        </Card>
+      ) : (
+        <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Spalla funciona só no aparelho. Turmas, professores e contas aparecem quando o servidor estiver configurado." />
+      )}
+    </>
+  );
+}
+
 export function ContaPage() {
   const user = useAccount((state) => state.user);
-  return <RequireAccount>{user ? <AccountContent user={user} /> : null}</RequireAccount>;
+  return user ? <AccountContent user={user} /> : <SignedOut />;
 }

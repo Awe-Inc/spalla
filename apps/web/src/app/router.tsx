@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate, useLocation, type RouteObject } from "react-router";
 
 import { BoasVindasPage } from "@/areas/boas-vindas/BoasVindasPage";
 import { ConfiguracoesPage } from "@/areas/configuracoes/ConfiguracoesPage";
@@ -11,45 +11,63 @@ import { HojePage } from "@/areas/hoje/HojePage";
 import { MusicasPage } from "@/areas/musicas/MusicasPage";
 import { PraticarPage } from "@/areas/praticar/PraticarPage";
 import { ProgressoPage } from "@/areas/progresso/ProgressoPage";
+import { ErroDeRotaPage, NaoEncontradaPage } from "@/areas/sistema/SistemaPages";
 import { TocarPage } from "@/areas/tocar/TocarPage";
 
-import { Shell } from "./Shell";
+import { LEGACY_REDIRECTS, legacyTarget } from "./legacyRoutes";
+import { Shell, type RouteHandle } from "./Shell";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+const FULLSCREEN: RouteHandle = { fullscreen: true };
+
+function LegacyRedirect() {
+  const location = useLocation();
+  return <Navigate to={`${legacyTarget(location.pathname) ?? "/"}${location.search}`} replace />;
+}
+
+const legacyRoutes: RouteObject[] = LEGACY_REDIRECTS.flatMap(([from]) => [
+  { path: from.slice(1), Component: LegacyRedirect },
+  { path: `${from.slice(1)}/*`, Component: LegacyRedirect },
+]);
+
+const peca = async () => ({ Component: (await import("@/areas/musicas/PecaPage")).PecaPage });
 
 export const router = createBrowserRouter(
   [
     {
       path: "/",
       Component: Shell,
+      errorElement: <ErroDeRotaPage />,
       children: [
         { index: true, Component: HojePage },
-        { path: "praticar", Component: PraticarPage },
-        { path: "musicas", Component: MusicasPage },
-        { path: "musicas/estante", lazy: async () => ({ Component: (await import("@/areas/estante/EstantePage")).EstantePage }) },
-        { path: "musicas/peca/musica/:pieceId", lazy: async () => ({ Component: (await import("@/areas/musicas/PecaPage")).PecaPage }) },
-        { path: "musicas/peca/biblioteca/:librarySlug", lazy: async () => ({ Component: (await import("@/areas/musicas/PecaPage")).PecaPage }) },
-        { path: "musicas/peca/:exerciseId", lazy: async () => ({ Component: (await import("@/areas/musicas/PecaPage")).PecaPage }) },
-        { path: "musicas/suzuki", lazy: async () => ({ Component: (await import("@/areas/musicas/SuzukiPage")).SuzukiPage }) },
-        { path: "estante/:sheetId", lazy: async () => ({ Component: (await import("@/areas/estante/LeitorPage")).LeitorPage }) },
+        { path: "estudar", Component: PraticarPage },
+        { path: "estudar/modulo/:moduleId", lazy: async () => ({ Component: (await import("@/areas/progresso/ModuloPage")).ModuloPage }) },
+        { path: "repertorio", Component: MusicasPage },
+        { path: "repertorio/estante", lazy: async () => ({ Component: (await import("@/areas/estante/EstantePage")).EstantePage }) },
+        { path: "repertorio/estante/:sheetId", handle: FULLSCREEN, lazy: async () => ({ Component: (await import("@/areas/estante/LeitorPage")).LeitorPage }) },
+        { path: "repertorio/suzuki", lazy: async () => ({ Component: (await import("@/areas/musicas/SuzukiPage")).SuzukiPage }) },
+        { path: "repertorio/peca/musica/:pieceId", lazy: peca },
+        { path: "repertorio/peca/biblioteca/:librarySlug", lazy: peca },
+        { path: "repertorio/peca/:exerciseId", lazy: peca },
         { path: "ferramentas", Component: FerramentasPage },
-        { path: "ferramentas/latencia", Component: LatenciaPage },
-        { path: "ferramentas/afinador", Component: AfinadorPage },
+        { path: "ferramentas/afinador", handle: FULLSCREEN, Component: AfinadorPage },
         { path: "ferramentas/metronomo", Component: MetronomoPage },
         { path: "ferramentas/pedal", Component: PedalPage },
         { path: "ferramentas/gravador", lazy: async () => ({ Component: (await import("@/areas/ferramentas/GravadorPage")).GravadorPage }) },
-        { path: "progresso", Component: ProgressoPage },
-        { path: "progresso/modulo/:moduleId", lazy: async () => ({ Component: (await import("@/areas/progresso/ModuloPage")).ModuloPage }) },
-        { path: "configuracoes", Component: ConfiguracoesPage },
+        { path: "voce", Component: ProgressoPage },
+        { path: "voce/ajustes", Component: ConfiguracoesPage },
+        { path: "voce/ajustes/atraso", Component: LatenciaPage },
+        { path: "voce/conta", lazy: async () => ({ Component: (await import("@/areas/conta/ContaPage")).ContaPage }) },
+        ...legacyRoutes,
         { path: "componentes", lazy: async () => ({ Component: (await import("@/areas/componentes/ComponentesPage")).ComponentesPage }) },
-        { path: "tocar/musica/:pieceId", Component: TocarPage },
-        { path: "tocar/biblioteca/:librarySlug", Component: TocarPage },
-        { path: "tocar/:exerciseId", Component: TocarPage },
-        { path: "boas-vindas", Component: BoasVindasPage },
+        { path: "tocar/musica/:pieceId", handle: FULLSCREEN, Component: TocarPage },
+        { path: "tocar/biblioteca/:librarySlug", handle: FULLSCREEN, Component: TocarPage },
+        { path: "tocar/:exerciseId", handle: FULLSCREEN, Component: TocarPage },
+        { path: "boas-vindas", handle: FULLSCREEN, Component: BoasVindasPage },
         { path: "entrar", lazy: async () => ({ Component: (await import("@/areas/conta/EntrarPage")).EntrarPage }) },
         { path: "criar-conta", lazy: async () => ({ Component: (await import("@/areas/conta/CriarContaPage")).CriarContaPage }) },
         { path: "termos", lazy: async () => ({ Component: (await import("@/areas/conta/TermosPage")).TermosPage }) },
-        { path: "conta", lazy: async () => ({ Component: (await import("@/areas/conta/ContaPage")).ContaPage }) },
         {
           path: "aulas",
           lazy: async () => ({ Component: (await import("@/areas/aulas/AulasLayout")).AulasLayout }),
@@ -94,6 +112,7 @@ export const router = createBrowserRouter(
         },
       ],
     },
+    { path: "*", Component: NaoEncontradaPage },
   ],
   { basename },
 );

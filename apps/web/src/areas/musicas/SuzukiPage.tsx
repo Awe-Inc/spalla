@@ -17,7 +17,7 @@ import {
 } from "@/data/suzuki";
 import { Button, Card, PageTitle } from "@/design/components";
 
-import { MusicasTabs } from "./MusicasTabs";
+import { RepertorioTabs } from "./RepertorioTabs";
 
 const STATUS_LABELS: Record<SuzukiPieceStatus, string> = {
   nova: "Não iniciada",
@@ -129,8 +129,8 @@ export function SuzukiPage() {
 
   return (
     <>
-      <PageTitle title="Músicas" eyebrow="Trilha Suzuki" />
-      <MusicasTabs />
+      <PageTitle title="Repertório" />
+      <RepertorioTabs />
 
       <div className="grid gap-6">
         <ReviewToday due={dueReviews(stored, today)} />

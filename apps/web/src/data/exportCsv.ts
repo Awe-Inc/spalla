@@ -45,5 +45,5 @@ export function resultsToCsv(results: readonly ExerciseResult[], exercises: read
 }
 
 export function csvFileName(now = new Date()): string {
-  return `fretless-historico-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.csv`;
+  return `spalla-historico-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.csv`;
 }

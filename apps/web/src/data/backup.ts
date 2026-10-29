@@ -44,7 +44,7 @@ export async function buildBackup(): Promise<Backup> {
 }
 
 export function backupFileName(now = new Date()): string {
-  return `fretless-backup-${now.toISOString().slice(0, 10)}.json`;
+  return `spalla-backup-${now.toISOString().slice(0, 10)}.json`;
 }
 
 const REVOKE_URL_DELAY_MS = 10_000;

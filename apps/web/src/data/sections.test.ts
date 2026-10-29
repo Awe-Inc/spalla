@@ -29,9 +29,9 @@ describe("section links", () => {
   });
 
   it("maps every play route to its detail route", () => {
-    expect(detailPath("/tocar/repertoire.1")).toBe("/musicas/peca/repertoire.1");
-    expect(detailPath("/tocar/musica/7")).toBe("/musicas/peca/musica/7");
-    expect(detailPath("/tocar/biblioteca/bizet-adieux")).toBe("/musicas/peca/biblioteca/bizet-adieux");
+    expect(detailPath("/tocar/repertoire.1")).toBe("/repertorio/peca/repertoire.1");
+    expect(detailPath("/tocar/musica/7")).toBe("/repertorio/peca/musica/7");
+    expect(detailPath("/tocar/biblioteca/bizet-adieux")).toBe("/repertorio/peca/biblioteca/bizet-adieux");
   });
 
   it("round-trips a practice request through the URL", () => {

@@ -64,7 +64,7 @@ test("uma canção da biblioteca CC0 abre pelo catálogo e toca até o resultado
     [SETTINGS_STORAGE_KEY, ONBOARDED_SETTINGS] as const,
   );
 
-  await page.goto("/musicas");
+  await page.goto("/repertorio");
   const row = page.getByRole("article").filter({ has: page.getByRole("heading", { name: LIBRARY_TITLE }) });
   await expect(row).toContainText(LIBRARY_COMPOSER);
   const href = await row.getByRole("link", { name: "Tocar" }).getAttribute("href");

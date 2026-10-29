@@ -1,33 +1,40 @@
+import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
-import { Navigate, NavLink, Outlet, useLocation } from "react-router";
+import { Link, Navigate, NavLink, Outlet, useLocation, useMatches } from "react-router";
 
 import { isPlatformEnabled } from "@/api/client";
 import { isAdminUser, isStudentUser, isTeacherUser, refreshMe, useAccount } from "@/account/store";
 import type { Me } from "@/api/types";
+import { currentStreak, db, DEFAULT_USER_STATS, localDayKey } from "@/data/db";
+import { levelForXp } from "@/data/gamification";
+import { Wordmark } from "@/design/brand";
+import { Icon, type IconName } from "@/design/icons";
 
 import { resolveTheme, useSettings } from "./settings";
 
 interface Area {
   to: string;
   label: string;
-  icon: string;
+  icon: IconName;
+}
+
+export interface RouteHandle {
+  fullscreen?: boolean;
 }
 
 export const AREAS: readonly Area[] = [
-  { to: "/", label: "Hoje", icon: "M4 12 12 4l8 8M6 10v10h12V10" },
-  { to: "/praticar", label: "Praticar", icon: "M6 4v16l13-8z" },
-  { to: "/musicas", label: "Músicas", icon: "M9 18V6l10-2v12M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm10-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" },
-  { to: "/ferramentas", label: "Ferramentas", icon: "M12 3v18M3 12h18M6 6l12 12M18 6 6 18" },
-  { to: "/progresso", label: "Progresso", icon: "M4 20V10m6 10V4m6 16v-7m4 7H2" },
+  { to: "/", label: "Hoje", icon: "hoje" },
+  { to: "/estudar", label: "Estudar", icon: "estudar" },
+  { to: "/repertorio", label: "Repertório", icon: "repertorio" },
+  { to: "/ferramentas", label: "Ferramentas", icon: "ferramentas" },
+  { to: "/voce", label: "Você", icon: "voce" },
 ];
 
-const PLATFORM_AREAS: readonly (Area & { allowed: (user: Me) => boolean })[] = [
-  { to: "/aulas", label: "Minhas aulas", icon: "M4 6h16v12H4zM8 10h8M8 14h5", allowed: isStudentUser },
-  { to: "/professor", label: "Professor", icon: "M3 9l9-5 9 5-9 5zM7 11v5c3 2 7 2 10 0v-5", allowed: isTeacherUser },
-  { to: "/admin", label: "Administração", icon: "M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z", allowed: isAdminUser },
+export const PLATFORM_AREAS: readonly (Area & { allowed: (user: Me) => boolean })[] = [
+  { to: "/aulas", label: "Minhas aulas", icon: "aulas", allowed: isStudentUser },
+  { to: "/professor", label: "Professor", icon: "professor", allowed: isTeacherUser },
+  { to: "/admin", label: "Administração", icon: "admin", allowed: isAdminUser },
 ];
-
-const ACCOUNT_ICON = "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0";
 
 const PUBLIC_PATHS = ["/entrar", "/criar-conta", "/termos"];
 
@@ -45,22 +52,20 @@ function useRefreshAccount(): void {
   }, []);
 }
 
-function AreaIcon({ path }: { path: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d={path} />
-    </svg>
-  );
+export function useIsFullscreenRoute(): boolean {
+  return useMatches().some((match) => (match.handle as RouteHandle | undefined)?.fullscreen === true);
 }
 
 function navClass({ isActive }: { isActive: boolean }): string {
-  const base = "flex items-center gap-3 rounded-md px-3 py-2.5 text-body font-medium transition-colors duration-fast ease-spalla";
-  return isActive ? `${base} bg-primary-soft text-primary` : `${base} text-ink-muted hover:bg-surface-soft hover:text-ink`;
+  const base = "relative flex min-h-11 items-center gap-3 rounded-md px-3 text-body font-medium transition-colors duration-fast ease-spalla";
+  return isActive
+    ? `${base} bg-primary-soft text-ink before:absolute before:inset-y-2.5 before:-left-4 before:w-0.5 before:rounded-pill before:bg-primary [&>svg]:text-primary`
+    : `${base} text-ink-muted hover:bg-surface-soft hover:text-ink`;
 }
 
 function bottomClass({ isActive }: { isActive: boolean }): string {
-  const base = "flex min-w-16 flex-col items-center gap-0.5 rounded-md px-2 py-1.5 text-caption font-medium";
-  return isActive ? `${base} text-primary` : `${base} text-ink-muted`;
+  const base = "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md text-caption font-medium transition-colors duration-fast ease-spalla";
+  return isActive ? `${base} text-primary` : `${base} text-ink-muted hover:text-ink`;
 }
 
 export function useApplyTheme(): void {
@@ -72,12 +77,113 @@ export function useApplyTheme(): void {
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
-      document.documentElement.dataset.theme = resolveTheme(theme, media.matches);
+      const resolved = resolveTheme(theme, media.matches);
+      document.documentElement.dataset.theme = resolved;
+      const canvas = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim();
+      if (canvas) document.querySelector('meta[name="theme-color"]')?.setAttribute("content", canvas);
     };
     apply();
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
-  }, [theme]);
+  }, [theme, accent]);
+}
+
+function StudentCard({ user }: { user: Me | null }) {
+  const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
+  const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
+  const level = levelForXp(stats.xp).level;
+  const streak = currentStreak(days, localDayKey(new Date()), stats.frozenDays);
+  const name = user?.name ?? "Você";
+  return (
+    <Link
+      to="/voce"
+      className="group flex items-center gap-3 rounded-md bg-surface-soft/70 p-3 ring-1 ring-inset ring-hairline transition-colors duration-fast ease-spalla hover:bg-surface-soft"
+    >
+      <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-soft font-display text-heading text-primary">
+        {name.charAt(0).toUpperCase()}
+      </span>
+      <span className="grid min-w-0 gap-0.5">
+        <span className="truncate text-small font-semibold text-ink">{name}</span>
+        <span className="flex items-center gap-1 text-caption text-ink-muted">
+          Nível <span className="font-mono tabular">{level}</span>
+          {streak > 0 ? (
+            <>
+              <span aria-hidden className="text-ink-subtle">/</span>
+              <Icon name="chama" className="size-3.5 text-primary" />
+              <span className="font-mono tabular">{streak}</span>
+              <span className="sr-only">{streak === 1 ? "dia seguido" : "dias seguidos"}</span>
+            </>
+          ) : null}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function Sidebar({ platformAreas, user }: { platformAreas: readonly Area[]; user: Me | null }) {
+  return (
+    <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:border-r lg:border-hairline lg:bg-surface-sunken/40 lg:px-4 lg:pb-4 lg:pt-6">
+      <NavLink to="/" end className="mb-8 w-fit rounded-sm px-3" aria-label="Spalla, ir para Hoje">
+        <Wordmark />
+      </NavLink>
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-1">
+        <nav aria-label="Áreas" className="flex flex-col gap-1">
+          {AREAS.map((area) => (
+            <NavLink key={area.to} to={area.to} end={area.to === "/"} className={navClass}>
+              <Icon name={area.icon} className="size-5" />
+              {area.label}
+            </NavLink>
+          ))}
+        </nav>
+        {platformAreas.length > 0 ? (
+          <nav aria-labelledby="sidebar-aulas" className="flex flex-col gap-1">
+            <h2 id="sidebar-aulas" className="px-3 pb-1 text-caption font-medium text-ink-subtle">
+              Aulas
+            </h2>
+            {platformAreas.map((area) => (
+              <NavLink key={area.to} to={area.to} className={navClass}>
+                <Icon name={area.icon} className="size-5" />
+                {area.label}
+              </NavLink>
+            ))}
+          </nav>
+        ) : null}
+      </div>
+      <div className="mt-4 grid gap-1 border-t border-hairline pt-4">
+        <StudentCard user={user} />
+        {isPlatformEnabled() && !user ? (
+          <NavLink to="/entrar" className={navClass}>
+            <Icon name="entrar" className="size-5" />
+            Entrar
+          </NavLink>
+        ) : null}
+        <NavLink to="/voce/ajustes" className={navClass}>
+          <Icon name="ajustes" className="size-5" />
+          Ajustes
+        </NavLink>
+      </div>
+    </aside>
+  );
+}
+
+function MobileHeader({ user }: { user: Me | null }) {
+  return (
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-hairline bg-canvas/90 px-4 backdrop-blur-sm lg:hidden">
+      <NavLink to="/" end className="rounded-sm" aria-label="Spalla, ir para Hoje">
+        <Wordmark size="heading" />
+      </NavLink>
+      <div className="flex items-center gap-1">
+        {isPlatformEnabled() && !user ? (
+          <Link to="/entrar" className="inline-flex min-h-11 items-center rounded-md px-3 text-small font-semibold text-primary">
+            Entrar
+          </Link>
+        ) : null}
+        <Link to="/voce/ajustes" aria-label="Ajustes" className="flex size-11 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft hover:text-ink">
+          <Icon name="ajustes" className="size-5" />
+        </Link>
+      </div>
+    </header>
+  );
 }
 
 export function Shell() {
@@ -86,9 +192,9 @@ export function Shell() {
   const location = useLocation();
   const onboardedAt = useSettings((state) => state.onboardedAt);
   const { areas: platformAreas, user } = usePlatformAreas();
+  const isFullscreen = useIsFullscreenRoute();
   const isOnboarding = location.pathname.startsWith("/boas-vindas");
   const isPublicPage = PUBLIC_PATHS.some((path) => location.pathname.startsWith(path));
-  const isFullscreen = location.pathname.startsWith("/tocar") || location.pathname.startsWith("/estante/") || location.pathname === "/ferramentas/afinador" || isOnboarding;
 
   if (onboardedAt === null && !isOnboarding && !isPublicPage) {
     return <Navigate to="/boas-vindas" replace />;
@@ -98,77 +204,26 @@ export function Shell() {
     return <Outlet />;
   }
 
-  const settingsArea = {
-    to: "/configuracoes",
-    label: "Configurações",
-    icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7-3 2-1-1-3-2 .2a7 7 0 0 0-1.5-1.5L16.7 4l-3-1-1 2a7 7 0 0 0-2.1 0l-1-2-3 1 .2 2.3A7 7 0 0 0 5.4 7.8L3 7.6l-1 3 2 1a7 7 0 0 0 0 2.1l-2 1 1 3 2.3-.2a7 7 0 0 0 1.5 1.5L7.3 20l3 1 1-2a7 7 0 0 0 2.1 0l1 2 3-1-.2-2.3a7 7 0 0 0 1.5-1.5l2.3.2 1-3-2-1a7 7 0 0 0 0-2.1z",
-  };
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-shell">
-      <aside className="hidden lg:flex lg:flex-col lg:gap-1 lg:border-r lg:border-hairline lg:px-4 lg:py-6">
-        <NavLink to="/" className="mb-6 px-3 font-display text-title text-ink" end>
-          Fretless
-        </NavLink>
-        <nav aria-label="Áreas" className="flex flex-col gap-1">
-          {AREAS.map((area) => (
-            <NavLink key={area.to} to={area.to} end={area.to === "/"} className={navClass}>
-              <AreaIcon path={area.icon} />
-              {area.label}
-            </NavLink>
-          ))}
-        </nav>
-        {platformAreas.length > 0 ? (
-          <nav aria-label="Aulas" className="mt-6 flex flex-col gap-1 border-t border-hairline pt-6">
-            {platformAreas.map((area) => (
-              <NavLink key={area.to} to={area.to} className={navClass}>
-                <AreaIcon path={area.icon} />
-                {area.label}
-              </NavLink>
-            ))}
-          </nav>
-        ) : null}
-        <div className="mt-auto flex flex-col gap-1">
-          {isPlatformEnabled() ? (
-            <NavLink to={user ? "/conta" : "/entrar"} className={navClass}>
-              <AreaIcon path={ACCOUNT_ICON} />
-              <span className="truncate">{user ? user.name : "Entrar"}</span>
-            </NavLink>
-          ) : null}
-          <NavLink to={settingsArea.to} className={navClass}>
-            <AreaIcon path={settingsArea.icon} />
-            {settingsArea.label}
-          </NavLink>
-        </div>
-      </aside>
+      <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:shadow-overlay">
+        Pular para o conteúdo
+      </a>
+      <Sidebar platformAreas={platformAreas} user={user} />
+      <MobileHeader user={user} />
 
-      {isPlatformEnabled() ? (
-        <header className="flex items-center gap-2 overflow-x-auto border-b border-hairline px-4 py-2 lg:hidden">
-          <NavLink to="/" className="mr-auto font-display text-heading text-ink" end>
-            Fretless
-          </NavLink>
-          {platformAreas.map((area) => (
-            <NavLink key={area.to} to={area.to} className={({ isActive }) => `shrink-0 rounded-pill px-3 py-1.5 text-caption font-semibold ${isActive ? "bg-primary-soft text-primary" : "text-ink-muted hover:bg-surface-soft"}`}>
-              {area.label}
-            </NavLink>
-          ))}
-          <NavLink to={user ? "/conta" : "/entrar"} aria-label={user ? `Sua conta: ${user.name}` : "Entrar"} className="flex size-10 shrink-0 items-center justify-center rounded-pill text-ink-muted hover:bg-surface-soft hover:text-ink">
-            <AreaIcon path={ACCOUNT_ICON} />
-          </NavLink>
-        </header>
-      ) : null}
-
-      <main className="mx-auto w-full min-w-0 max-w-page px-4 pb-28 pt-6 md:px-6 lg:px-8 lg:pb-12 lg:pt-10">
+      <main id="conteudo" className="mx-auto w-full min-w-0 max-w-page px-4 pb-28 pt-6 md:px-6 lg:px-10 lg:pb-16 lg:pt-10">
         <Outlet />
       </main>
 
       <nav
         aria-label="Áreas"
-        className="fixed inset-x-0 bottom-0 flex justify-around border-t border-hairline bg-surface px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 flex gap-1 border-t border-hairline bg-surface/95 px-2 pb-[max(env(safe-area-inset-bottom),6px)] pt-1.5 backdrop-blur-sm lg:hidden"
       >
-        {[...AREAS, settingsArea].map((area) => (
+        {AREAS.map((area) => (
           <NavLink key={area.to} to={area.to} end={area.to === "/"} className={bottomClass}>
-            <AreaIcon path={area.icon} />
-            {area.label}
+            <Icon name={area.icon} className="size-6" />
+            <span className="max-w-full truncate">{area.label}</span>
           </NavLink>
         ))}
       </nav>

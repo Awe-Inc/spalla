@@ -7,7 +7,7 @@ import { describeStorageError, importSheetFile, pageCountLabel, removeSheet } fr
 import { Button, Card, EmptyState, InlineError, PageTitle } from "@/design/components";
 import { countPdfPages } from "@/pdf/pdfDocument";
 
-import { MusicasTabs } from "../musicas/MusicasTabs";
+import { RepertorioTabs } from "../musicas/RepertorioTabs";
 
 async function importOne(file: File): Promise<string | null> {
   try {
@@ -33,7 +33,7 @@ function SheetRow({ sheet, onRemove }: { sheet: StoredSheet; onRemove: (sheet: S
           <Button variant="ghost" onClick={() => onRemove(sheet)}>
             Remover
           </Button>
-          <Link to={`/estante/${sheet.id}`} className="inline-flex h-11 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10">
+          <Link to={`/repertorio/estante/${sheet.id}`} className="inline-flex h-11 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10">
             Abrir
           </Link>
         </div>
@@ -67,13 +67,13 @@ export function EstantePage() {
 
   return (
     <>
-      <PageTitle title="Músicas" eyebrow="Catálogo e suas partituras">
+      <PageTitle title="Repertório">
         <label className="inline-flex h-11 cursor-pointer items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus md:h-10">
           {isImporting ? "Guardando…" : "Importar PDF"}
           <input type="file" accept=".pdf,application/pdf" multiple className="sr-only" onChange={(event) => void onFiles(event)} disabled={isImporting} />
         </label>
       </PageTitle>
-      <MusicasTabs />
+      <RepertorioTabs />
 
       {error ? <InlineError title="Algum PDF não entrou." nextStep={error} /> : null}
 

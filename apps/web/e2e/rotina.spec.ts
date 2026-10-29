@@ -12,7 +12,7 @@ test("uma peça da biblioteca entra na rotina e aparece na sessão de hoje", asy
     [SETTINGS_STORAGE_KEY, ONBOARDED_SETTINGS] as const,
   );
 
-  await page.goto("/musicas");
+  await page.goto("/repertorio");
   await page.getByRole("link", { name: `Trechos e andamento: ${LIBRARY_TITLE}` }).click();
   await page.waitForURL(/\/musicas\/peca\/biblioteca\//);
   const slug = new URL(page.url()).pathname.split("/").at(-1)!;
@@ -30,7 +30,7 @@ test("uma peça da biblioteca entra na rotina e aparece na sessão de hoje", asy
   await expect(pinned).toHaveAttribute("href", new RegExp(`/tocar/biblioteca/${slug}$`));
   await expect(page.getByText("Escolhida por você.")).toBeVisible();
 
-  await page.goto("/praticar");
+  await page.goto("/estudar");
   await expect(page.getByRole("radio", { name: /Minha rotina de 25 minutos/ })).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Editar" }).click();
   const blocks = page.getByRole("list", { name: "Blocos da rotina" });

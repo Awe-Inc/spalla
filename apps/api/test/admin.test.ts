@@ -147,7 +147,7 @@ describe("admin", () => {
   it("estatísticas e configurações", async () => {
     const stats = (await call(t.app, "GET", "/admin/stats", admin.token)).json();
     expect(stats.users).toBeGreaterThan(0);
-    const settings = await call(t.app, "PUT", "/admin/settings", admin.token, { platformName: "Fretless Escola", supportEmail: "" });
-    expect(settings.json().platformName).toBe("Fretless Escola");
+    const settings = await call(t.app, "PUT", "/admin/settings", admin.token, { platformName: "Spalla Escola", supportEmail: "" });
+    expect(settings.json().platformName).toBe("Spalla Escola");
   });
 });

@@ -21,7 +21,7 @@ import {
 import { detailPath } from "@/data/sections";
 import { Button, Card, EmptyState, InlineError, PageTitle, Stars } from "@/design/components";
 
-import { MusicasTabs } from "./MusicasTabs";
+import { RepertorioTabs } from "./RepertorioTabs";
 import { PieceFiltersBar } from "./PieceFilters";
 
 const STATUS_CLASS: Record<PieceStatus, string> = {
@@ -98,13 +98,13 @@ export function MusicasPage() {
 
   return (
     <>
-      <PageTitle title="Músicas" eyebrow="Catálogo e suas partituras">
+      <PageTitle title="Repertório">
         <label className="inline-flex h-11 cursor-pointer items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus md:h-10">
           {isImporting ? "Lendo…" : "Importar MusicXML"}
           <input type="file" accept=".xml,.musicxml,.mxl" className="sr-only" onChange={(event) => void onFile(event)} disabled={core.status !== "ready" || isImporting} />
         </label>
       </PageTitle>
-      <MusicasTabs />
+      <RepertorioTabs />
 
       {error ? <InlineError title="Esse arquivo não abriu." nextStep={error} /> : null}
 

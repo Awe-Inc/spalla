@@ -38,6 +38,6 @@ describe("csvField", () => {
 
 describe("csvFileName", () => {
   it("usa a data local", () => {
-    expect(csvFileName(new Date(2026, 0, 5, 23, 30))).toBe("fretless-historico-2026-01-05.csv");
+    expect(csvFileName(new Date(2026, 0, 5, 23, 30))).toBe("spalla-historico-2026-01-05.csv");
   });
 });

@@ -49,7 +49,7 @@ function MicStep() {
 
   return (
     <div className="grid gap-4">
-      <p className="text-ink-muted">Toque uma corda solta. Se a agulha se mexer, o Fretless está ouvindo você.</p>
+      <p className="text-ink-muted">Toque uma corda solta. Se a agulha se mexer, o Spalla está ouvindo você.</p>
       <Tuner noteLabel={reading?.note ?? null} cents={reading?.cents ?? null} />
       {mic.status.status === "error" ? <InlineError title="O microfone não abriu." nextStep={mic.status.message} /> : null}
       {devices.length > 1 ? (
@@ -102,7 +102,7 @@ export function BoasVindasPage() {
         <StepDots current={step} />
         {step === 0 ? (
           <div className="grid gap-3">
-            <h1 className="font-display text-display">Bem-vindo ao Fretless.</h1>
+            <h1 className="font-display text-display">Bem-vindo ao Spalla.</h1>
             <p className="max-w-prose text-ink-muted">
               Um método de estudo de violino que ouve você tocar. Cada dia tem uma sessão curta, montada a partir do que você já tocou: aquecimento, afinação, escalas,
               técnica e música. Leva dois minutos para configurar.
@@ -133,7 +133,7 @@ export function BoasVindasPage() {
             <MicStep />
             <p className="text-caption text-ink-subtle">
               Nada aparece? Dá para pular e ajustar em Configurações. O teste de atraso do som fica em{" "}
-              <Link to="/ferramentas/latencia" className="font-semibold text-primary">
+              <Link to="/voce/ajustes/atraso" className="font-semibold text-primary">
                 Ferramentas
               </Link>
               .

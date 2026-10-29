@@ -118,7 +118,7 @@ export function EntrarPage() {
   const user = useAccount((state) => state.user);
   const [mode, setMode] = useState<"entrar" | "trocar">("entrar");
   if (!isPlatformEnabled()) {
-    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Fretless funciona só no aparelho, sem contas." />;
+    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Spalla funciona só no aparelho, sem contas." />;
   }
   if (user) return <Navigate to={homePathFor(user)} replace />;
   return (
@@ -126,7 +126,7 @@ export function EntrarPage() {
       <PageTitle title={mode === "entrar" ? "Entrar" : "Trocar a senha"} eyebrow="Aulas com professor" />
       <Card>{mode === "entrar" ? <LoginForm onForgot={() => setMode("trocar")} /> : <ResetForm onDone={() => setMode("entrar")} />}</Card>
       <p className="text-body text-ink-muted">
-        O Fretless continua funcionando sem conta. A conta serve para entrar numa turma, receber tarefas do professor e mostrar seu progresso a ele.
+        O Spalla continua funcionando sem conta. A conta serve para entrar numa turma, receber tarefas do professor e mostrar seu progresso a ele.
       </p>
     </div>
   );

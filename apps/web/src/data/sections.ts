@@ -9,7 +9,7 @@ export const LAST_MEASURE_PARAM = "ate";
 export const BPM_PARAM = "bpm";
 
 const TOCAR_PREFIX = "/tocar/";
-const DETAIL_PREFIX = "/musicas/peca/";
+const DETAIL_PREFIX = "/repertorio/peca/";
 
 export function phraseSections(measureCount: number, size = PHRASE_MEASURES): MeasureRange[] {
   const sections: MeasureRange[] = [];

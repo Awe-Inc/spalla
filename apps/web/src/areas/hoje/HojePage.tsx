@@ -75,7 +75,7 @@ function SuzukiReminder({ today }: { today: string }) {
       <span className="font-medium">
         {due.length} {due.length === 1 ? "peça para revisar hoje" : "peças para revisar hoje"}
       </span>
-      <Link to="/musicas/suzuki" className="text-caption font-semibold text-primary">
+      <Link to="/repertorio/suzuki" className="text-caption font-semibold text-primary">
         Abrir a trilha
       </Link>
     </Card>
@@ -97,7 +97,7 @@ export function HojePage() {
       <PageTitle eyebrow={greeting(new Date().getHours())} title="Sua prática de hoje">
         {today.next ? (
           <Link
-            to={today.next.item?.playPath ?? "/praticar"}
+            to={today.next.item?.playPath ?? "/estudar"}
             className="hidden h-10 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:inline-flex"
           >
             {today.progress.done === 0 ? "Começar" : "Continuar"}
@@ -115,7 +115,7 @@ export function HojePage() {
           <Card className="grid gap-2">
             <span className="text-caption text-ink-subtle">Rotina</span>
             <span className="font-medium">{today.routine.name}</span>
-            <Link to="/praticar" className="text-caption font-semibold text-primary">
+            <Link to="/estudar" className="text-caption font-semibold text-primary">
               Trocar rotina
             </Link>
           </Card>
@@ -129,7 +129,7 @@ export function HojePage() {
               title={`Tudo feito. +${SESSION_COMPLETE_XP} XP pela sessão completa.`}
               description="Quer continuar? Repita o bloco que ficou mais fraco ou abra uma música da biblioteca."
               action={
-                <Link to="/musicas" className="font-semibold text-primary">
+                <Link to="/repertorio" className="font-semibold text-primary">
                   Ir para Músicas
                 </Link>
               }

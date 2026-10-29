@@ -215,10 +215,10 @@ export function TocarPage() {
     listen.stop();
     accompaniment.stopDrone();
     stopInput();
-    void navigate(exercise ? "/praticar" : "/musicas");
+    void navigate(exercise ? "/estudar" : "/repertorio");
   }
 
-  const backTo = exercise ? "/praticar" : "/musicas";
+  const backTo = exercise ? "/estudar" : "/repertorio";
   const currentEvent = score && snapshot ? score.events[snapshot.currentNoteIndex] : undefined;
   const isRunning = snapshot !== null && snapshot.state !== "finished" && snapshot.state !== "idle";
   const isIdle = score !== null && (!snapshot || snapshot.state === "idle") && !error;

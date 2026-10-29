@@ -16,7 +16,7 @@ test("uma peça marcada como aprendida na aula entra em revisão e continua lá 
     [SETTINGS_STORAGE_KEY, ONBOARDED_SETTINGS] as const,
   );
 
-  await page.goto("/musicas/suzuki");
+  await page.goto("/repertorio/suzuki");
   let book = await openBookOne(page);
   await expect(book.getByRole("link", { name: `Tocar ${PIECE}` })).toBeVisible();
   await book.getByRole("button", { name: `Aprendi na aula: ${PIECE}` }).click();

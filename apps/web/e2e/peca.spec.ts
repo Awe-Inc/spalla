@@ -11,7 +11,7 @@ test("um trecho marcado no detalhe da peça fica guardado e abre o Tocar em loop
     [SETTINGS_STORAGE_KEY, ONBOARDED_SETTINGS] as const,
   );
 
-  await page.goto("/musicas");
+  await page.goto("/repertorio");
   await page.getByRole("link", { name: `Trechos e andamento: ${LIBRARY_TITLE}` }).click();
   await expect(page.getByRole("heading", { name: LIBRARY_TITLE })).toBeVisible();
 

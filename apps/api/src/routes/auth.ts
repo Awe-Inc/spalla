@@ -252,7 +252,7 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise
   app.get("/auth/export", async (request, reply) => {
     const me = requireAuth(request);
     const data = await exportAccount(db, me.id);
-    return reply.header("Content-Disposition", 'attachment; filename="fretless-meus-dados.json"').send(data);
+    return reply.header("Content-Disposition", 'attachment; filename="spalla-meus-dados.json"').send(data);
   });
 
   app.delete("/auth/account", strict, async (request, reply) => {

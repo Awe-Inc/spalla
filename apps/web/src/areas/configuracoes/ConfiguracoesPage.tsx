@@ -1,12 +1,14 @@
 import { useLiveQuery } from "dexie-react-hooks";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import { STAFF_SCALES, useSettings, type Accent, type NoteNaming, type StaffScale, type ThemePreference } from "@/app/settings";
 import { db, DEFAULT_USER_STATS } from "@/data/db";
 import { setDailyGoal } from "@/data/progress";
-import { Card, PageTitle } from "@/design/components";
+import { VoceTabs } from "@/areas/voce/VoceTabs";
+import { ButtonLink, PageTitle } from "@/design/components";
+import { ChoiceChips } from "@/design/fields";
 
-import { ContaCard } from "./ContaCard";
 import { DadosCard } from "./DadosCard";
 import { MicrofoneCard } from "./MicrofoneCard";
 
@@ -21,88 +23,103 @@ const NAMING_OPTIONS: { value: NoteNaming; label: string }[] = [
   { value: "letters", label: "C, D, E" },
 ];
 
+const ACCENT_OPTIONS: { value: Accent; label: string }[] = [
+  { value: "padrao", label: "Abeto" },
+  { value: "sepia", label: "Ébano" },
+];
+
 const STAFF_LABELS: Record<StaffScale, string> = { 1: "Normal", 1.25: "Grande", 1.5: "Enorme" };
 const GOAL_OPTIONS = [30, 60, 100] as const;
 
-function RadioGroup<T extends string | number>({ name, value, options, onChange }: { name: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
+function SettingRow({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
-    <div className="flex flex-wrap gap-2" role="radiogroup">
-      {options.map((option) => (
-        <label
-          key={option.value}
-          className={`inline-flex h-10 cursor-pointer items-center rounded-pill px-4 font-medium transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus ${
-            option.value === value ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
-          }`}
-        >
-          <input type="radio" name={name} value={String(option.value)} checked={option.value === value} onChange={() => onChange(option.value)} className="sr-only" />
-          {option.label}
-        </label>
-      ))}
+    <div className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,14rem)_1fr] md:items-center md:gap-6">
+      <div className="grid gap-0.5">
+        <span className="text-body font-semibold text-ink">{title}</span>
+        {hint ? <span className="text-small text-ink-muted">{hint}</span> : null}
+      </div>
+      <div className="min-w-0">{children}</div>
     </div>
+  );
+}
+
+function SettingGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="grid gap-3">
+      <h2 className="text-heading font-semibold">{title}</h2>
+      <div className="divide-y divide-hairline rounded-lg bg-surface shadow-card ring-1 ring-hairline/60">{children}</div>
+    </section>
   );
 }
 
 export function ConfiguracoesPage() {
   const settings = useSettings();
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
-  const accentOptions: { value: Accent; label: string }[] = [
-    { value: "padrao", label: "Abeto" },
-    { value: "sepia", label: "Ébano" },
-  ];
 
   return (
     <>
-      <PageTitle title="Configurações" />
-      <div className="grid gap-6">
-        <ContaCard />
-        <Card title="Aparência" className="grid gap-4">
-          <RadioGroup name="theme" value={settings.theme} options={THEME_OPTIONS} onChange={settings.setTheme} />
-          <div className="grid gap-2">
-            <span className="text-caption text-ink-subtle">Paleta</span>
-            <RadioGroup name="accent" value={settings.accent} options={accentOptions} onChange={settings.setAccent} />
-          </div>
-          <p className="text-caption text-ink-subtle">
-            Quer ver as cores, as fontes e os componentes do app?{" "}
-            <Link to="/componentes" className="font-semibold text-primary">
-              Componentes e tokens
+      <PageTitle title="Você" />
+      <VoceTabs />
+      <div className="grid gap-10">
+        <SettingGroup title="Aparência">
+          <SettingRow title="Tema">
+            <ChoiceChips name="theme" label="Tema" value={settings.theme} options={THEME_OPTIONS} onChange={settings.setTheme} />
+          </SettingRow>
+          <SettingRow title="Paleta" hint="Abeto é verde e mel; Ébano é madeira escura.">
+            <ChoiceChips name="accent" label="Paleta" value={settings.accent} options={ACCENT_OPTIONS} onChange={settings.setAccent} />
+          </SettingRow>
+          <SettingRow title="Sobre o design" hint="Cores, fontes e componentes do app.">
+            <Link to="/componentes" className="text-small font-semibold text-primary hover:text-primary-hover">
+              Abrir o design system
             </Link>
-            .
-          </p>
-        </Card>
-        <Card title="Nome das notas">
-          <RadioGroup name="naming" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />
-        </Card>
-        <Card title="Tamanho da partitura" className="grid gap-2">
-          <RadioGroup name="staff" value={settings.staffScale} options={STAFF_SCALES.map((scale) => ({ value: scale, label: STAFF_LABELS[scale] }))} onChange={settings.setStaffScale} />
-          <p className="text-caption text-ink-subtle">Vale para a pauta rolando na tela Tocar.</p>
-        </Card>
-        <Card title="Meta diária" className="grid gap-2">
-          <RadioGroup name="goal" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => void setDailyGoal(xp)} />
-          <p className="text-caption text-ink-subtle">Nota perfeita vale 3 XP, boa vale 1; a sessão completa dá 50.</p>
-        </Card>
-        <Card title="Som do violino" className="grid gap-2">
-          <label className="flex items-center gap-3">
-            <span className="text-ink-muted">Volume do Ouvir</span>
+          </SettingRow>
+        </SettingGroup>
+
+        <SettingGroup title="Leitura">
+          <SettingRow title="Nome das notas">
+            <ChoiceChips name="naming" label="Nome das notas" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />
+          </SettingRow>
+          <SettingRow title="Tamanho da partitura" hint="Vale para a pauta rolando na tela Tocar.">
+            <ChoiceChips name="staff" label="Tamanho da partitura" value={settings.staffScale} options={STAFF_SCALES.map((scale) => ({ value: scale, label: STAFF_LABELS[scale] }))} onChange={settings.setStaffScale} />
+          </SettingRow>
+        </SettingGroup>
+
+        <SettingGroup title="Prática">
+          <SettingRow title="Meta diária" hint="Nota perfeita vale 3 XP, boa vale 1; a sessão completa dá 50.">
+            <ChoiceChips name="goal" label="Meta diária" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => void setDailyGoal(xp)} />
+          </SettingRow>
+          <SettingRow title="Volume do Ouvir" hint="Botão Ouvir na peça e antes de tocar.">
             <input
               type="range"
+              aria-label="Volume do Ouvir"
               min={0}
               max={1}
               step={0.05}
               value={settings.listenVolume}
-              className="accent-primary"
+              className="w-full max-w-xs accent-primary"
               onChange={(event) => settings.setPracticeAudio({ listenVolume: Number(event.target.value) })}
             />
-          </label>
-          <p className="text-caption text-ink-subtle">Vale para o botão Ouvir na peça e antes de tocar. O metrônomo acompanha se estiver ligado.</p>
-        </Card>
-        <MicrofoneCard />
-        <Card title="Atraso do som" className="grid gap-2">
-          <p className="text-ink-muted">Mede quanto tempo o som leva do alto-falante até a detecção, para o jogo julgar o ritmo no tempo certo.</p>
-          <Link to="/ferramentas/latencia" className="font-semibold text-primary">
-            Abrir o teste de latência
-          </Link>
-        </Card>
-        <DadosCard />
+          </SettingRow>
+        </SettingGroup>
+
+        <section className="grid gap-3">
+          <h2 className="text-heading font-semibold">Áudio</h2>
+          <MicrofoneCard />
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-surface px-5 py-4 shadow-card ring-1 ring-hairline/60">
+            <div className="grid gap-0.5">
+              <span className="text-body font-semibold text-ink">Atraso do som</span>
+              <span className="text-small text-ink-muted">Quanto o som leva do violino até o app, para o julgamento do ritmo cair no tempo certo.</span>
+            </div>
+            <ButtonLink to="/voce/ajustes/atraso" variant="secondary">
+              Medir atraso
+            </ButtonLink>
+          </div>
+        </section>
+
+        <section className="grid gap-3">
+          <h2 className="text-heading font-semibold">Dados</h2>
+          <DadosCard />
+        </section>
       </div>
     </>
   );

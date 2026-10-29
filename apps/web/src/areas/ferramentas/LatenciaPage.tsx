@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
 
 import { OnsetDetector, playClick, summarize, verdict, type LatencySample } from "@/audio/latency";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
-import { Button, Card, InlineError, PageTitle } from "@/design/components";
+import { Button, Card, InlineError, PageHeader } from "@/design/components";
 
 const CLICK_COUNT = 12;
 const CLICK_INTERVAL_SEC = 0.8;
@@ -71,11 +70,7 @@ export function LatenciaPage() {
 
   return (
     <>
-      <PageTitle title="Teste de latência" eyebrow="Ferramentas">
-        <Link to="/ferramentas" className="font-semibold text-primary">
-          Voltar
-        </Link>
-      </PageTitle>
+      <PageHeader back={{ to: "/voce/ajustes", label: "Ajustes" }} title="Atraso do som" description="Mede quanto tempo o som leva do violino até o app, para o julgamento das notas não atrasar." />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Como funciona" className="grid gap-4">

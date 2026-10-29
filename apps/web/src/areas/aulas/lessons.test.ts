@@ -10,7 +10,7 @@ describe("safePlayPath", () => {
 
   it("refuses anything that could leave the play screen", () => {
     expect(safePlayPath("//evil.example/tocar/x")).toBeNull();
-    expect(safePlayPath("/conta")).toBeNull();
+    expect(safePlayPath("/voce/conta")).toBeNull();
     expect(safePlayPath("/tocar/../admin")).toBeNull();
     expect(safePlayPath("javascript:alert(1)")).toBeNull();
     expect(safePlayPath(undefined)).toBeNull();
