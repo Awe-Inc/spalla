@@ -80,6 +80,21 @@ export function ConfiguracoesPage() {
           <RadioGroup name="goal" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => void setDailyGoal(xp)} />
           <p className="text-caption text-ink-subtle">Nota perfeita vale 3 XP, boa vale 1; a sessão completa dá 50.</p>
         </Card>
+        <Card title="Som do violino" className="grid gap-2">
+          <label className="flex items-center gap-3">
+            <span className="text-ink-muted">Volume do Ouvir</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={settings.listenVolume}
+              className="accent-primary"
+              onChange={(event) => settings.setPracticeAudio({ listenVolume: Number(event.target.value) })}
+            />
+          </label>
+          <p className="text-caption text-ink-subtle">Vale para o botão Ouvir na peça e antes de tocar. O metrônomo acompanha se estiver ligado.</p>
+        </Card>
         <MicrofoneCard />
         <Card title="Atraso do som" className="grid gap-2">
           <p className="text-ink-muted">Mede quanto tempo o som leva do alto-falante até a detecção, para o jogo julgar o ritmo no tempo certo.</p>

@@ -1,9 +1,10 @@
 import type { MeasureRange } from "@fretless/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 
 import { useSettings } from "@/app/settings";
+import { useListen, type Listen } from "@/audio/useListen";
 import { RecordingAudio, recordingDate } from "@/areas/ferramentas/RecordingPlayer";
 import { AddToRoutine } from "@/areas/musicas/AddToRoutine";
 import { HistoricoExercicio } from "@/areas/praticar/HistoricoExercicio";
@@ -25,12 +26,49 @@ function playPathFor(exerciseId: string | undefined, pieceId: string | undefined
   return `/tocar/${exerciseId ?? ""}`;
 }
 
-function SectionRow({ range, bpm, playTo, onRemove }: { range: MeasureRange; bpm: number; playTo: string; onRemove?: () => void }) {
+interface ListenRequest {
+  key: string;
+  range: MeasureRange | null;
+  bpm: number;
+}
+
+function rangeKey(range: MeasureRange | null): string {
+  return range ? `${range.firstIndex}-${range.lastIndex}` : "inteira";
+}
+
+function ListenButton({ listen, isActive, label, onListen }: { listen: Listen; isActive: boolean; label: string; onListen: () => void }) {
+  const isLoading = isActive && listen.status === "carregando";
+  const isPlaying = isActive && listen.status === "tocando";
+  return (
+    <Button onClick={() => (isActive ? listen.stop() : onListen())} disabled={isLoading} aria-pressed={isPlaying} aria-label={isPlaying ? `Parar: ${label}` : `Ouvir: ${label}`}>
+      {isLoading ? "Carregando…" : isPlaying ? "Parar" : "Ouvir"}
+    </Button>
+  );
+}
+
+function SectionRow({
+  range,
+  bpm,
+  playTo,
+  listen,
+  isListening,
+  onListen,
+  onRemove,
+}: {
+  range: MeasureRange;
+  bpm: number;
+  playTo: string;
+  listen: Listen;
+  isListening: boolean;
+  onListen: () => void;
+  onRemove?: () => void;
+}) {
   const label = sectionLabel(range);
   return (
     <li className="flex flex-wrap items-center gap-3 py-3">
       <span className="min-w-0 flex-1 font-medium">{label}</span>
       <span className="font-mono text-caption text-ink-subtle tabular">{bpm} bpm</span>
+      <ListenButton listen={listen} isActive={isListening} label={label} onListen={onListen} />
       <Link to={practicePath(playTo, bpm, range)} className={SECONDARY_LINK_CLASS} aria-label={`Praticar em loop: ${label}`}>
         Praticar em loop
       </Link>
@@ -131,9 +169,24 @@ function PieceRecordings({ pieceKey, title }: { pieceKey: string; title: string 
 
 export function PecaPage() {
   const { exerciseId, pieceId, librarySlug } = useParams();
-  const { coreStatus, session, exercise, score, error, resultId, limits } = useSession(exerciseId, pieceId, librarySlug);
+  const { coreStatus, session, exercise, score, error, resultId, limits, bpm: sessionBpm, setBpm } = useSession(exerciseId, pieceId, librarySlug);
   const naming = useSettings((state) => state.noteNaming);
   const [chosenBpm, setChosenBpm] = useState<number | null>(null);
+  const listen = useListen(score);
+  const [listenRequest, setListenRequest] = useState<ListenRequest | null>(null);
+  const [listeningKey, setListeningKey] = useState<string | null>(null);
+  const studyBpm = limits ? clampBpm(chosenBpm ?? limits.writtenBpm, limits) : null;
+
+  useEffect(() => {
+    if (studyBpm !== null) setBpm(studyBpm);
+  }, [studyBpm, setBpm]);
+
+  useEffect(() => {
+    if (!listenRequest || sessionBpm !== listenRequest.bpm) return;
+    setListenRequest(null);
+    setListeningKey(listenRequest.key);
+    void listen.play(listenRequest.range);
+  }, [listenRequest, sessionBpm, listen]);
   const sections = useLiveQuery(async () => (resultId ? sortedSections(await db.pieceSections.where("pieceKey").equals(resultId).toArray()) : []), [resultId]) ?? [];
   const results = useLiveQuery(async () => (resultId ? db.results.where("exerciseId").equals(resultId).toArray() : []), [resultId]) ?? [];
   const playTo = playPathFor(exerciseId, pieceId, librarySlug);
@@ -153,12 +206,18 @@ export function PecaPage() {
   const title = exercise?.title ?? (score.title || "Sem título");
   const composer = exercise?.subtitle ?? (score.composer || "Compositor desconhecido");
   const bpm = clampBpm(chosenBpm ?? limits.writtenBpm, limits);
+  const isListeningTo = (range: MeasureRange | null) => listen.status !== "parado" && listeningKey === rangeKey(range);
+  const listenTo = (range: MeasureRange | null, atBpm: number) => {
+    const target = clampBpm(atBpm, limits);
+    setChosenBpm(target);
+    setListenRequest({ key: rangeKey(range), range, bpm: target });
+  };
   const measureCount = session.measureCount;
   const facts: [string, string][] = [
     ["Armadura", majorKeyName(score.keyFifths, naming)],
     ["Compasso", `${score.beatsPerMeasure}/${score.beatUnit}`],
     ["Andamento", `${limits.writtenBpm} bpm`],
-    ["Duração", formatDuration(score.durationSeconds)],
+    ["Duração", formatDuration((score.durationSeconds * sessionBpm) / limits.writtenBpm)],
     ["Compassos", String(measureCount)],
     ["Notas", String(score.noteCount)],
   ];
@@ -166,12 +225,15 @@ export function PecaPage() {
   return (
     <>
       <PageTitle eyebrow={composer} title={title}>
-        <Link
+        <div className="flex flex-wrap gap-2">
+          <ListenButton listen={listen} isActive={isListeningTo(null)} label="a peça inteira" onListen={() => listenTo(null, bpm)} />
+          <Link
           to={practicePath(playTo, bpm)}
           className="inline-flex h-11 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10"
         >
           Tocar inteira
-        </Link>
+          </Link>
+        </div>
       </PageTitle>
 
       <div className="grid gap-6">
@@ -185,6 +247,16 @@ export function PecaPage() {
             ))}
           </dl>
           <TempoPicker bpm={bpm} limits={limits} onChange={(next) => setChosenBpm(clampBpm(next, limits))} />
+          {listen.status === "tocando" ? (
+            <div className="grid gap-1" role="status">
+              <div className="h-1.5 overflow-hidden rounded-pill bg-surface-sunken">
+                <div className="h-full origin-left bg-primary" style={{ transform: `scaleX(${listen.progress})` }} />
+              </div>
+              <span className="text-caption text-ink-subtle">
+                Ouvindo {listeningKey === "inteira" ? "a peça inteira" : "o trecho"} a {bpm} bpm{listen.usesSamples ? "" : ", com som sintético (sem internet para baixar o violino)"}
+              </span>
+            </div>
+          ) : null}
         </Card>
 
         <Card title="Seus trechos" className="grid gap-3">
@@ -198,6 +270,9 @@ export function PecaPage() {
                   range={section}
                   bpm={clampBpm(section.bpm, limits)}
                   playTo={playTo}
+                  listen={listen}
+                  isListening={isListeningTo(section)}
+                  onListen={() => listenTo(section, section.bpm)}
                   onRemove={section.id === undefined ? undefined : () => void removeSection(section.id!)}
                 />
               ))}
@@ -211,7 +286,15 @@ export function PecaPage() {
             <p className="text-caption text-ink-subtle">A peça dividida de 4 em 4 compassos, no andamento de estudo.</p>
             <ul className="divide-y divide-hairline">
               {phraseSections(measureCount).map((range) => (
-                <SectionRow key={range.firstIndex} range={range} bpm={bpm} playTo={playTo} />
+                <SectionRow
+                  key={range.firstIndex}
+                  range={range}
+                  bpm={bpm}
+                  playTo={playTo}
+                  listen={listen}
+                  isListening={isListeningTo(range)}
+                  onListen={() => listenTo(range, bpm)}
+                />
               ))}
             </ul>
           </Card>

@@ -1,0 +1,7 @@
+Amostras de violino: VSCO 2 Community Edition, Solo Violin / Arco Vib (dinâmica f).
+Versilian Studios, https://versilian-studios.com/vsco-community/
+Repositório: https://github.com/sgossner/VSCO-2-CE
+Licença: Creative Commons Zero v1.0 Universal (CC0 1.0), domínio público.
+
+Convertidas por tools/fetch_violin_samples.py: mono, AAC, silêncio inicial removido,
+cortadas em 6 s com fade de 0.3 s e volume normalizado.

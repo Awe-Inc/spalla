@@ -18,6 +18,7 @@ export interface PracticeAudioPrefs {
   metronomeVolume: number;
   metronomeSound: ClickSound;
   droneVolume: number;
+  listenVolume: number;
   autoSlowdown: boolean;
 }
 
@@ -73,6 +74,7 @@ export const useSettings = create<SettingsState>()(
       metronomeVolume: 0.5,
       metronomeSound: "madeira",
       droneVolume: 0.35,
+      listenVolume: 0.6,
       autoSlowdown: true,
       setTheme: (theme) => set({ theme }),
       setNoteNaming: (noteNaming) => set({ noteNaming }),
@@ -82,7 +84,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, autoSlowdown }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, autoSlowdown }) => ({
         theme,
         lessonWeekday,
         noteNaming,
@@ -98,6 +100,7 @@ export const useSettings = create<SettingsState>()(
         metronomeVolume,
         metronomeSound,
         droneVolume,
+        listenVolume,
         autoSlowdown,
       }),
     },

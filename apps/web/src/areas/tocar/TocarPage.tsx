@@ -7,6 +7,7 @@ import { useSettings } from "@/app/settings";
 import { useBlockGoal } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
+import { useListen } from "@/audio/useListen";
 import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
 import { readPracticeRequest } from "@/data/sections";
 import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
@@ -50,6 +51,8 @@ export function TocarPage() {
   const navigate = useNavigate();
   const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId, pieceId, librarySlug);
   const mic = usePitchInput();
+  const listen = useListen(score);
+  const isHearing = listen.status !== "parado";
   const { takeFrames, stop: stopMic, start: startMic } = mic;
   const isSynthetic = isSyntheticPlayerRequested(searchParams, import.meta.env.VITE_JOGADOR_SINTETICO);
   const synthetic = useSyntheticPlayer(session);
@@ -173,6 +176,7 @@ export function TocarPage() {
 
   async function begin() {
     if (!session) return;
+    listen.stop();
     if (!isListening && !(isSynthetic ? startSynthetic() : await startMic())) return;
     session.restart();
     startedAtRef.current = Date.now();
@@ -208,6 +212,7 @@ export function TocarPage() {
   }
 
   function leave() {
+    listen.stop();
     accompaniment.stopDrone();
     stopInput();
     void navigate(exercise ? "/praticar" : "/musicas");
@@ -320,14 +325,25 @@ export function TocarPage() {
 
         {isIdle && score ? (
           <section className="grid justify-items-center gap-4 text-center">
-            <ScoreView score={score} songTime={-LEAD_IN_SECONDS} currentNoteIndex={0} judgements={[]} />
+            <ScoreView
+              score={score}
+              songTime={listen.status === "tocando" ? listen.songTime : -LEAD_IN_SECONDS}
+              currentNoteIndex={listen.status === "tocando" ? listen.currentNoteIndex : 0}
+              judgements={[]}
+            />
             {exercise ? <p className="max-w-prose text-ink-muted">{exercise.howTo}</p> : null}
             <p className="text-caption text-ink-subtle">
               {score.noteCount} notas · {bpm} bpm
             </p>
-            <Button variant="primary" onClick={() => void begin()} disabled={needsHeadphones || mic.status.status === "starting"}>
-              {mic.status.status === "starting" ? "Abrindo microfone…" : "Começar"}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button variant="secondary" onClick={() => (isHearing ? listen.stop() : void listen.play())} disabled={listen.status === "carregando"} aria-pressed={listen.status === "tocando"}>
+                {listen.status === "carregando" ? "Carregando o violino…" : listen.status === "tocando" ? "Parar" : "Ouvir"}
+              </Button>
+              <Button variant="primary" onClick={() => void begin()} disabled={needsHeadphones || mic.status.status === "starting"}>
+                {mic.status.status === "starting" ? "Abrindo microfone…" : "Começar"}
+              </Button>
+            </div>
+            {!listen.usesSamples ? <p className="text-caption text-ink-subtle">Sem internet para baixar o violino: tocando com um som sintético.</p> : null}
           </section>
         ) : null}
 

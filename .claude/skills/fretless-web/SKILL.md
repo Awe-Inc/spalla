@@ -14,7 +14,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (255); API: 44 em apps/api
+pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (290); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
@@ -71,7 +71,15 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
                                  micErrors.ts (describeMicError, isStaleDevice: shared by the pitch input and the
                                  recorder), recorder.ts (AudioRecorder: MediaRecorder on the same raw-mic constraints,
                                  webm/opus → webm → mp4 → ogg), useRecorder.ts (status, elapsed, auto-stop at 15 min,
-                                 retries the default mic when the stored one is gone)
+                                 retries the default mic when the stored one is gone),
+                                 violinSampler.ts (ViolinSampler: 15 VSCO 2 CE samples, nearest sample + playbackRate,
+                                 loop for long notes, synth fallback when the fetch fails; pure helpers tested),
+                                 scorePlayback.ts (playableNotes: rests out, ties joined, excerpt kept in score time;
+                                 playbackWindow, eventIndexAt), useListen.ts ("Ouvir": own AudioContext created on
+                                 the click, 1.5 s look-ahead from a 200 ms interval, metronome per the prefs, cursor
+                                 via songTime/currentNoteIndex)
+apps/web/public/amostras/violino/ <midi>.m4a (6 s, mono AAC) + LICENSE.txt, made by tools/fetch_violin_samples.py;
+                                 outside the precache, cached on first use by the workbox rule "amostras" (CacheFirst)
 apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),
                                  useSyntheticPlayer (`?jogador=sintetico` + build flag → the WASM SyntheticPlayer
                                  feeds the session instead of the mic; pure helpers tested; used by e2e/),
@@ -209,6 +217,9 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 ## Rules
 
 - Interface text is Brazilian Portuguese; code is English. Note names reach the screen through `displayNoteName`.
+- "Ouvir" only exists with the microphone off (Tocar before Começar, the piece page): the speaker would leak into
+  the mic and spoil the judgement. Começar and Sair call `listen.stop()`. Playing along with headphones is a
+  separate feature.
 - Tokens only: no hex colour, font name or spacing literal in a `.tsx`. Add a token to `tokens.css` first.
 - `Tocar` wraps itself in `<div data-theme="dark">`; the selector in `tokens.css` is `[data-theme="dark"]` on
   purpose so a nested element can switch theme.
@@ -336,3 +347,8 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
   Toda rota que age sobre outra conta chama `assertCanManage` (as permissões de plataforma do alvo têm de estar nas
   minhas; ensino e aluno não contam, senão só o admin atenderia aluno), e `decide()` recusa a própria conta e exige
   pedido `pending` (`admin.test.ts`, "não toma a conta" e "só vale para pedido pendente").
+- **Botão de áudio preso em "Carregando…".** Um `play` assíncrono que cria o `AudioContext`, chama `resume()` e baixa
+  amostras deixava o status em "carregando" para sempre quando qualquer passo lançava (aparelho sem saída de áudio).
+  Todo `await` de abertura de áudio fica num `try` que volta o status a "parado" se o token ainda for o dele
+  (`useListen.test.tsx`, "goes back to idle when the audio output cannot start"). Teste de hook que passa a partitura
+  como `scoreOf()` dentro do `renderHook` cria uma nova a cada render e dispara o `stop` do efeito: fixar o objeto fora.

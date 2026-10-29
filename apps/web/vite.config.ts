@@ -108,6 +108,13 @@ export default defineConfig({
       workbox: {
         globPatterns: [`**/*.{${PRECACHED_EXTENSIONS.join(",")}}`],
         maximumFileSizeToCacheInBytes: FIVE_MEGABYTES,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.includes("/amostras/"),
+            handler: "CacheFirst",
+            options: { cacheName: "amostras", expiration: { maxEntries: 64 }, cacheableResponse: { statuses: [200] } },
+          },
+        ],
       },
     }),
   ],
