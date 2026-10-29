@@ -50,6 +50,16 @@ export const router = createBrowserRouter(
         { path: "termos", lazy: async () => ({ Component: (await import("@/areas/conta/TermosPage")).TermosPage }) },
         { path: "conta", lazy: async () => ({ Component: (await import("@/areas/conta/ContaPage")).ContaPage }) },
         {
+          path: "aulas",
+          lazy: async () => ({ Component: (await import("@/areas/aulas/AulasLayout")).AulasLayout }),
+          children: [
+            { index: true, lazy: async () => ({ Component: (await import("@/areas/aulas/TarefasAlunoPage")).TarefasAlunoPage }) },
+            { path: "planos", lazy: async () => ({ Component: (await import("@/areas/aulas/PlanosAlunoPage")).PlanosAlunoPage }) },
+            { path: "materiais", lazy: async () => ({ Component: (await import("@/areas/aulas/MateriaisAlunoPage")).MateriaisAlunoPage }) },
+            { path: "turmas", lazy: async () => ({ Component: (await import("@/areas/aulas/TurmasAlunoPage")).TurmasAlunoPage }) },
+          ],
+        },
+        {
           path: "professor",
           lazy: async () => ({ Component: (await import("@/areas/professor/ProfessorLayout")).ProfessorLayout }),
           children: [
