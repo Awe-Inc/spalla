@@ -4,8 +4,9 @@ import { Link, useNavigate } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import type { TeacherClass } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, FormError, LoadState, TextAreaField, TextField } from "@/account/ui";
-import { Button, Card, EmptyState, PageTitle } from "@/design/components";
+import { FormError, LoadState } from "@/account/ui";
+import { Badge, TextAreaField, TextField } from "@/design/fields";
+import { Button, Card, EmptyState, PageHeader } from "@/design/components";
 
 function CreateClassForm({ onCancel }: { onCancel: () => void }) {
   const navigate = useNavigate();
@@ -73,13 +74,18 @@ export function TurmasPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle title="Turmas" eyebrow="Área do professor">
-        {creating ? null : (
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            Nova turma
-          </Button>
-        )}
-      </PageTitle>
+      <PageHeader
+        title="Turmas"
+        actions={
+          <>
+            {creating ? null : (
+              <Button variant="primary" onClick={() => setCreating(true)}>
+                Nova turma
+              </Button>
+            )}
+          </>
+        }
+      />
       {creating ? <CreateClassForm onCancel={() => setCreating(false)} /> : null}
       <LoadState {...classes}>
         {(list) =>

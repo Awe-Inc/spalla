@@ -4,7 +4,7 @@ import { Button } from "./actions";
 import { Icon } from "./icons";
 
 export { Button, ButtonLink, buttonClass, ConfirmButton, IconButton, Menu } from "./actions";
-export { PageHeader, PageTitle } from "./layout";
+export { PageHeader } from "./layout";
 
 export type CardTone = "plain" | "inset" | "hero";
 

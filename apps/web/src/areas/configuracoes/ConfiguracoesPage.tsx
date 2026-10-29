@@ -6,7 +6,7 @@ import { STAFF_SCALES, useSettings, type Accent, type NoteNaming, type StaffScal
 import { db, DEFAULT_USER_STATS } from "@/data/db";
 import { setDailyGoal } from "@/data/progress";
 import { VoceTabs } from "@/areas/voce/VoceTabs";
-import { ButtonLink, PageTitle } from "@/design/components";
+import { ButtonLink, PageHeader } from "@/design/components";
 import { ChoiceChips } from "@/design/fields";
 
 import { DadosCard } from "./DadosCard";
@@ -58,68 +58,72 @@ export function ConfiguracoesPage() {
 
   return (
     <>
-      <PageTitle title="Você" />
+      <PageHeader title="Você" />
       <VoceTabs />
-      <div className="grid gap-10">
-        <SettingGroup title="Aparência">
-          <SettingRow title="Tema">
-            <ChoiceChips name="theme" label="Tema" value={settings.theme} options={THEME_OPTIONS} onChange={settings.setTheme} />
-          </SettingRow>
-          <SettingRow title="Paleta" hint="Abeto é verde e mel; Ébano é madeira escura.">
-            <ChoiceChips name="accent" label="Paleta" value={settings.accent} options={ACCENT_OPTIONS} onChange={settings.setAccent} />
-          </SettingRow>
-          <SettingRow title="Sobre o design" hint="Cores, fontes e componentes do app.">
-            <Link to="/componentes" className="text-small font-semibold text-primary hover:text-primary-hover">
-              Abrir o design system
-            </Link>
-          </SettingRow>
-        </SettingGroup>
+      <div className="grid gap-10 xl:grid-cols-2 xl:items-start">
+        <div className="grid min-w-0 gap-10">
+          <SettingGroup title="Aparência">
+            <SettingRow title="Tema">
+              <ChoiceChips name="theme" label="Tema" value={settings.theme} options={THEME_OPTIONS} onChange={settings.setTheme} />
+            </SettingRow>
+            <SettingRow title="Paleta" hint="Abeto é verde e mel; Ébano é madeira escura.">
+              <ChoiceChips name="accent" label="Paleta" value={settings.accent} options={ACCENT_OPTIONS} onChange={settings.setAccent} />
+            </SettingRow>
+            <SettingRow title="Sobre o design" hint="Cores, fontes e componentes do app.">
+              <Link to="/componentes" className="text-small font-semibold text-primary hover:text-primary-hover">
+                Abrir o design system
+              </Link>
+            </SettingRow>
+          </SettingGroup>
 
-        <SettingGroup title="Leitura">
-          <SettingRow title="Nome das notas">
-            <ChoiceChips name="naming" label="Nome das notas" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />
-          </SettingRow>
-          <SettingRow title="Tamanho da partitura" hint="Vale para a pauta rolando na tela Tocar.">
-            <ChoiceChips name="staff" label="Tamanho da partitura" value={settings.staffScale} options={STAFF_SCALES.map((scale) => ({ value: scale, label: STAFF_LABELS[scale] }))} onChange={settings.setStaffScale} />
-          </SettingRow>
-        </SettingGroup>
+          <SettingGroup title="Leitura">
+            <SettingRow title="Nome das notas">
+              <ChoiceChips name="naming" label="Nome das notas" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />
+            </SettingRow>
+            <SettingRow title="Tamanho da partitura" hint="Vale para a pauta rolando na tela Tocar.">
+              <ChoiceChips name="staff" label="Tamanho da partitura" value={settings.staffScale} options={STAFF_SCALES.map((scale) => ({ value: scale, label: STAFF_LABELS[scale] }))} onChange={settings.setStaffScale} />
+            </SettingRow>
+          </SettingGroup>
 
-        <SettingGroup title="Prática">
-          <SettingRow title="Meta diária" hint="Nota perfeita vale 3 XP, boa vale 1; a sessão completa dá 50.">
-            <ChoiceChips name="goal" label="Meta diária" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => void setDailyGoal(xp)} />
-          </SettingRow>
-          <SettingRow title="Volume do Ouvir" hint="Botão Ouvir na peça e antes de tocar.">
-            <input
-              type="range"
-              aria-label="Volume do Ouvir"
-              min={0}
-              max={1}
-              step={0.05}
-              value={settings.listenVolume}
-              className="w-full max-w-xs accent-primary"
-              onChange={(event) => settings.setPracticeAudio({ listenVolume: Number(event.target.value) })}
-            />
-          </SettingRow>
-        </SettingGroup>
+          <SettingGroup title="Prática">
+            <SettingRow title="Meta diária" hint="Nota perfeita vale 3 XP, boa vale 1; a sessão completa dá 50.">
+              <ChoiceChips name="goal" label="Meta diária" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => void setDailyGoal(xp)} />
+            </SettingRow>
+            <SettingRow title="Volume do Ouvir" hint="Botão Ouvir na peça e antes de tocar.">
+              <input
+                type="range"
+                aria-label="Volume do Ouvir"
+                min={0}
+                max={1}
+                step={0.05}
+                value={settings.listenVolume}
+                className="w-full max-w-xs accent-primary"
+                onChange={(event) => settings.setPracticeAudio({ listenVolume: Number(event.target.value) })}
+              />
+            </SettingRow>
+          </SettingGroup>
+        </div>
 
-        <section className="grid gap-3">
-          <h2 className="text-heading font-semibold">Áudio</h2>
-          <MicrofoneCard />
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-surface px-5 py-4 shadow-card ring-1 ring-hairline/60">
-            <div className="grid gap-0.5">
-              <span className="text-body font-semibold text-ink">Atraso do som</span>
-              <span className="text-small text-ink-muted">Quanto o som leva do violino até o app, para o julgamento do ritmo cair no tempo certo.</span>
+        <div className="grid min-w-0 gap-10">
+          <section className="grid gap-3">
+            <h2 className="text-heading font-semibold">Áudio</h2>
+            <MicrofoneCard />
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-surface px-5 py-4 shadow-card ring-1 ring-hairline/60">
+              <div className="grid gap-0.5">
+                <span className="text-body font-semibold text-ink">Atraso do som</span>
+                <span className="text-small text-ink-muted">Quanto o som leva do violino até o app, para o julgamento do ritmo cair no tempo certo.</span>
+              </div>
+              <ButtonLink to="/voce/ajustes/atraso" variant="secondary">
+                Medir atraso
+              </ButtonLink>
             </div>
-            <ButtonLink to="/voce/ajustes/atraso" variant="secondary">
-              Medir atraso
-            </ButtonLink>
-          </div>
-        </section>
+          </section>
 
-        <section className="grid gap-3">
-          <h2 className="text-heading font-semibold">Dados</h2>
-          <DadosCard />
-        </section>
+          <section className="grid gap-3">
+            <h2 className="text-heading font-semibold">Dados</h2>
+            <DadosCard />
+          </section>
+        </div>
       </div>
     </>
   );

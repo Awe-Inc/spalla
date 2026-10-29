@@ -1,7 +1,8 @@
 import { Outlet } from "react-router";
 
 import { TEACHER_PERMISSIONS } from "@/account/store";
-import { RequireAccount, SubNav } from "@/account/ui";
+import { RequireAccount } from "@/account/ui";
+import { Tabs } from "@/design/layout";
 
 const ITEMS = [
   { to: "/professor", label: "Turmas", end: true },
@@ -14,7 +15,7 @@ const ITEMS = [
 export function ProfessorLayout() {
   return (
     <RequireAccount permissions={TEACHER_PERMISSIONS}>
-      <SubNav items={ITEMS} label="Área do professor" />
+      <Tabs items={ITEMS} label="Área do professor" />
       <Outlet />
     </RequireAccount>
   );

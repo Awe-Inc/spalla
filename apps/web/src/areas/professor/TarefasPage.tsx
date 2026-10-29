@@ -3,8 +3,9 @@ import { Link, useSearchParams } from "react-router";
 import { api, queryString } from "@/api/client";
 import type { TeacherAssignment } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, LINK_PRIMARY_CLASS, LoadState } from "@/account/ui";
-import { EmptyState, PageTitle } from "@/design/components";
+import { LoadState } from "@/account/ui";
+import { Badge } from "@/design/fields";
+import { ButtonLink, EmptyState, PageHeader } from "@/design/components";
 
 import { audienceLabel, formatDueOn, todayIso } from "./teaching";
 
@@ -39,11 +40,16 @@ export function TarefasPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle title="Tarefas" eyebrow="Área do professor">
-        <Link to="/professor/tarefas/nova" className={LINK_PRIMARY_CLASS}>
-          Nova tarefa
-        </Link>
-      </PageTitle>
+      <PageHeader
+        title="Tarefas"
+        actions={
+          <>
+            <ButtonLink to="/professor/tarefas/nova" variant="primary">
+              Nova tarefa
+            </ButtonLink>
+          </>
+        }
+      />
       <LoadState {...list}>
         {(assignments) =>
           assignments.length === 0 ? (
@@ -51,9 +57,9 @@ export function TarefasPage() {
               title="Nenhuma tarefa passada"
               description="Uma tarefa junta exercícios, peças e orientações, com prazo opcional. O aluno marca como feita e você responde com um retorno."
               action={
-                <Link to="/professor/tarefas/nova" className={LINK_PRIMARY_CLASS}>
+                <ButtonLink to="/professor/tarefas/nova" variant="primary">
                   Passar a primeira tarefa
-                </Link>
+                </ButtonLink>
               }
             />
           ) : (

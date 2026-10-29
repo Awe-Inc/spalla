@@ -3,17 +3,10 @@ import { Navigate, useLocation } from "react-router";
 
 import { isPlatformEnabled } from "@/api/client";
 import type { Permission } from "@/api/types";
-import { buttonClass } from "@/design/actions";
 import { EmptyState, InlineError } from "@/design/components";
 import { SkeletonList } from "@/design/layout";
 
 import { can, useAccount } from "./store";
-
-export { AREA_CLASS, Badge, FIELD_CLASS, SelectField, TextAreaField, TextField } from "@/design/fields";
-export { Tabs as SubNav } from "@/design/layout";
-
-export const LINK_PRIMARY_CLASS = buttonClass("primary");
-export const LINK_SECONDARY_CLASS = buttonClass("secondary");
 
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;

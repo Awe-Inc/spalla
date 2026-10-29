@@ -4,8 +4,9 @@ import { Link, useSearchParams } from "react-router";
 import { api, queryString } from "@/api/client";
 import type { AdminUser, Page, Role } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, FIELD_CLASS, formatDate, LoadState, RequireAccount, SelectField } from "@/account/ui";
-import { Button, PageTitle } from "@/design/components";
+import { formatDate, LoadState, RequireAccount } from "@/account/ui";
+import { Badge, FIELD_CLASS, SelectField } from "@/design/fields";
+import { Button, PageHeader } from "@/design/components";
 
 import { APPLICATION_LABELS, PAGE_SIZE, pageLabel, STATUS_LABELS } from "./admin";
 
@@ -138,7 +139,7 @@ function UserList() {
 export function UsuariosPage() {
   return (
     <div className="grid gap-6">
-      <PageTitle title="Usuários" eyebrow="Administração" />
+      <PageHeader title="Usuários" />
       <RequireAccount permissions={["users.read"]}>
         <UserList />
       </RequireAccount>

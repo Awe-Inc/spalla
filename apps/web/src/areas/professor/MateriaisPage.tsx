@@ -4,8 +4,9 @@ import { api, errorMessage } from "@/api/client";
 import { openPdf } from "@/account/files";
 import type { MaterialKind, TeacherClass, TeacherMaterial } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, FIELD_CLASS, FormError, formatDate, LINK_SECONDARY_CLASS, LoadState, Notice, TextAreaField, TextField } from "@/account/ui";
-import { Button, Card, EmptyState, PageTitle } from "@/design/components";
+import { FormError, formatDate, LoadState, Notice } from "@/account/ui";
+import { Badge, FIELD_CLASS, TextAreaField, TextField } from "@/design/fields";
+import { Button, buttonClass, Card, EmptyState, PageHeader } from "@/design/components";
 
 import { safeExternalUrl } from "@/areas/aulas/lessons";
 import { formatBytes, looksLikePdf, MATERIAL_KIND_LABELS, MAX_PDF_BYTES } from "./teaching";
@@ -161,7 +162,7 @@ function MaterialRow({ material, classes, onChanged }: { material: TeacherMateri
             <Button onClick={() => void act(() => openPdf(material.fileId!))}>Abrir</Button>
           ) : null}
           {material.kind === "link" && linkUrl ? (
-            <a href={linkUrl} target="_blank" rel="noopener noreferrer" className={LINK_SECONDARY_CLASS}>
+            <a href={linkUrl} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary")}>
               Abrir link
             </a>
           ) : null}
@@ -211,13 +212,18 @@ export function MateriaisPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle title="Materiais" eyebrow="Área do professor">
-        {creating ? null : (
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            Novo material
-          </Button>
-        )}
-      </PageTitle>
+      <PageHeader
+        title="Materiais"
+        actions={
+          <>
+            {creating ? null : (
+              <Button variant="primary" onClick={() => setCreating(true)}>
+                Novo material
+              </Button>
+            )}
+          </>
+        }
+      />
       {creating ? (
         <NewMaterialForm
           classes={classes}

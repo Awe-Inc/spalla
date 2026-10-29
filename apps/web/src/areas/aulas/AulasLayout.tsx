@@ -1,6 +1,7 @@
 import { Outlet } from "react-router";
 
-import { RequireAccount, SubNav } from "@/account/ui";
+import { RequireAccount } from "@/account/ui";
+import { Tabs } from "@/design/layout";
 
 const ITEMS = [
   { to: "/aulas", label: "Tarefas", end: true },
@@ -12,7 +13,7 @@ const ITEMS = [
 export function AulasLayout() {
   return (
     <RequireAccount permissions={["lessons.read"]}>
-      <SubNav items={ITEMS} label="Minhas aulas" />
+      <Tabs items={ITEMS} label="Minhas aulas" />
       <Outlet />
     </RequireAccount>
   );

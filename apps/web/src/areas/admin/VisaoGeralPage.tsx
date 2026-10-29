@@ -3,8 +3,8 @@ import { Link } from "react-router";
 import { api } from "@/api/client";
 import type { AdminStats } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { LINK_PRIMARY_CLASS, LoadState, RequireAccount } from "@/account/ui";
-import { Card, PageTitle } from "@/design/components";
+import { LoadState, RequireAccount } from "@/account/ui";
+import { ButtonLink, Card, PageHeader } from "@/design/components";
 
 function Stat({ label, value, to }: { label: string; value: number; to?: string }) {
   const body = (
@@ -35,9 +35,9 @@ function Overview() {
                 <p className="text-body text-ink">
                   {data.pendingTeachers === 1 ? "1 professor espera aprovação." : `${data.pendingTeachers} professores esperam aprovação.`}
                 </p>
-                <Link to="/admin/professores" className={LINK_PRIMARY_CLASS}>
+                <ButtonLink to="/admin/professores" variant="primary">
                   Analisar pedidos
-                </Link>
+                </ButtonLink>
               </div>
             ) : null}
             <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -77,7 +77,7 @@ function Overview() {
 export function VisaoGeralPage() {
   return (
     <div className="grid gap-6">
-      <PageTitle title="Visão geral" eyebrow="Administração" />
+      <PageHeader title="Visão geral" />
       <RequireAccount permissions={["reports.read"]}>
         <Overview />
       </RequireAccount>

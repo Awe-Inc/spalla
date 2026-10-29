@@ -4,8 +4,9 @@ import { signupLink } from "@/account/links";
 import { api, errorMessage } from "@/api/client";
 import type { Invite, Role } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, formatDate, FormError, LoadState, Notice, RequireAccount, SelectField, TextField } from "@/account/ui";
-import { Button, Card, EmptyState, PageTitle } from "@/design/components";
+import { formatDate, FormError, LoadState, Notice, RequireAccount } from "@/account/ui";
+import { Badge, SelectField, TextField } from "@/design/fields";
+import { Button, Card, EmptyState, PageHeader } from "@/design/components";
 
 import { INVITE_STATE_LABELS, inviteState, type InviteState } from "./admin";
 
@@ -173,7 +174,7 @@ function Invites() {
 export function ConvitesPage() {
   return (
     <div className="grid gap-6">
-      <PageTitle title="Convites" eyebrow="Administração" />
+      <PageHeader title="Convites" />
       <RequireAccount permissions={["invites.manage"]}>
         <Invites />
       </RequireAccount>

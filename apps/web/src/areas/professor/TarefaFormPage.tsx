@@ -4,8 +4,9 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { api, ApiError, errorMessage } from "@/api/client";
 import type { AssignmentItem, TeacherAssignmentDetail, TeacherMaterial } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { FIELD_CLASS, FormError, LoadState, TextAreaField, TextField } from "@/account/ui";
-import { Button, Card, PageTitle } from "@/design/components";
+import { FormError, LoadState } from "@/account/ui";
+import { FIELD_CLASS, TextAreaField, TextField } from "@/design/fields";
+import { Button, Card, PageHeader } from "@/design/components";
 
 import { AudienceSelect, ItemPicker, ReorderButtons } from "./pickers";
 import { audienceFromChoice, ITEM_KIND_LABELS, itemFromTeachable, MATERIAL_KIND_LABELS, MAX_ITEMS, moveItem, removeAt, replaceAt, textItem, type AudienceChoice } from "./teaching";
@@ -259,7 +260,7 @@ export function NovaTarefaPage() {
   const initial: AssignmentDraft = { audience: initialAudience(params), title: "", instructions: "", dueOn: "", items: [], materialIds: [] };
   return (
     <div className="grid gap-6">
-      <PageTitle title="Nova tarefa" eyebrow="Tarefas" />
+      <PageHeader title="Nova tarefa" back={{ to: "/professor/tarefas", label: "Tarefas" }} />
       <AssignmentForm initial={initial} existing={null} />
     </div>
   );
@@ -272,7 +273,7 @@ export function EditarTarefaPage() {
     <LoadState {...detail}>
       {(assignment) => (
         <div className="grid gap-6">
-          <PageTitle title="Editar tarefa" eyebrow={assignment.title} />
+          <PageHeader title="Editar tarefa" back={{ to: `/professor/tarefas/${assignment.id}`, label: assignment.title }} />
           <AssignmentForm
             existing={assignment}
             initial={{ audience: "", title: assignment.title, instructions: assignment.instructions, dueOn: assignment.dueOn ?? "", items: assignment.items, materialIds: assignment.materialIds }}

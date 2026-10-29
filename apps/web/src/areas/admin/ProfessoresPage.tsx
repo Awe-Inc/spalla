@@ -5,7 +5,7 @@ import { api, errorMessage } from "@/api/client";
 import type { TeacherApplicationRow } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { formatDate, FormError, LoadState, Notice, RequireAccount } from "@/account/ui";
-import { Button, EmptyState, PageTitle } from "@/design/components";
+import { Button, EmptyState, PageHeader } from "@/design/components";
 
 function ApplicationCard({ application, onDecided }: { application: TeacherApplicationRow; onDecided: (text: string) => void }) {
   const [pending, setPending] = useState(false);
@@ -84,9 +84,7 @@ function Applications() {
 export function ProfessoresPage() {
   return (
     <div className="grid gap-6">
-      <PageTitle title="Pedidos de professor" eyebrow="Administração">
-        <p className="max-w-prose text-body text-ink-muted">Quem é aprovado passa a criar turmas, tarefas, planos de estudo e materiais.</p>
-      </PageTitle>
+      <PageHeader title="Pedidos de professor" description="Quem é aprovado passa a criar turmas, tarefas, planos de estudo e materiais." />
       <RequireAccount permissions={["teachers.approve"]}>
         <Applications />
       </RequireAccount>

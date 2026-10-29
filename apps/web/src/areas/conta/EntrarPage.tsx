@@ -4,8 +4,9 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { api, ApiError, errorMessage, isPlatformEnabled } from "@/api/client";
 import { MIN_PASSWORD_LENGTH, safeReturnPath } from "@/account/forms";
 import { homePathFor, login, useAccount } from "@/account/store";
-import { FormError, Notice, TextField } from "@/account/ui";
-import { Button, Card, EmptyState, PageTitle } from "@/design/components";
+import { FormError, Notice } from "@/account/ui";
+import { TextField } from "@/design/fields";
+import { Button, Card, EmptyState, PageHeader } from "@/design/components";
 
 function LoginForm({ onForgot }: { onForgot: () => void }) {
   const navigate = useNavigate();
@@ -123,7 +124,7 @@ export function EntrarPage() {
   if (user) return <Navigate to={homePathFor(user)} replace />;
   return (
     <div className="mx-auto grid max-w-md gap-6">
-      <PageTitle title={mode === "entrar" ? "Entrar" : "Trocar a senha"} eyebrow="Aulas com professor" />
+      <PageHeader title={mode === "entrar" ? "Entrar" : "Trocar a senha"} />
       <Card>{mode === "entrar" ? <LoginForm onForgot={() => setMode("trocar")} /> : <ResetForm onDone={() => setMode("entrar")} />}</Card>
       <p className="text-body text-ink-muted">
         O Spalla continua funcionando sem conta. A conta serve para entrar numa turma, receber tarefas do professor e mostrar seu progresso a ele.

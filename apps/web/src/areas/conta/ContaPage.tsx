@@ -7,10 +7,11 @@ import { useApiData } from "@/api/useApiData";
 import { MIN_PASSWORD_LENGTH } from "@/account/forms";
 import { syncPractice } from "@/account/practiceSync";
 import { can, isAdminUser, isStudentUser, isTeacherUser, logout, useAccount } from "@/account/store";
-import { Badge, FormError, formatDateTime, LoadState, Notice, TextAreaField, TextField } from "@/account/ui";
+import { FormError, formatDateTime, LoadState, Notice } from "@/account/ui";
+import { Badge, TextAreaField, TextField } from "@/design/fields";
 import { downloadBlob } from "@/data/backup";
 import { VoceTabs } from "@/areas/voce/VoceTabs";
-import { Button, ButtonLink, Card, EmptyState, PageTitle } from "@/design/components";
+import { Button, ButtonLink, Card, EmptyState, PageHeader } from "@/design/components";
 
 const APPLICATION_TEXT: Record<NonNullable<Me["teacherApplication"]>, { label: string; tone: "warn" | "good" | "bad"; text: string }> = {
   pending: { label: "Em análise", tone: "warn", text: "A equipe está analisando seu pedido de conta de professor. Você recebe acesso às turmas assim que for aprovado." },
@@ -300,17 +301,23 @@ function AccountContent({ user }: { user: Me }) {
   const [params] = useSearchParams();
   return (
     <div className="grid gap-6">
-      <PageTitle title="Você" eyebrow={`Conta de ${user.name}`}>
-        <Button
-          variant="ghost"
-          onClick={async () => {
-            await logout().catch(() => undefined);
-            navigate("/", { replace: true });
-          }}
-        >
-          Sair
-        </Button>
-      </PageTitle>
+      <PageHeader
+        title="Você"
+        description={`Conta de ${user.name}`}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await logout().catch(() => undefined);
+                navigate("/", { replace: true });
+              }}
+            >
+              Sair
+            </Button>
+          </>
+        }
+      />
       <VoceTabs />
       {params.get("nova") ? <Notice>Conta criada. Bem-vindo ao Spalla.</Notice> : null}
       <AreaLinks user={user} />
@@ -328,7 +335,7 @@ function AccountContent({ user }: { user: Me }) {
 function SignedOut() {
   return (
     <>
-      <PageTitle title="Você" />
+      <PageHeader title="Você" />
       <VoceTabs />
       {isPlatformEnabled() ? (
         <Card tone="hero" className="grid max-w-2xl gap-4">

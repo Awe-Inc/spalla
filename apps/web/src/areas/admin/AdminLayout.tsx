@@ -1,8 +1,9 @@
 import { Outlet } from "react-router";
 
 import { ADMIN_PERMISSIONS, can, useAccount } from "@/account/store";
-import { RequireAccount, SubNav } from "@/account/ui";
+import { RequireAccount } from "@/account/ui";
 import type { Permission } from "@/api/types";
+import { Tabs } from "@/design/layout";
 
 const ITEMS: readonly { to: string; label: string; end?: boolean; permission: Permission }[] = [
   { to: "/admin", label: "Visão geral", end: true, permission: "reports.read" },
@@ -19,7 +20,7 @@ export function AdminLayout() {
   const items = ITEMS.filter((item) => can(user, item.permission));
   return (
     <RequireAccount permissions={ADMIN_PERMISSIONS}>
-      <SubNav items={items} label="Administração" />
+      <Tabs items={items} label="Administração" />
       <Outlet />
     </RequireAccount>
   );

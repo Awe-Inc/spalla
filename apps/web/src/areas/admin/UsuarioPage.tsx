@@ -5,8 +5,9 @@ import { can, useAccount } from "@/account/store";
 import { api, errorMessage } from "@/api/client";
 import type { AdminUserDetail, Role } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, formatDate, formatDateTime, FormError, LoadState, Notice, RequireAccount, TextField } from "@/account/ui";
-import { Button, Card, PageTitle } from "@/design/components";
+import { formatDate, formatDateTime, FormError, LoadState, Notice, RequireAccount } from "@/account/ui";
+import { Badge, TextField } from "@/design/fields";
+import { Button, Card, PageHeader } from "@/design/components";
 
 import { APPLICATION_LABELS, STATUS_LABELS } from "./admin";
 
@@ -257,13 +258,17 @@ function UserDetail({ userId }: { userId: string }) {
     <LoadState {...detail}>
       {(user) => (
         <div className="grid gap-6">
-          <PageTitle title={user.name} eyebrow="Usuário">
-            <p className="flex flex-wrap items-center gap-2 text-body text-ink-muted">
-              {user.email}
-              <Badge tone={user.status === "active" ? "good" : "bad"}>{STATUS_LABELS[user.status]}</Badge>
-              {user.teacherApplication ? <Badge tone={user.teacherApplication === "pending" ? "warn" : "info"}>{APPLICATION_LABELS[user.teacherApplication]}</Badge> : null}
-            </p>
-          </PageTitle>
+          <PageHeader
+            title={user.name}
+            back={{ to: "/admin/usuarios", label: "Usuários" }}
+            description={
+              <span className="flex flex-wrap items-center gap-2">
+                {user.email}
+                <Badge tone={user.status === "active" ? "good" : "bad"}>{STATUS_LABELS[user.status]}</Badge>
+                {user.teacherApplication ? <Badge tone={user.teacherApplication === "pending" ? "warn" : "info"}>{APPLICATION_LABELS[user.teacherApplication]}</Badge> : null}
+              </span>
+            }
+          />
           <div className="grid gap-6 lg:grid-cols-2">
             <Summary user={user} />
             {canManage ? <AccessCard user={user} onChanged={detail.reload} /> : null}

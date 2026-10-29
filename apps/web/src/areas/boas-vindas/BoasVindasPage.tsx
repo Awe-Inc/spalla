@@ -7,7 +7,9 @@ import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
 import { setDailyGoal } from "@/data/progress";
 import { DEFAULT_ROUTINE_MINUTES } from "@/data/routines";
-import { Button, Card, InlineError } from "@/design/components";
+import { Wordmark } from "@/design/brand";
+import { Button, InlineError } from "@/design/components";
+import { FIELD_CLASS } from "@/design/fields";
 import { Tuner } from "@/design/Tuner";
 import { tunerReading } from "@/music/tunerReading";
 
@@ -22,13 +24,39 @@ function choiceClass(active: boolean): string {
   return `grid gap-1 rounded-md p-4 text-left transition-colors duration-fast ease-spalla ${active ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`;
 }
 
-function StepDots({ current }: { current: number }) {
+function StepList({ current }: { current: number }) {
   return (
-    <ol className="flex gap-2" aria-label={`Passo ${current + 1} de ${STEPS.length}`}>
-      {STEPS.map((step, index) => (
-        <li key={step} className={`h-1.5 w-8 rounded-pill ${index <= current ? "bg-primary" : "bg-surface-sunken"}`} aria-current={index === current ? "step" : undefined} />
-      ))}
+    <ol className="hidden gap-1 lg:grid" aria-label="Etapas">
+      {STEPS.map((step, index) => {
+        const state = index < current ? "done" : index === current ? "current" : "next";
+        return (
+          <li key={step} aria-current={state === "current" ? "step" : undefined} className={`flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors duration-fast ease-spalla ${state === "current" ? "bg-surface text-ink shadow-card" : "text-ink-muted"}`}>
+            <span
+              aria-hidden
+              className={`grid size-7 place-items-center rounded-pill font-mono text-caption tabular ${state === "next" ? "ring-1 ring-inset ring-hairline-strong" : "bg-primary text-on-primary"}`}
+            >
+              {state === "done" ? "✓" : index + 1}
+            </span>
+            <span className={state === "current" ? "font-semibold" : ""}>{step}</span>
+          </li>
+        );
+      })}
     </ol>
+  );
+}
+
+function StepBar({ current }: { current: number }) {
+  return (
+    <div className="grid gap-2 lg:hidden">
+      <p className="text-small text-ink-muted">
+        Passo {current + 1} de {STEPS.length}: <span className="text-ink">{STEPS[current]}</span>
+      </p>
+      <div className="flex gap-1.5" aria-hidden>
+        {STEPS.map((step, index) => (
+          <span key={step} className={`h-1 flex-1 rounded-pill ${index <= current ? "bg-primary" : "bg-surface-sunken"}`} />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -54,7 +82,7 @@ function MicStep() {
       {mic.status.status === "error" ? <InlineError title="O microfone não abriu." nextStep={mic.status.message} /> : null}
       {devices.length > 1 ? (
         <select
-          className="h-11 rounded-md border border-hairline bg-surface px-3 text-body"
+          className={FIELD_CLASS}
           value={settings.inputDeviceId ?? ""}
           onChange={(event) => settings.setInputDevice(event.target.value || null)}
           aria-label="Microfone"
@@ -97,85 +125,92 @@ export function BoasVindasPage() {
   }
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-canvas px-4 py-8 text-ink">
-      <Card className="grid w-full max-w-xl gap-6">
-        <StepDots current={step} />
-        {step === 0 ? (
-          <div className="grid gap-3">
-            <h1 className="font-display text-display">Bem-vindo ao Spalla.</h1>
-            <p className="max-w-prose text-ink-muted">
-              Um método de estudo de violino que ouve você tocar. Cada dia tem uma sessão curta, montada a partir do que você já tocou: aquecimento, afinação, escalas,
-              técnica e música. Leva dois minutos para configurar.
-            </p>
-          </div>
-        ) : null}
-        {step === 1 ? (
-          <div className="grid gap-3">
-            <h1 className="text-title font-semibold">Quanto tempo por dia?</h1>
-            <p className="text-ink-muted">Isso define a rotina padrão. Dá para trocar depois em Praticar.</p>
-            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Minutos por dia">
-              {([15, 25, 45] as const).map((minutes) => {
-                const active = settings.routineId === -minutes;
-                const blocks = Object.values(DEFAULT_ROUTINE_MINUTES[minutes]).filter(Boolean).length;
-                return (
-                  <button key={minutes} type="button" role="radio" aria-checked={active} className={choiceClass(active)} onClick={() => settings.setRoutine(-minutes)}>
-                    <span className="font-mono text-numeric tabular">{minutes}</span>
-                    <span className="text-caption text-ink-subtle">min · {blocks} blocos</span>
+    <div className="grid min-h-dvh bg-canvas text-ink lg:grid-cols-[18rem_1fr]">
+      <aside className="flex flex-col gap-10 border-hairline bg-surface-sunken px-4 py-6 lg:sticky lg:top-0 lg:h-dvh lg:border-r lg:px-6 lg:py-10">
+        <Wordmark />
+        <StepList current={step} />
+        <p className="mt-auto hidden max-w-[28ch] text-small text-ink-subtle lg:block">Tudo fica neste aparelho. Dá para mudar cada escolha depois.</p>
+      </aside>
+      <main className="grid min-w-0 place-items-center px-4 py-8 md:px-10">
+        <section key={step} className="grid w-full max-w-xl animate-rise gap-8 rounded-xl bg-surface p-6 shadow-card ring-1 ring-hairline/60 md:p-10">
+          <StepBar current={step} />
+          {step === 0 ? (
+            <div className="grid gap-3">
+              <h1 className="font-display text-display">Bem-vindo ao Spalla.</h1>
+              <p className="max-w-prose text-ink-muted">
+                Um método de estudo de violino que ouve você tocar. Cada dia tem uma sessão curta, montada a partir do que você já tocou: aquecimento, afinação, escalas,
+                técnica e música. Leva dois minutos para configurar.
+              </p>
+            </div>
+          ) : null}
+          {step === 1 ? (
+            <div className="grid gap-3">
+              <h1 className="font-display text-title">Quanto tempo por dia?</h1>
+              <p className="text-ink-muted">Isso define a rotina padrão. Dá para trocar depois em Estudar.</p>
+              <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Minutos por dia">
+                {([15, 25, 45] as const).map((minutes) => {
+                  const active = settings.routineId === -minutes;
+                  const blocks = Object.values(DEFAULT_ROUTINE_MINUTES[minutes]).filter(Boolean).length;
+                  return (
+                    <button key={minutes} type="button" role="radio" aria-checked={active} className={choiceClass(active)} onClick={() => settings.setRoutine(-minutes)}>
+                      <span className="font-mono text-numeric tabular">{minutes}</span>
+                      <span className="text-caption text-ink-subtle">min · {blocks} blocos</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+          {step === 2 ? (
+            <div className="grid gap-3">
+              <h1 className="font-display text-title">Vamos ouvir o violino.</h1>
+              <MicStep />
+              <p className="text-caption text-ink-subtle">
+                Nada aparece? Dá para pular e ajustar depois em Você, na aba Ajustes, onde também fica o{" "}
+                <Link to="/voce/ajustes/atraso" className="font-semibold text-primary underline-offset-4 hover:underline">
+                  teste de atraso do som
+                </Link>
+                .
+              </p>
+            </div>
+          ) : null}
+          {step === 3 ? (
+            <div className="grid gap-3">
+              <h1 className="font-display text-title">Sua meta diária</h1>
+              <p className="text-ink-muted">Cada nota afinada vale XP. Bater a meta mantém a sequência de dias viva.</p>
+              <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Meta diária">
+                {GOAL_OPTIONS.map((option) => (
+                  <button key={option.xp} type="button" role="radio" aria-checked={goalXp === option.xp} className={choiceClass(goalXp === option.xp)} onClick={() => setGoalXp(option.xp)}>
+                    <span className="font-semibold">{option.label}</span>
+                    <span className="font-mono text-caption tabular">{option.xp} XP</span>
+                    <span className="text-caption text-ink-subtle">{option.hint}</span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
-        ) : null}
-        {step === 2 ? (
-          <div className="grid gap-3">
-            <h1 className="text-title font-semibold">Vamos ouvir o violino.</h1>
-            <MicStep />
-            <p className="text-caption text-ink-subtle">
-              Nada aparece? Dá para pular e ajustar em Configurações. O teste de atraso do som fica em{" "}
-              <Link to="/voce/ajustes/atraso" className="font-semibold text-primary">
-                Ferramentas
-              </Link>
-              .
-            </p>
-          </div>
-        ) : null}
-        {step === 3 ? (
-          <div className="grid gap-3">
-            <h1 className="text-title font-semibold">Sua meta diária</h1>
-            <p className="text-ink-muted">Cada nota afinada vale XP. Bater a meta mantém a sequência de dias viva.</p>
-            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Meta diária">
-              {GOAL_OPTIONS.map((option) => (
-                <button key={option.xp} type="button" role="radio" aria-checked={goalXp === option.xp} className={choiceClass(goalXp === option.xp)} onClick={() => setGoalXp(option.xp)}>
-                  <span className="font-semibold">{option.label}</span>
-                  <span className="font-mono text-caption tabular">{option.xp} XP</span>
-                  <span className="text-caption text-ink-subtle">{option.hint}</span>
-                </button>
-              ))}
+          ) : null}
+          {step === 4 ? (
+            <div className="grid gap-3">
+              <h1 className="font-display text-title">Tudo pronto.</h1>
+              <p className="max-w-prose text-ink-muted">A sessão de hoje já está montada na tela Hoje. Pegue o violino, use fone quando houver nota pedal e comece pelo aquecimento.</p>
             </div>
-          </div>
-        ) : null}
-        {step === 4 ? (
-          <div className="grid gap-3">
-            <h1 className="text-title font-semibold">Tudo pronto.</h1>
-            <p className="max-w-prose text-ink-muted">A sessão de hoje já está montada na tela Hoje. Pegue o violino, use fone quando houver nota pedal e comece pelo aquecimento.</p>
-          </div>
-        ) : null}
-        <div className="flex items-center justify-between gap-3">
-          <Button variant="ghost" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}>
-            Voltar
-          </Button>
-          {isLast ? (
-            <Button variant="primary" onClick={() => void finish()}>
-              Começar agora
+          ) : null}
+          <div className="flex items-center justify-between gap-3 border-t border-hairline pt-6">
+            <Button variant="ghost" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}>
+              Voltar
             </Button>
-          ) : (
-            <Button variant="primary" onClick={() => setStep((current) => current + 1)}>
-              {step === 2 ? "Continuar" : "Próximo"}
-            </Button>
-          )}
-        </div>
-      </Card>
+            {isLast ? (
+              <Button variant="primary" onClick={() => void finish()}>
+                Começar agora
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={() => setStep((current) => current + 1)}>
+                {step === 2 ? "Continuar" : "Próximo"}
+              </Button>
+            )}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

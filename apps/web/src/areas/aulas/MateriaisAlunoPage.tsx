@@ -4,9 +4,10 @@ import { api, errorMessage } from "@/api/client";
 import type { Lessons, StudentMaterial } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { fetchPdf, openPdf } from "@/account/files";
-import { Badge, formatDate, FormError, LINK_SECONDARY_CLASS, LoadState, Notice } from "@/account/ui";
+import { formatDate, FormError, LoadState, Notice } from "@/account/ui";
+import { Badge } from "@/design/fields";
 import { importSheetFile } from "@/data/sheets";
-import { Button, EmptyState, PageTitle } from "@/design/components";
+import { Button, buttonClass, EmptyState, PageHeader } from "@/design/components";
 import { countPdfPages } from "@/pdf/pdfDocument";
 
 import { formatBytes, MATERIAL_KIND_LABELS } from "../professor/teaching";
@@ -59,7 +60,7 @@ function MaterialItem({ material }: { material: StudentMaterial }) {
           </>
         ) : null}
         {material.kind === "link" && url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className={LINK_SECONDARY_CLASS}>
+          <a href={url} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary")}>
             Abrir link
           </a>
         ) : null}
@@ -74,7 +75,7 @@ export function MateriaisAlunoPage() {
   const lessons = useApiData((signal) => api.get<Lessons>("/me/lessons", signal), []);
   return (
     <div className="grid gap-6">
-      <PageTitle title="Materiais" eyebrow="Minhas aulas" />
+      <PageHeader title="Materiais" />
       <LoadState {...lessons}>
         {({ materials }) =>
           materials.length === 0 ? (

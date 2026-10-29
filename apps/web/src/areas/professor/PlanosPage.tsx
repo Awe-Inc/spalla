@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
 import type { PlanBlock, TeacherPlan } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { FIELD_CLASS, FormError, formatDate, LINK_PRIMARY_CLASS, LINK_SECONDARY_CLASS, LoadState, TextAreaField, TextField } from "@/account/ui";
+import { FormError, formatDate, LoadState } from "@/account/ui";
+import { FIELD_CLASS, TextAreaField, TextField } from "@/design/fields";
 import type { BlockKind } from "@/data/db";
 import {
   addBlock,
@@ -21,7 +22,7 @@ import {
   totalMinutes,
   type RoutineGoal,
 } from "@/data/routines";
-import { Button, Card, EmptyState, PageTitle } from "@/design/components";
+import { Button, ButtonLink, Card, EmptyState, PageHeader } from "@/design/components";
 
 import { AudienceSelect, ItemPicker, ReorderButtons } from "./pickers";
 import { audienceFromChoice, audienceLabel, blockFromTeachable, MAX_ITEMS, moveItem, replaceAt, type AudienceChoice } from "./teaching";
@@ -240,7 +241,7 @@ export function NovoPlanoPage() {
   const [params] = useSearchParams();
   return (
     <div className="grid gap-6">
-      <PageTitle title="Novo plano de estudo" eyebrow="Planos" />
+      <PageHeader title="Novo plano de estudo" back={{ to: "/professor/planos", label: "Planos de estudo" }} />
       <PlanForm existing={null} initial={{ audience: initialAudience(params), name: "", description: "", blocks: STARTER_BLOCKS }} />
     </div>
   );
@@ -255,11 +256,11 @@ export function EditarPlanoPage() {
       {() =>
         plan ? (
           <div className="grid gap-6">
-            <PageTitle title="Editar plano" eyebrow={audienceLabel(plan.className, plan.studentName)} />
+            <PageHeader title="Editar plano" description={audienceLabel(plan.className, plan.studentName)} />
             <PlanForm existing={plan} initial={{ audience: "", name: plan.name, description: plan.description, blocks: plan.blocks }} />
           </div>
         ) : (
-          <EmptyState title="Plano não encontrado" description="Ele pode ter sido apagado." action={<Link to="/professor/planos" className={LINK_PRIMARY_CLASS}>Voltar aos planos</Link>} />
+          <EmptyState title="Plano não encontrado" description="Ele pode ter sido apagado." action={<ButtonLink to="/professor/planos" variant="primary">Voltar aos planos</ButtonLink>} />
         )
       }
     </LoadState>
@@ -290,9 +291,9 @@ function PlanRow({ plan, onChanged }: { plan: TeacherPlan; onChanged: () => void
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={`/professor/planos/${plan.id}/editar`} className={LINK_SECONDARY_CLASS}>
+          <ButtonLink to={`/professor/planos/${plan.id}/editar`} variant="secondary">
             Editar
-          </Link>
+          </ButtonLink>
           {confirming ? (
             <>
               <Button variant="ghost" onClick={remove}>
@@ -325,11 +326,16 @@ export function PlanosPage() {
   const plans = useApiData((signal) => api.get<TeacherPlan[]>("/teacher/plans", signal), []);
   return (
     <div className="grid gap-6">
-      <PageTitle title="Planos de estudo" eyebrow="Área do professor">
-        <Link to="/professor/planos/novo" className={LINK_PRIMARY_CLASS}>
-          Novo plano
-        </Link>
-      </PageTitle>
+      <PageHeader
+        title="Planos de estudo"
+        actions={
+          <>
+            <ButtonLink to="/professor/planos/novo" variant="primary">
+              Novo plano
+            </ButtonLink>
+          </>
+        }
+      />
       <LoadState {...plans}>
         {(list) =>
           list.length === 0 ? (
@@ -337,9 +343,9 @@ export function PlanosPage() {
               title="Nenhum plano ainda"
               description="Um plano é a rotina diária que você monta para a turma ou para um aluno: blocos de aquecimento, escalas, peça e revisão, com minutos e metas. O aluno adota com um toque."
               action={
-                <Link to="/professor/planos/novo" className={LINK_PRIMARY_CLASS}>
+                <ButtonLink to="/professor/planos/novo" variant="primary">
                   Montar o primeiro plano
-                </Link>
+                </ButtonLink>
               }
             />
           ) : (

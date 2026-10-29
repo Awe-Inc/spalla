@@ -5,8 +5,9 @@ import { api, errorMessage } from "@/api/client";
 import type { TeacherClassDetail } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { signupLink } from "@/account/links";
-import { Badge, FormError, formatDate, formatDateTime, LINK_PRIMARY_CLASS, LINK_SECONDARY_CLASS, LoadState, Notice, TextAreaField, TextField } from "@/account/ui";
-import { Button, Card, PageTitle } from "@/design/components";
+import { FormError, formatDate, formatDateTime, LoadState, Notice } from "@/account/ui";
+import { Badge, TextAreaField, TextField } from "@/design/fields";
+import { Button, ButtonLink, Card, PageHeader } from "@/design/components";
 
 function inviteLink(code: string): string {
   return signupLink({ turma: code });
@@ -245,17 +246,23 @@ export function TurmaPage() {
     <LoadState {...detail}>
       {(klass) => (
         <div className="grid gap-6">
-          <PageTitle title={klass.name} eyebrow="Turma">
-            <div className="flex flex-wrap items-center gap-2">
-              {klass.archivedAt ? <Badge>Arquivada</Badge> : null}
-              <Link to={`/professor/tarefas/nova?turma=${klass.id}`} className={LINK_PRIMARY_CLASS}>
-                Passar tarefa
-              </Link>
-              <Link to={`/professor/planos/novo?turma=${klass.id}`} className={LINK_SECONDARY_CLASS}>
-                Montar plano
-              </Link>
-            </div>
-          </PageTitle>
+          <PageHeader
+            title={klass.name}
+            back={{ to: "/professor", label: "Turmas" }}
+            actions={
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  {klass.archivedAt ? <Badge>Arquivada</Badge> : null}
+                  <ButtonLink to={`/professor/tarefas/nova?turma=${klass.id}`} variant="primary">
+                    Passar tarefa
+                  </ButtonLink>
+                  <ButtonLink to={`/professor/planos/novo?turma=${klass.id}`} variant="secondary">
+                    Montar plano
+                  </ButtonLink>
+                </div>
+              </>
+            }
+          />
           {klass.description ? <p className="-mt-4 max-w-prose text-body text-ink-muted">{klass.description}</p> : null}
           <div className="grid gap-6 lg:grid-cols-2">
             <CodeCard klass={klass} onChanged={detail.reload} />

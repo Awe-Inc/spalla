@@ -4,8 +4,9 @@ import { Link, useNavigate, useParams } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import type { AssignmentRecipient, TeacherAssignmentDetail } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { AREA_CLASS, Badge, FormError, formatDate, formatDateTime, LINK_SECONDARY_CLASS, LoadState } from "@/account/ui";
-import { Button, Card, PageTitle } from "@/design/components";
+import { FormError, formatDate, formatDateTime, LoadState } from "@/account/ui";
+import { AREA_CLASS, Badge } from "@/design/fields";
+import { Button, ButtonLink, Card, PageHeader } from "@/design/components";
 
 import { formatDueOn, ITEM_KIND_LABELS } from "./teaching";
 
@@ -104,11 +105,17 @@ export function TarefaPage() {
         const done = assignment.students.filter((student) => student.doneAt).length;
         return (
           <div className="grid gap-6">
-            <PageTitle title={assignment.title} eyebrow="Tarefa">
-              <Link to={`/professor/tarefas/${assignment.id}/editar`} className={LINK_SECONDARY_CLASS}>
-                Editar
-              </Link>
-            </PageTitle>
+            <PageHeader
+              title={assignment.title}
+              back={{ to: "/professor/tarefas", label: "Tarefas" }}
+              actions={
+                <>
+                  <ButtonLink to={`/professor/tarefas/${assignment.id}/editar`} variant="secondary">
+                    Editar
+                  </ButtonLink>
+                </>
+              }
+            />
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
               <div className="grid content-start gap-6">
                 <Card title="Resumo">

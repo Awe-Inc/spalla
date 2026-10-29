@@ -32,10 +32,6 @@ export function PageHeader({ title, description, back, actions, size = "title", 
   );
 }
 
-export function PageTitle({ eyebrow, title, children }: { eyebrow?: string; title: string; children?: ReactNode }) {
-  return <PageHeader title={title} {...(eyebrow ? { description: eyebrow } : {})} {...(children ? { actions: children } : {})} />;
-}
-
 export interface TabItem {
   to: string;
   label: string;

@@ -3,8 +3,9 @@ import { Link, useSearchParams } from "react-router";
 import { api, queryString } from "@/api/client";
 import type { AuditEntry, Page } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { formatDateTime, LoadState, RequireAccount, SelectField } from "@/account/ui";
-import { Button, EmptyState, PageTitle } from "@/design/components";
+import { formatDateTime, LoadState, RequireAccount } from "@/account/ui";
+import { SelectField } from "@/design/fields";
+import { Button, EmptyState, PageHeader } from "@/design/components";
 
 import { actionLabel, AUDIT_ACTION_GROUPS, PAGE_SIZE, pageLabel } from "./admin";
 
@@ -101,9 +102,7 @@ function AuditList() {
 export function AuditoriaPage() {
   return (
     <div className="grid gap-6">
-      <PageTitle title="Auditoria" eyebrow="Administração">
-        <p className="max-w-prose text-body text-ink-muted">Cada ação que muda contas, papéis, turmas ou configurações fica registrada com quem fez e quando.</p>
-      </PageTitle>
+      <PageHeader title="Auditoria" description="Cada ação que muda contas, papéis, turmas ou configurações fica registrada com quem fez e quando." />
       <RequireAccount permissions={["audit.read"]}>
         <AuditList />
       </RequireAccount>

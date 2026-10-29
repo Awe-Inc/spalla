@@ -4,8 +4,9 @@ import { useSearchParams } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import type { Lessons, StudentClass } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { formatDate, formatDateTime, FormError, LoadState, Notice, TextField } from "@/account/ui";
-import { Button, Card, PageTitle } from "@/design/components";
+import { formatDate, formatDateTime, FormError, LoadState, Notice } from "@/account/ui";
+import { TextField } from "@/design/fields";
+import { Button, Card, PageHeader } from "@/design/components";
 
 function JoinForm({ onJoined }: { onJoined: (name: string) => void }) {
   const [params] = useSearchParams();
@@ -100,7 +101,7 @@ export function TurmasAlunoPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle title="Turmas e avisos" eyebrow="Minhas aulas" />
+      <PageHeader title="Turmas e avisos" />
       <JoinForm
         onJoined={(name) => {
           setJoined(name);

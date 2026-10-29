@@ -3,8 +3,9 @@ import { useState, type FormEvent } from "react";
 import { api, errorMessage } from "@/api/client";
 import type { PlatformSettings } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { FormError, LoadState, Notice, RequireAccount, TextField } from "@/account/ui";
-import { Button, Card, PageTitle } from "@/design/components";
+import { FormError, LoadState, Notice, RequireAccount } from "@/account/ui";
+import { TextField } from "@/design/fields";
+import { Button, Card, PageHeader } from "@/design/components";
 
 function Toggle({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
@@ -90,7 +91,7 @@ function Settings() {
 export function AdminConfigPage() {
   return (
     <div className="grid gap-6">
-      <PageTitle title="Configurações da plataforma" eyebrow="Administração" />
+      <PageHeader title="Configurações da plataforma" />
       <RequireAccount permissions={["settings.manage"]}>
         <Settings />
       </RequireAccount>

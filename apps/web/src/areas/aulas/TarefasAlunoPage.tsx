@@ -1,15 +1,15 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
-import { Link } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
 import type { Lessons, StudentAssignment, StudentMaterial } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { assignmentProgress, refreshClassAssignments, setAssignmentDone } from "@/account/classAssignments";
 import { openPdf } from "@/account/files";
-import { Badge, formatDate, FormError, LINK_PRIMARY_CLASS, LoadState, TextAreaField } from "@/account/ui";
+import { formatDate, FormError, LoadState } from "@/account/ui";
+import { Badge, TextAreaField } from "@/design/fields";
 import { db, type ExerciseResult } from "@/data/db";
-import { Button, EmptyState, PageTitle } from "@/design/components";
+import { Button, ButtonLink, EmptyState, PageHeader } from "@/design/components";
 
 import { formatDueOn, ITEM_KIND_LABELS, todayIso } from "../professor/teaching";
 import { isOverdue, pendingCount, safeExternalUrl, safePlayPath } from "./lessons";
@@ -41,9 +41,9 @@ function ItemLine({ item, met }: { item: StudentAssignment["items"][number]; met
         {item.note ? <span className="whitespace-pre-line text-body text-ink-muted">{item.note}</span> : null}
       </div>
       {playPath ? (
-        <Link to={playPath} className={LINK_PRIMARY_CLASS}>
+        <ButtonLink to={playPath} variant="primary">
           Tocar
-        </Link>
+        </ButtonLink>
       ) : null}
     </li>
   );
@@ -174,7 +174,7 @@ export function TarefasAlunoPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle title="Tarefas" eyebrow="Minhas aulas" />
+      <PageHeader title="Tarefas" />
       <LoadState {...lessons}>
         {({ assignments, materials }) => {
           if (assignments.length === 0) {
@@ -183,9 +183,9 @@ export function TarefasAlunoPage() {
                 title="Nenhuma tarefa por enquanto"
                 description="Quando seu professor passar uma tarefa, ela aparece aqui. Ainda não está numa turma? Entre com o código que ele te passou."
                 action={
-                  <Link to="/aulas/turmas" className={LINK_PRIMARY_CLASS}>
+                  <ButtonLink to="/aulas/turmas" variant="primary">
                     Entrar numa turma
-                  </Link>
+                  </ButtonLink>
                 }
               />
             );

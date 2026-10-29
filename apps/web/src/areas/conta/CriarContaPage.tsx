@@ -4,8 +4,9 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { ApiError, errorMessage, isPlatformEnabled } from "@/api/client";
 import { EMPTY_SIGNUP, MIN_PASSWORD_LENGTH, needsGuardian, toSignupInput, validateSignup, type SignupDraft, type SignupErrors } from "@/account/forms";
 import { homePathFor, signup, useAccount } from "@/account/store";
-import { FormError, TextAreaField, TextField } from "@/account/ui";
-import { Button, Card, EmptyState, PageTitle } from "@/design/components";
+import { FormError } from "@/account/ui";
+import { TextAreaField, TextField } from "@/design/fields";
+import { Button, Card, EmptyState, PageHeader } from "@/design/components";
 
 const ACCOUNT_TYPES: readonly { value: SignupDraft["accountType"]; title: string; description: string }[] = [
   { value: "aluno", title: "Sou aluno", description: "Entro na turma do meu professor, recebo tarefas e mostro meu progresso." },
@@ -61,7 +62,7 @@ export function CriarContaPage() {
 
   return (
     <div className="mx-auto grid max-w-xl gap-6">
-      <PageTitle title="Criar conta" eyebrow="Aulas com professor" />
+      <PageHeader title="Criar conta" />
       <form onSubmit={submit} className="grid gap-6" noValidate>
         <fieldset className="grid gap-3 md:grid-cols-2">
           <legend className="mb-3 text-heading font-semibold">Como você vai usar o Spalla?</legend>

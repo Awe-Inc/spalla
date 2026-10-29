@@ -1,16 +1,15 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
-import { Link } from "react-router";
 
 import { adoptPlan, planBlocksToRoutine } from "@/account/adoptPlan";
 import { api, errorMessage } from "@/api/client";
 import type { Lessons, StudentPlan } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { formatDate, FormError, LINK_PRIMARY_CLASS, LoadState } from "@/account/ui";
+import { formatDate, FormError, LoadState } from "@/account/ui";
 import { useSettings } from "@/app/settings";
 import { db } from "@/data/db";
 import { BLOCK_LABELS, totalMinutes } from "@/data/routines";
-import { Button, EmptyState, PageTitle } from "@/design/components";
+import { Button, ButtonLink, EmptyState, PageHeader } from "@/design/components";
 
 import { GOAL_TEXT } from "../professor/teaching";
 
@@ -62,9 +61,9 @@ function PlanCard({ plan, adoptedRoutineId }: { plan: StudentPlan; adoptedRoutin
         {isActive ? (
           <>
             <span className="text-body font-medium text-in-tune">É a sua rotina agora.</span>
-            <Link to="/estudar" className={LINK_PRIMARY_CLASS}>
+            <ButtonLink to="/estudar" variant="primary">
               Praticar
-            </Link>
+            </ButtonLink>
             <Button variant="ghost" disabled={pending} onClick={() => void adopt()}>
               Atualizar com a versão do professor
             </Button>
@@ -88,9 +87,7 @@ export function PlanosAlunoPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle title="Planos de estudo" eyebrow="Minhas aulas">
-        <p className="max-w-prose text-body text-ink-muted">O plano do professor vira a sua rotina em Praticar, e funciona sem internet.</p>
-      </PageTitle>
+      <PageHeader title="Planos de estudo" description="O plano do professor vira a sua rotina em Praticar, e funciona sem internet." />
       <LoadState {...lessons}>
         {({ plans }) =>
           plans.length === 0 ? (

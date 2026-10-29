@@ -4,8 +4,9 @@ import { Link } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import type { Permission, PermissionInfo, Role } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, FormError, LoadState, Notice, RequireAccount, TextField } from "@/account/ui";
-import { Button, Card, PageTitle } from "@/design/components";
+import { FormError, LoadState, Notice, RequireAccount } from "@/account/ui";
+import { Badge, TextField } from "@/design/fields";
+import { Button, Card, PageHeader } from "@/design/components";
 
 import { PERMISSION_GROUPS, togglePermission } from "./admin";
 
@@ -214,7 +215,7 @@ function Roles() {
 export function PapeisPage() {
   return (
     <div className="grid gap-6">
-      <PageTitle title="Papéis e permissões" eyebrow="Administração" />
+      <PageHeader title="Papéis e permissões" />
       <RequireAccount permissions={["roles.manage"]}>
         <Roles />
       </RequireAccount>

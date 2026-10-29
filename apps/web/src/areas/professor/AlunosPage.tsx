@@ -4,8 +4,9 @@ import { Link, useParams } from "react-router";
 import { api } from "@/api/client";
 import type { PracticeDaySummary, StudentProgress, TeacherStudent } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { Badge, FIELD_CLASS, formatDate, LINK_PRIMARY_CLASS, LINK_SECONDARY_CLASS, LoadState } from "@/account/ui";
-import { accuracyToneClass, Card, EmptyState, PageTitle, Stars } from "@/design/components";
+import { formatDate, LoadState } from "@/account/ui";
+import { Badge, FIELD_CLASS } from "@/design/fields";
+import { accuracyToneClass, ButtonLink, Card, EmptyState, PageHeader, Stars } from "@/design/components";
 
 import { useTeachableItems } from "./pickers";
 import { formatDueOn } from "./teaching";
@@ -22,7 +23,7 @@ export function AlunosPage() {
 
   return (
     <div className="grid gap-6">
-      <PageTitle title="Alunos" eyebrow="Área do professor" />
+      <PageHeader title="Alunos" />
       <LoadState {...students}>
         {(list) => {
           if (list.length === 0) {
@@ -31,9 +32,9 @@ export function AlunosPage() {
                 title="Nenhum aluno ainda"
                 description="Os alunos aparecem aqui quando entram em uma das suas turmas com o código."
                 action={
-                  <Link to="/professor" className={LINK_PRIMARY_CLASS}>
+                  <ButtonLink to="/professor" variant="primary">
                     Ver turmas
-                  </Link>
+                  </ButtonLink>
                 }
               />
             );
@@ -106,16 +107,22 @@ export function AlunoPage() {
     <LoadState {...progress}>
       {({ student, practice, assignments }) => (
         <div className="grid gap-6">
-          <PageTitle title={student.name} eyebrow="Aluno">
-            <div className="flex flex-wrap gap-2">
-              <Link to={`/professor/tarefas/nova?aluno=${student.id}`} className={LINK_PRIMARY_CLASS}>
-                Passar tarefa
-              </Link>
-              <Link to={`/professor/planos/novo?aluno=${student.id}`} className={LINK_SECONDARY_CLASS}>
-                Montar plano
-              </Link>
-            </div>
-          </PageTitle>
+          <PageHeader
+            title={student.name}
+            back={{ to: "/professor/alunos", label: "Alunos" }}
+            actions={
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <ButtonLink to={`/professor/tarefas/nova?aluno=${student.id}`} variant="primary">
+                    Passar tarefa
+                  </ButtonLink>
+                  <ButtonLink to={`/professor/planos/novo?aluno=${student.id}`} variant="secondary">
+                    Montar plano
+                  </ButtonLink>
+                </div>
+              </>
+            }
+          />
           <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Período">
             {PROGRESS_WINDOWS.map((window) => (
               <button

@@ -3,7 +3,7 @@ import { useId, useMemo, useState } from "react";
 import { api } from "@/api/client";
 import type { TeacherClass, TeacherStudent } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
-import { FIELD_CLASS, SelectField } from "@/account/ui";
+import { FIELD_CLASS, SelectField } from "@/design/fields";
 import { useCore } from "@/core/useCore";
 import { LIBRARY } from "@/data/library";
 

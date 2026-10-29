@@ -5,6 +5,7 @@ import { isStoredDeviceMissing } from "@/audio/devices";
 import { listInputDevices } from "@/audio/PitchInput";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
+import { FIELD_CLASS } from "@/design/fields";
 import { Button, Card, InlineError } from "@/design/components";
 import { Tuner } from "@/design/Tuner";
 import { tunerReading } from "@/music/tunerReading";
@@ -32,7 +33,7 @@ export function MicrofoneCard() {
   return (
     <Card title="Microfone" className="grid gap-4">
       <select
-        className="h-11 rounded-md border border-hairline bg-surface px-3 text-body"
+        className={FIELD_CLASS}
         value={settings.inputDeviceId ?? ""}
         onChange={(event) => settings.setInputDevice(event.target.value || null)}
         aria-label="Microfone"
