@@ -110,6 +110,15 @@ export const DEFAULT_USER_STATS: UserStats = {
   loopsCompleted: 0,
 };
 
+export interface StoredSuzukiPiece {
+  key: string;
+  book: number;
+  name: string;
+  learnedAt: number;
+  lastReviewedAt: number;
+  reviewCount: number;
+}
+
 export class FretlessDatabase extends Dexie {
   results!: EntityTable<ExerciseResult, "id">;
   routines!: EntityTable<Routine, "id">;
@@ -120,6 +129,7 @@ export class FretlessDatabase extends Dexie {
   pieces!: EntityTable<StoredPiece, "id">;
   sheets!: EntityTable<StoredSheet, "id">;
   sheetFiles!: EntityTable<StoredSheetFile, "id">;
+  suzukiPieces!: EntityTable<StoredSuzukiPiece, "key">;
 
   constructor(name = "fretless") {
     super(name);
@@ -148,6 +158,9 @@ export class FretlessDatabase extends Dexie {
     });
     this.version(5).stores({
       settings: null,
+    });
+    this.version(6).stores({
+      suzukiPieces: "key, book, learnedAt",
     });
   }
 }

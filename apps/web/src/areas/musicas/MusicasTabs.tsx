@@ -3,6 +3,7 @@ import { NavLink } from "react-router";
 const TABS = [
   { to: "/musicas", label: "Catálogo", end: true },
   { to: "/musicas/estante", label: "Estante", end: false },
+  { to: "/musicas/suzuki", label: "Suzuki", end: false },
 ] as const;
 
 function tabClass({ isActive }: { isActive: boolean }): string {

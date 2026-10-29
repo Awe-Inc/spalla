@@ -11,17 +11,19 @@ interface Backup {
   userStats: unknown[];
   achievements: unknown[];
   lessonTasks: unknown[];
+  suzukiPieces: unknown[];
   pieces: { count: number };
 }
 
 export async function buildBackup(): Promise<Backup> {
-  const [results, routines, practiceDays, userStats, achievements, lessonTasks, pieceCount] = await Promise.all([
+  const [results, routines, practiceDays, userStats, achievements, lessonTasks, suzukiPieces, pieceCount] = await Promise.all([
     db.results.toArray(),
     db.routines.toArray(),
     db.practiceDays.toArray(),
     db.userStats.toArray(),
     db.achievements.toArray(),
     db.lessonTasks.toArray(),
+    db.suzukiPieces.toArray(),
     db.pieces.count(),
   ]);
   return {
@@ -33,6 +35,7 @@ export async function buildBackup(): Promise<Backup> {
     userStats,
     achievements,
     lessonTasks,
+    suzukiPieces,
     pieces: { count: pieceCount },
   };
 }
@@ -59,8 +62,8 @@ export async function exportBackup(): Promise<void> {
 }
 
 export async function resetProgress(): Promise<void> {
-  await db.transaction("rw", db.results, db.practiceDays, db.userStats, db.achievements, async () => {
-    await Promise.all([db.results.clear(), db.practiceDays.clear(), db.achievements.clear()]);
+  await db.transaction("rw", [db.results, db.practiceDays, db.userStats, db.achievements, db.suzukiPieces], async () => {
+    await Promise.all([db.results.clear(), db.practiceDays.clear(), db.achievements.clear(), db.suzukiPieces.clear()]);
     await db.userStats.put({ ...DEFAULT_USER_STATS });
   });
 }

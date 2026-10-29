@@ -1,11 +1,14 @@
+import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
 import { Link } from "react-router";
 
+import { db } from "@/data/db";
 import { SESSION_COMPLETE_XP } from "@/data/gamification";
 import { blockProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
 import { grantSessionBonus } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
 import { BLOCK_LABELS } from "@/data/routines";
+import { dueReviews } from "@/data/suzuki";
 import { Card, EmptyState, GoalDots, PageTitle, ProgressRing } from "@/design/components";
 
 import { CadernoDaAula } from "./CadernoDaAula";
@@ -61,6 +64,22 @@ function BlockRow({ planned, runsToday, isNext }: { planned: PlannedBlock; runsT
   );
 }
 
+function SuzukiReminder({ today }: { today: string }) {
+  const due = dueReviews(useLiveQuery(() => db.suzukiPieces.toArray(), []) ?? [], today);
+  if (due.length === 0) return null;
+  return (
+    <Card className="grid gap-2">
+      <span className="text-caption text-ink-subtle">Revisão Suzuki</span>
+      <span className="font-medium">
+        {due.length} {due.length === 1 ? "peça para revisar hoje" : "peças para revisar hoje"}
+      </span>
+      <Link to="/musicas/suzuki" className="text-caption font-semibold text-primary">
+        Abrir a trilha
+      </Link>
+    </Card>
+  );
+}
+
 export function HojePage() {
   const today = useTodayPlan();
   const allDone = today.progress.total > 0 && today.progress.done === today.progress.total;
@@ -97,6 +116,7 @@ export function HojePage() {
               Trocar rotina
             </Link>
           </Card>
+          <SuzukiReminder today={today.today} />
         </div>
 
         <Card title={allDone ? "Sessão fechada" : "Sessão de hoje"}>

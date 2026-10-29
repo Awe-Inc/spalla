@@ -27,6 +27,7 @@ export const router = createBrowserRouter(
         { path: "praticar", Component: PraticarPage },
         { path: "musicas", Component: MusicasPage },
         { path: "musicas/estante", lazy: async () => ({ Component: (await import("@/areas/estante/EstantePage")).EstantePage }) },
+        { path: "musicas/suzuki", lazy: async () => ({ Component: (await import("@/areas/musicas/SuzukiPage")).SuzukiPage }) },
         { path: "estante/:sheetId", lazy: async () => ({ Component: (await import("@/areas/estante/LeitorPage")).LeitorPage }) },
         { path: "ferramentas", Component: FerramentasPage },
         { path: "ferramentas/latencia", Component: LatenciaPage },
