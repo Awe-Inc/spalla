@@ -50,3 +50,4 @@ apps/web/dev-dist/
 # Playwright
 apps/web/test-results/
 apps/web/playwright-report/
+apps/api/.data/
