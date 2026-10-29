@@ -62,7 +62,7 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext): Prom
   app.get("/me/lessons", async (request) => {
     const me = requirePermission(request, "lessons.read");
     const assignments = await db.query(
-      `SELECT a.id, a.title, a.instructions, a.due_on AS "dueOn", a.items, a.material_ids AS "materialIds", a.created_at AS "createdAt",
+      `SELECT a.id, a.title, a.instructions, to_char(a.due_on, 'YYYY-MM-DD') AS "dueOn", a.items, a.material_ids AS "materialIds", a.created_at AS "createdAt",
               c.name AS "className", t.name AS "teacherName", s.done_at AS "doneAt", coalesce(s.student_note, '') AS "studentNote",
               coalesce(s.feedback, '') AS feedback, s.feedback_at AS "feedbackAt"
        FROM (${STUDENT_ASSIGNMENTS}) a

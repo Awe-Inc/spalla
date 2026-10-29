@@ -41,6 +41,7 @@ export interface Routine {
   blocks: RoutineBlock[];
   origin: "padrao" | "professor" | "propria";
   createdAt: number;
+  teacherPlanId?: string;
 }
 
 export interface PracticeDay {

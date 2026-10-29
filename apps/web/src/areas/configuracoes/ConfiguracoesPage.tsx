@@ -6,6 +6,7 @@ import { db, DEFAULT_USER_STATS } from "@/data/db";
 import { setDailyGoal } from "@/data/progress";
 import { Card, PageTitle } from "@/design/components";
 
+import { ContaCard } from "./ContaCard";
 import { DadosCard } from "./DadosCard";
 import { MicrofoneCard } from "./MicrofoneCard";
 
@@ -53,6 +54,7 @@ export function ConfiguracoesPage() {
     <>
       <PageTitle title="Configurações" />
       <div className="grid gap-6">
+        <ContaCard />
         <Card title="Aparência" className="grid gap-4">
           <RadioGroup name="theme" value={settings.theme} options={THEME_OPTIONS} onChange={settings.setTheme} />
           <div className="grid gap-2">

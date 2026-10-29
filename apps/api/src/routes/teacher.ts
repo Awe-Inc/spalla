@@ -209,7 +209,7 @@ export async function teacherRoutes(app: FastifyInstance, ctx: AppContext): Prom
     await assertMyStudent(db, me.id, id);
     const [student] = await db.query(`SELECT id, name, email FROM users WHERE id = $1`, [id]);
     const assignments = await db.query(
-      `SELECT a.id, a.title, a.due_on AS "dueOn", s.done_at AS "doneAt", s.student_note AS "studentNote", s.feedback
+      `SELECT a.id, a.title, to_char(a.due_on, 'YYYY-MM-DD') AS "dueOn", s.done_at AS "doneAt", s.student_note AS "studentNote", s.feedback
        FROM assignments a
        LEFT JOIN assignment_status s ON s.assignment_id = a.id AND s.student_id = $2
        WHERE a.teacher_id = $1 AND a.archived_at IS NULL
@@ -321,7 +321,7 @@ export async function teacherRoutes(app: FastifyInstance, ctx: AppContext): Prom
     const me = requirePermission(request, "assignments.manage");
     const filters = assignmentFilters.parse(request.query);
     return db.query(
-      `SELECT a.id, a.title, a.instructions, a.due_on AS "dueOn", a.items, a.material_ids AS "materialIds", a.class_id AS "classId",
+      `SELECT a.id, a.title, a.instructions, to_char(a.due_on, 'YYYY-MM-DD') AS "dueOn", a.items, a.material_ids AS "materialIds", a.class_id AS "classId",
               a.student_id AS "studentId", a.created_at AS "createdAt", c.name AS "className", u.name AS "studentName",
               (SELECT count(*)::int FROM assignment_status s WHERE s.assignment_id = a.id AND s.done_at IS NOT NULL) AS done,
               CASE WHEN a.class_id IS NULL THEN 1 ELSE (SELECT count(*)::int FROM class_members m WHERE m.class_id = a.class_id) END AS recipients
@@ -361,7 +361,7 @@ export async function teacherRoutes(app: FastifyInstance, ctx: AppContext): Prom
     const { id } = idParams.parse(request.params);
     const assignment = await ownAssignment(db, me.id, id);
     const [detail] = await db.query(
-      `SELECT id, title, instructions, due_on AS "dueOn", items, material_ids AS "materialIds", class_id AS "classId",
+      `SELECT id, title, instructions, to_char(due_on, 'YYYY-MM-DD') AS "dueOn", items, material_ids AS "materialIds", class_id AS "classId",
               student_id AS "studentId", created_at AS "createdAt" FROM assignments WHERE id = $1`,
       [id],
     );

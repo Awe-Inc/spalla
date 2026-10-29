@@ -50,7 +50,10 @@ export function backupFileName(now = new Date()): string {
 const REVOKE_URL_DELAY_MS = 10_000;
 
 export function downloadText(fileName: string, text: string): void {
-  const blob = new Blob([text], { type: "application/json" });
+  downloadBlob(fileName, new Blob([text], { type: "application/json" }));
+}
+
+export function downloadBlob(fileName: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

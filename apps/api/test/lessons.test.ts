@@ -87,6 +87,8 @@ describe("tarefas, materiais e planos", () => {
     const id = created.json().id;
     const lessons = (await call(t.app, "GET", "/me/lessons", student.token)).json();
     expect(lessons.assignments.map((row: { id: string }) => row.id)).toContain(id);
+    expect(lessons.assignments.find((row: { id: string }) => row.id === id).dueOn).toBe("2026-11-05");
+    expect((await call(t.app, "GET", `/teacher/assignments/${id}`, ana.token)).json().dueOn).toBe("2026-11-05");
     expect((await call(t.app, "PUT", `/me/assignments/${id}/status`, student.token, { done: true, note: "Fiz 3 vezes" })).statusCode).toBe(200);
     await call(t.app, "PUT", `/teacher/assignments/${id}/students/${student.id}/feedback`, ana.token, { feedback: "Ótimo!" });
     const detail = (await call(t.app, "GET", `/teacher/assignments/${id}`, ana.token)).json();
