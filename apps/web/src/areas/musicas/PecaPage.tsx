@@ -1,24 +1,34 @@
 import type { MeasureRange } from "@fretless/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router";
 
 import { useSettings } from "@/app/settings";
-import { useListen, type Listen } from "@/audio/useListen";
+import { useListen } from "@/audio/useListen";
 import { RecordingAudio, recordingDate } from "@/areas/ferramentas/RecordingPlayer";
 import { AddToRoutine } from "@/areas/musicas/AddToRoutine";
 import { HistoricoExercicio } from "@/areas/estudar/HistoricoExercicio";
-import { BPM_STEP, clampBpm, type TempoLimits } from "@/areas/tocar/tempo";
+import { clampBpm } from "@/areas/tocar/tempo";
 import { useSession } from "@/areas/tocar/useSession";
-import { db, type StoredSection } from "@/data/db";
+import { db } from "@/data/db";
 import { formatClock, newestFirst, recorderPath } from "@/data/recordings";
-import { addSection, phraseSections, practicePath, removeSection, sectionLabel, sortedSections } from "@/data/sections";
-import { Button, Card, InlineError, PageTitle } from "@/design/components";
+import { addSection, phraseSections, practicePath, removeSection, sortedSections } from "@/data/sections";
+import { ButtonLink, Card, InlineError } from "@/design/components";
+import { ChoiceChips } from "@/design/fields";
+import { List, PageHeader, Section, SkeletonList, Stat, Stats } from "@/design/layout";
 import { formatDuration, majorKeyName } from "@/music/noteNames";
 
-const SELECT_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 font-mono text-body tabular";
-const SECONDARY_LINK_CLASS =
-  "inline-flex h-11 items-center rounded-pill bg-surface-soft px-5 font-semibold transition-colors hover:bg-surface-sunken md:h-10";
+import { ListenButton, MarkSectionForm, SectionRow, TempoPicker } from "./PecaTrechos";
+
+const BACK = { to: "/repertorio", label: "Repertório" };
+const RECENT_PIECE_RECORDINGS = 3;
+
+type SectionView = "seus" | "frases";
+
+const SECTION_VIEWS: { value: SectionView; label: string }[] = [
+  { value: "seus", label: "Seus trechos" },
+  { value: "frases", label: "Frases automáticas" },
+];
 
 function playPathFor(exerciseId: string | undefined, pieceId: string | undefined, librarySlug: string | undefined): string {
   if (pieceId !== undefined) return `/tocar/musica/${pieceId}`;
@@ -36,121 +46,21 @@ function rangeKey(range: MeasureRange | null): string {
   return range ? `${range.firstIndex}-${range.lastIndex}` : "inteira";
 }
 
-function ListenButton({ listen, isActive, label, onListen }: { listen: Listen; isActive: boolean; label: string; onListen: () => void }) {
-  const isLoading = isActive && listen.status === "carregando";
-  const isPlaying = isActive && listen.status === "tocando";
-  return (
-    <Button onClick={() => (isActive ? listen.stop() : onListen())} disabled={isLoading} aria-pressed={isPlaying} aria-label={isPlaying ? `Parar: ${label}` : `Ouvir: ${label}`}>
-      {isLoading ? "Carregando…" : isPlaying ? "Parar" : "Ouvir"}
-    </Button>
-  );
-}
-
-function SectionRow({
-  range,
-  bpm,
-  playTo,
-  listen,
-  isListening,
-  onListen,
-  onRemove,
-}: {
-  range: MeasureRange;
-  bpm: number;
-  playTo: string;
-  listen: Listen;
-  isListening: boolean;
-  onListen: () => void;
-  onRemove?: () => void;
-}) {
-  const label = sectionLabel(range);
-  return (
-    <li className="flex flex-wrap items-center gap-3 py-3">
-      <span className="min-w-0 flex-1 font-medium">{label}</span>
-      <span className="font-mono text-caption text-ink-subtle tabular">{bpm} bpm</span>
-      <ListenButton listen={listen} isActive={isListening} label={label} onListen={onListen} />
-      <Link to={practicePath(playTo, bpm, range)} className={SECONDARY_LINK_CLASS} aria-label={`Praticar em loop: ${label}`}>
-        Praticar em loop
-      </Link>
-      {onRemove ? (
-        <Button variant="ghost" onClick={onRemove} aria-label={`Apagar trecho: ${label}`}>
-          Apagar
-        </Button>
-      ) : null}
-    </li>
-  );
-}
-
-function TempoPicker({ bpm, limits, onChange }: { bpm: number; limits: TempoLimits; onChange: (bpm: number) => void }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="text-caption text-ink-subtle">Andamento de estudo</span>
-      <Button aria-label={`Diminuir ${BPM_STEP} bpm`} className="h-9 w-9 px-0 md:h-9" onClick={() => onChange(bpm - BPM_STEP)} disabled={bpm <= limits.minBpm}>
-        −
-      </Button>
-      <span className="w-16 text-center font-mono text-numeric tabular">{bpm}</span>
-      <Button aria-label={`Aumentar ${BPM_STEP} bpm`} className="h-9 w-9 px-0 md:h-9" onClick={() => onChange(bpm + BPM_STEP)} disabled={bpm >= limits.maxBpm}>
-        +
-      </Button>
-      <span className="text-caption text-ink-subtle">Escrito: {limits.writtenBpm} bpm</span>
-    </div>
-  );
-}
-
-function MarkSectionForm({ measureCount, onSave }: { measureCount: number; onSave: (range: MeasureRange) => void }) {
-  const [first, setFirst] = useState(0);
-  const [last, setLast] = useState(Math.min(3, measureCount - 1));
-  const options = Array.from({ length: measureCount }, (_, index) => index);
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    onSave({ firstIndex: Math.min(first, last), lastIndex: Math.max(first, last) });
-  }
-
-  return (
-    <form className="flex flex-wrap items-end gap-3" onSubmit={submit} aria-label="Marcar trecho">
-      <label className="grid gap-1 text-caption text-ink-subtle">
-        Do compasso
-        <select className={SELECT_CLASS} value={first} onChange={(event) => setFirst(Number(event.target.value))}>
-          {options.map((index) => (
-            <option key={index} value={index}>
-              {index + 1}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="grid gap-1 text-caption text-ink-subtle">
-        ao
-        <select className={SELECT_CLASS} value={last} onChange={(event) => setLast(Number(event.target.value))}>
-          {options.map((index) => (
-            <option key={index} value={index}>
-              {index + 1}
-            </option>
-          ))}
-        </select>
-      </label>
-      <Button type="submit">Guardar trecho</Button>
-    </form>
-  );
-}
-
-const RECENT_PIECE_RECORDINGS = 3;
-
 function PieceRecordings({ pieceKey, title }: { pieceKey: string; title: string }) {
   const recordings = useLiveQuery(async () => newestFirst(await db.recordings.where("pieceKey").equals(pieceKey).toArray()), [pieceKey]) ?? [];
   const recent = recordings.slice(0, RECENT_PIECE_RECORDINGS);
   return (
     <Card title="Gravações" className="grid gap-3">
       {recent.length === 0 ? (
-        <p className="text-ink-muted">Grave uma passada da peça hoje. Daqui a algumas semanas, compare com a próxima e escute o que mudou.</p>
+        <p className="text-small text-ink-muted">Grave uma passada hoje. Daqui a algumas semanas, compare com a próxima e escute o que mudou.</p>
       ) : (
         <ul className="divide-y divide-hairline">
           {recent.map((recording) => (
-            <li key={recording.id} className="grid gap-2 py-3">
+            <li key={recording.id} className="grid gap-2 py-3 first:pt-0">
               <span className="grid gap-0.5">
                 <span className="font-medium">{recording.name}</span>
                 <span className="text-caption text-ink-subtle">
-                  {recordingDate(recording.createdAt)} · {formatClock(recording.durationMs)}
+                  {recordingDate(recording.createdAt)}, <span className="font-mono tabular">{formatClock(recording.durationMs)}</span>
                 </span>
               </span>
               <RecordingAudio recording={recording} />
@@ -158,12 +68,24 @@ function PieceRecordings({ pieceKey, title }: { pieceKey: string; title: string 
           ))}
         </ul>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Link to={recorderPath({ key: pieceKey, title })} className={SECONDARY_LINK_CLASS}>
-          {recordings.length >= 2 ? "Gravar e comparar" : "Gravar esta peça"}
-        </Link>
-      </div>
+      <ButtonLink to={recorderPath({ key: pieceKey, title })} icon="gravar" className="w-full">
+        {recordings.length >= 2 ? "Gravar e comparar" : "Gravar esta peça"}
+      </ButtonLink>
     </Card>
+  );
+}
+
+function ListeningStatus({ progress, isWhole, bpm, usesSamples }: { progress: number; isWhole: boolean; bpm: number; usesSamples: boolean }) {
+  return (
+    <div className="grid gap-1.5" role="status">
+      <div className="h-1.5 overflow-hidden rounded-pill bg-surface-sunken">
+        <div className="h-full origin-left bg-primary" style={{ transform: `scaleX(${progress})` }} />
+      </div>
+      <span className="text-small text-ink-muted">
+        Ouvindo {isWhole ? "a peça inteira" : "o trecho"} a <span className="font-mono tabular">{bpm}</span> bpm
+        {usesSamples ? "" : ", com som sintético (sem internet para baixar o violino)"}
+      </span>
+    </div>
   );
 }
 
@@ -172,6 +94,7 @@ export function PecaPage() {
   const { coreStatus, session, exercise, score, error, resultId, limits, bpm: sessionBpm, setBpm } = useSession(exerciseId, pieceId, librarySlug);
   const naming = useSettings((state) => state.noteNaming);
   const [chosenBpm, setChosenBpm] = useState<number | null>(null);
+  const [view, setView] = useState<SectionView>("seus");
   const listen = useListen(score);
   const [listenRequest, setListenRequest] = useState<ListenRequest | null>(null);
   const [listeningKey, setListeningKey] = useState<string | null>(null);
@@ -194,13 +117,18 @@ export function PecaPage() {
   if (error) {
     return (
       <>
-        <PageTitle title="Música" />
+        <PageHeader back={BACK} title="Peça" />
         <InlineError title="Essa música não abriu." nextStep={error} />
       </>
     );
   }
   if (coreStatus.status !== "ready" || !score || !limits || !session || !resultId) {
-    return <p className="text-ink-muted">Abrindo a partitura…</p>;
+    return (
+      <>
+        <PageHeader back={BACK} title="Abrindo a partitura…" />
+        <SkeletonList rows={4} label="Abrindo a partitura…" />
+      </>
+    );
   }
 
   const title = exercise?.title ?? (score.title || "Sem título");
@@ -213,101 +141,86 @@ export function PecaPage() {
     setListenRequest({ key: rangeKey(range), range, bpm: target });
   };
   const measureCount = session.measureCount;
-  const facts: [string, string][] = [
-    ["Armadura", majorKeyName(score.keyFifths, naming)],
-    ["Compasso", `${score.beatsPerMeasure}/${score.beatUnit}`],
-    ["Andamento", `${limits.writtenBpm} bpm`],
-    ["Duração", formatDuration((score.durationSeconds * sessionBpm) / limits.writtenBpm)],
-    ["Compassos", String(measureCount)],
-    ["Notas", String(score.noteCount)],
-  ];
+  const hasPhrases = measureCount > 1;
+  const shownView = hasPhrases ? view : "seus";
 
   return (
     <>
-      <PageTitle eyebrow={composer} title={title}>
-        <div className="flex flex-wrap gap-2">
-          <ListenButton listen={listen} isActive={isListeningTo(null)} label="a peça inteira" onListen={() => listenTo(null, bpm)} />
-          <Link
-          to={practicePath(playTo, bpm)}
-          className="inline-flex h-11 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10"
-        >
-          Tocar inteira
-          </Link>
-        </div>
-      </PageTitle>
+      <PageHeader
+        back={BACK}
+        title={title}
+        isWorkTitle
+        description={composer}
+        actions={
+          <>
+            <ListenButton listen={listen} isActive={isListeningTo(null)} label="a peça inteira" onListen={() => listenTo(null, bpm)} />
+            <ButtonLink to={practicePath(playTo, bpm)} variant="primary" icon="play">
+              Tocar inteira
+            </ButtonLink>
+          </>
+        }
+      />
 
-      <div className="grid gap-6">
-        <Card className="grid gap-4">
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {facts.map(([label, value]) => (
-              <div key={label} className="grid gap-0.5">
-                <dt className="text-caption text-ink-subtle">{label}</dt>
-                <dd className="font-medium">{value}</dd>
-              </div>
-            ))}
-          </dl>
-          <TempoPicker bpm={bpm} limits={limits} onChange={(next) => setChosenBpm(clampBpm(next, limits))} />
-          {listen.status === "tocando" ? (
-            <div className="grid gap-1" role="status">
-              <div className="h-1.5 overflow-hidden rounded-pill bg-surface-sunken">
-                <div className="h-full origin-left bg-primary" style={{ transform: `scaleX(${listen.progress})` }} />
-              </div>
-              <span className="text-caption text-ink-subtle">
-                Ouvindo {listeningKey === "inteira" ? "a peça inteira" : "o trecho"} a {bpm} bpm{listen.usesSamples ? "" : ", com som sintético (sem internet para baixar o violino)"}
-              </span>
+      <div className="grid gap-8">
+        <Stats label="Sobre a peça" className="rounded-lg bg-surface-sunken/60 p-5 ring-1 ring-inset ring-hairline">
+          <Stat label="Tom" value={<span className="font-sans text-heading font-semibold">{majorKeyName(score.keyFifths, naming)}</span>} />
+          <Stat label="Compasso" value={`${score.beatsPerMeasure}/${score.beatUnit}`} />
+          <Stat label="Andamento escrito" value={limits.writtenBpm} />
+          <Stat label="Duração" value={formatDuration((score.durationSeconds * sessionBpm) / limits.writtenBpm)} />
+          <Stat label="Compassos" value={measureCount} />
+        </Stats>
+
+        {listen.status === "tocando" ? <ListeningStatus progress={listen.progress} isWhole={listeningKey === "inteira"} bpm={bpm} usesSamples={listen.usesSamples} /> : null}
+
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:items-start">
+          <Section
+            title="Trechos"
+            description={shownView === "seus" ? "O trecho que o professor pediu, guardado com o andamento de agora." : "A peça dividida de 4 em 4 compassos, no andamento de estudo."}
+            action={hasPhrases ? <ChoiceChips name="vista-trechos" label="Quais trechos" value={shownView} options={SECTION_VIEWS} onChange={setView} /> : undefined}
+          >
+            <div className="grid min-w-0 gap-4">
+              {shownView === "seus" && sections.length === 0 ? (
+                <p className="rounded-md bg-surface-sunken/60 px-4 py-3 text-small text-ink-muted ring-1 ring-inset ring-hairline">Nenhum trecho ainda. Escolha os compassos abaixo e guarde.</p>
+              ) : null}
+              {shownView === "seus" && sections.length > 0 ? (
+                <List label="Seus trechos">
+                  {sections.map((section) => (
+                    <SectionRow
+                      key={section.id}
+                      range={section}
+                      bpm={clampBpm(section.bpm, limits)}
+                      playTo={playTo}
+                      listen={listen}
+                      isListening={isListeningTo(section)}
+                      onListen={() => listenTo(section, section.bpm)}
+                      onRemove={section.id === undefined ? undefined : () => void removeSection(section.id!)}
+                    />
+                  ))}
+                </List>
+              ) : null}
+              {shownView === "seus" && hasPhrases ? <MarkSectionForm measureCount={measureCount} onSave={(range) => void addSection(resultId, range, bpm)} /> : null}
+              {shownView === "frases" ? (
+                <List label="Frases automáticas">
+                  {phraseSections(measureCount).map((range) => (
+                    <SectionRow key={range.firstIndex} range={range} bpm={bpm} playTo={playTo} listen={listen} isListening={isListeningTo(range)} onListen={() => listenTo(range, bpm)} />
+                  ))}
+                </List>
+              ) : null}
             </div>
-          ) : null}
-        </Card>
+          </Section>
 
-        <Card title="Seus trechos" className="grid gap-3">
-          {sections.length === 0 ? (
-            <p className="text-ink-muted">Marque o trecho que o professor pediu para estudar. Ele fica guardado com o andamento de agora.</p>
-          ) : (
-            <ul className="divide-y divide-hairline">
-              {sections.map((section: StoredSection) => (
-                <SectionRow
-                  key={section.id}
-                  range={section}
-                  bpm={clampBpm(section.bpm, limits)}
-                  playTo={playTo}
-                  listen={listen}
-                  isListening={isListeningTo(section)}
-                  onListen={() => listenTo(section, section.bpm)}
-                  onRemove={section.id === undefined ? undefined : () => void removeSection(section.id!)}
-                />
-              ))}
-            </ul>
-          )}
-          {measureCount > 1 ? <MarkSectionForm measureCount={measureCount} onSave={(range) => void addSection(resultId, range, bpm)} /> : null}
-        </Card>
+          <aside className="grid min-w-0 gap-4" aria-label="Estudo da peça">
+            <Card title="Andamento de estudo">
+              <TempoPicker bpm={bpm} limits={limits} onChange={(next) => setChosenBpm(clampBpm(next, limits))} />
+            </Card>
+            <AddToRoutine item={{ id: resultId, title, playPath: playTo }} />
+            <PieceRecordings pieceKey={resultId} title={title} />
+          </aside>
+        </div>
 
-        {measureCount > 1 ? (
-          <Card title="Frases" className="grid gap-2">
-            <p className="text-caption text-ink-subtle">A peça dividida de 4 em 4 compassos, no andamento de estudo.</p>
-            <ul className="divide-y divide-hairline">
-              {phraseSections(measureCount).map((range) => (
-                <SectionRow
-                  key={range.firstIndex}
-                  range={range}
-                  bpm={bpm}
-                  playTo={playTo}
-                  listen={listen}
-                  isListening={isListeningTo(range)}
-                  onListen={() => listenTo(range, bpm)}
-                />
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-
-        <Card title="Histórico">
+        <Section title="Histórico">
           <HistoricoExercicio exercise={{ id: resultId, title, defaultBpm: limits.writtenBpm }} results={results} />
-        </Card>
-
-        <AddToRoutine item={{ id: resultId, title, playPath: playTo }} />
-
-        <PieceRecordings pieceKey={resultId} title={title} />
-
+        </Section>
       </div>
     </>
   );

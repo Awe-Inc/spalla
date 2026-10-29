@@ -6,8 +6,9 @@ import { useRoutines } from "@/areas/hoje/useTodayPlan";
 import type { BlockKind } from "@/data/db";
 import { addItemToRoutine, BLOCK_LABELS, PINNABLE_TYPES, routineHasItem, type RoutineItem } from "@/data/routines";
 import { Button, Card, InlineError } from "@/design/components";
+import { FIELD_CLASS } from "@/design/fields";
 
-const SELECT_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 text-body";
+const SELECT_CLASS = `${FIELD_CLASS} cursor-pointer pr-8`;
 
 export function AddToRoutine({ item }: { item: RoutineItem }) {
   const routines = useRoutines();
@@ -40,18 +41,18 @@ export function AddToRoutine({ item }: { item: RoutineItem }) {
   return (
     <Card title="Rotina" className="grid gap-3">
       {containing.length > 0 ? (
-        <p className="text-ink-muted">
+        <p className="text-small text-ink-muted">
           Já está em {containing.map((routine) => routine.name).join(", ")}.{" "}
-          <Link to="/" className="font-semibold text-primary">
+          <Link to="/" className="font-semibold text-primary underline-offset-4 hover:underline">
             Ver a sessão de hoje
           </Link>
         </p>
       ) : (
-        <p className="text-ink-muted">Ponha esta peça num bloco da sua rotina. Ela aparece na sessão no lugar da peça que o app escolheria para esse bloco.</p>
+        <p className="text-small text-ink-muted">Ponha esta peça num bloco da sua rotina. Ela aparece na sessão no lugar da peça que o app escolheria para esse bloco.</p>
       )}
       {target && !routineHasItem(target, item.id) ? (
-        <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => void submit(event)} aria-label="Adicionar à rotina">
-          <label className="grid gap-1 text-caption text-ink-subtle">
+        <form className="grid gap-3" onSubmit={(event) => void submit(event)} aria-label="Adicionar à rotina">
+          <label className="grid gap-1.5 text-small font-medium text-ink-muted">
             Rotina
             <select className={SELECT_CLASS} value={target.id} onChange={(event) => setChosenId(Number(event.target.value))}>
               {routines.map((routine) => (
@@ -61,7 +62,7 @@ export function AddToRoutine({ item }: { item: RoutineItem }) {
               ))}
             </select>
           </label>
-          <label className="grid gap-1 text-caption text-ink-subtle">
+          <label className="grid gap-1.5 text-small font-medium text-ink-muted">
             Bloco
             <select className={SELECT_CLASS} value={type} onChange={(event) => setType(event.target.value as BlockKind)}>
               {PINNABLE_TYPES.map((kind) => (
@@ -71,7 +72,7 @@ export function AddToRoutine({ item }: { item: RoutineItem }) {
               ))}
             </select>
           </label>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" icon="mais" loading={saving} disabled={saving}>
             Adicionar à rotina
           </Button>
         </form>

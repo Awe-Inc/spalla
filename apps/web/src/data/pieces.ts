@@ -31,9 +31,23 @@ export interface PieceFilters {
   composer: string | null;
   genre: string | null;
   status: PieceStatus | null;
+  query: string;
 }
 
-export const EMPTY_FILTERS: PieceFilters = { level: null, composer: null, genre: null, status: null };
+export const EMPTY_FILTERS: PieceFilters = { level: null, composer: null, genre: null, status: null, query: "" };
+
+function foldText(text: string): string {
+  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR").trim();
+}
+
+function matchesQuery(piece: CatalogPiece, query: string): boolean {
+  const needle = foldText(query);
+  return needle === "" || foldText(`${piece.title} ${piece.composer}`).includes(needle);
+}
+
+export function hasActiveFilters(filters: PieceFilters): boolean {
+  return filters.level !== null || filters.composer !== null || filters.genre !== null || filters.status !== null || filters.query.trim() !== "";
+}
 
 export function catalogFromCurriculum(curriculum: readonly CurriculumModule[]): CatalogPiece[] {
   return curriculum.flatMap((module) =>
@@ -85,7 +99,8 @@ export function filterPieces(pieces: readonly CatalogPiece[], statuses: Readonly
       (filters.level === null || piece.level === filters.level) &&
       (filters.composer === null || piece.composer === filters.composer) &&
       (filters.genre === null || piece.genre === filters.genre) &&
-      (filters.status === null || statuses.get(piece.key) === filters.status),
+      (filters.status === null || statuses.get(piece.key) === filters.status) &&
+      matchesQuery(piece, filters.query),
   );
 }
 

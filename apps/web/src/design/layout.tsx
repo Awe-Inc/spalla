@@ -9,9 +9,10 @@ interface PageHeaderProps {
   back?: { to: string; label: string };
   actions?: ReactNode;
   size?: "display" | "title";
+  isWorkTitle?: boolean;
 }
 
-export function PageHeader({ title, description, back, actions, size = "title" }: PageHeaderProps) {
+export function PageHeader({ title, description, back, actions, size = "title", isWorkTitle = false }: PageHeaderProps) {
   return (
     <header className="mb-8 grid gap-3">
       {back ? (
@@ -22,7 +23,7 @@ export function PageHeader({ title, description, back, actions, size = "title" }
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <div className="grid min-w-0 gap-2">
-          <h1 className={`font-display ${size === "display" ? "text-display" : "text-title"}`}>{title}</h1>
+          <h1 className={`font-display ${size === "display" ? "text-display" : "text-title"} ${isWorkTitle ? "italic" : ""}`}>{title}</h1>
           {description ? <p className="max-w-prose text-body text-ink-muted">{description}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

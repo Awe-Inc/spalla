@@ -2,7 +2,7 @@ import type { CurriculumModule, Exercise } from "@fretless/core";
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult } from "./db";
-import { catalogFromCurriculum, catalogFromStored, EMPTY_FILTERS, filterPieces, levelFromNoteCount, pieceStatus, statusByPiece } from "./pieces";
+import { catalogFromCurriculum, catalogFromStored, EMPTY_FILTERS, filterPieces, hasActiveFilters, levelFromNoteCount, pieceStatus, statusByPiece } from "./pieces";
 
 function exercise(overrides: Partial<Exercise>): Exercise {
   return {
@@ -72,6 +72,7 @@ describe("pieceStatus", () => {
     expect(filterPieces(catalog, statuses, { ...EMPTY_FILTERS, status: "dominada" }).map((piece) => piece.key)).toEqual(["repertoire.0"]);
     expect(filterPieces(catalog, statuses, { ...EMPTY_FILTERS, status: "nao-iniciada", level: 1 }).map((piece) => piece.key)).toEqual(["suzuki.twinkle.0"]);
     expect(filterPieces(catalog, statuses, { ...EMPTY_FILTERS, composer: "Beethoven", genre: "Outro" })).toEqual([]);
+    expect(filterPieces(catalog, statuses, { ...EMPTY_FILTERS, query: "  BEETHOVEN " }).map((piece) => piece.key)).toEqual(["repertoire.0"]);
   });
 });
 
@@ -81,5 +82,14 @@ describe("levelFromNoteCount", () => {
     expect(levelFromNoteCount(60, 90)).toBe(2);
     expect(levelFromNoteCount(120, 120)).toBe(3);
     expect(levelFromNoteCount(300, 120)).toBe(4);
+  });
+});
+
+describe("hasActiveFilters", () => {
+  it("ignores a query made only of spaces", () => {
+    expect(hasActiveFilters(EMPTY_FILTERS)).toBe(false);
+    expect(hasActiveFilters({ ...EMPTY_FILTERS, query: "   " })).toBe(false);
+    expect(hasActiveFilters({ ...EMPTY_FILTERS, query: "ode" })).toBe(true);
+    expect(hasActiveFilters({ ...EMPTY_FILTERS, level: 2 })).toBe(true);
   });
 });

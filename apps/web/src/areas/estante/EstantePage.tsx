@@ -1,10 +1,11 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState, type ChangeEvent } from "react";
-import { Link } from "react-router";
 
 import { db, type StoredSheet } from "@/data/db";
 import { describeStorageError, importSheetFile, pageCountLabel, removeSheet } from "@/data/sheets";
-import { Button, Card, EmptyState, InlineError, PageTitle } from "@/design/components";
+import { buttonClass, ButtonLink, EmptyState, InlineError, Menu } from "@/design/components";
+import { Icon } from "@/design/icons";
+import { List, ListRow, PageHeader, SkeletonList } from "@/design/layout";
 import { countPdfPages } from "@/pdf/pdfDocument";
 
 import { RepertorioTabs } from "../musicas/RepertorioTabs";
@@ -18,27 +19,49 @@ async function importOne(file: File): Promise<string | null> {
   }
 }
 
+function sheetPath(sheet: StoredSheet): string {
+  return `/repertorio/estante/${sheet.id}`;
+}
+
 function SheetRow({ sheet, onRemove }: { sheet: StoredSheet; onRemove: (sheet: StoredSheet) => void }) {
   return (
-    <li>
-      <Card as="article" className="flex flex-wrap items-center justify-between gap-4">
-        <div className="grid gap-1">
-          <h2 className="text-heading font-semibold">{sheet.title}</h2>
-          <p className="text-ink-muted">
-            {pageCountLabel(sheet.pageCount)}
-            {sheet.lastPage > 1 ? ` · parou na página ${sheet.lastPage}` : ""}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => onRemove(sheet)}>
-            Remover
-          </Button>
-          <Link to={`/repertorio/estante/${sheet.id}`} className="inline-flex h-11 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10">
+    <ListRow
+      to={sheetPath(sheet)}
+      leading={
+        <span className="grid size-10 place-items-center rounded-sm bg-surface-soft text-ink-muted ring-1 ring-inset ring-hairline">
+          <Icon name="repertorio" className="size-5" />
+        </span>
+      }
+      title={<span className="font-display text-heading font-normal italic">{sheet.title}</span>}
+      meta={
+        <>
+          {pageCountLabel(sheet.pageCount)}
+          {sheet.lastPage > 1 ? (
+            <>
+              , parou na página <span className="font-mono tabular">{sheet.lastPage}</span>
+            </>
+          ) : null}
+        </>
+      }
+      trailing={
+        <>
+          <Menu label={`Ações de ${sheet.title}`} items={[{ label: "Apagar da estante", icon: "apagar", tone: "danger", onSelect: () => onRemove(sheet) }]} />
+          <ButtonLink to={sheetPath(sheet)} variant="primary" aria-label={`Abrir ${sheet.title}`}>
             Abrir
-          </Link>
-        </div>
-      </Card>
-    </li>
+          </ButtonLink>
+        </>
+      }
+    />
+  );
+}
+
+function ImportPdfButton({ busy, onFiles }: { busy: boolean; onFiles: (event: ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <label className={`${buttonClass("secondary")} cursor-pointer has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus ${busy ? "pointer-events-none opacity-50" : ""}`}>
+      <Icon name="importar" className="size-5" />
+      {busy ? "Guardando…" : "Importar PDF"}
+      <input type="file" accept=".pdf,application/pdf" multiple className="sr-only" onChange={onFiles} disabled={busy} />
+    </label>
   );
 }
 
@@ -62,34 +85,35 @@ export function EstantePage() {
   }
 
   function confirmRemove(sheet: StoredSheet) {
-    if (window.confirm(`Remover "${sheet.title}" da estante? O PDF sai do aparelho.`)) void removeSheet(sheet.id!);
+    if (sheet.id !== undefined && window.confirm(`Apagar "${sheet.title}" da estante? O PDF sai do aparelho.`)) void removeSheet(sheet.id);
   }
 
   return (
     <>
-      <PageTitle title="Repertório">
-        <label className="inline-flex h-11 cursor-pointer items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus md:h-10">
-          {isImporting ? "Guardando…" : "Importar PDF"}
-          <input type="file" accept=".pdf,application/pdf" multiple className="sr-only" onChange={(event) => void onFiles(event)} disabled={isImporting} />
-        </label>
-      </PageTitle>
+      <PageHeader
+        title="Repertório"
+        description="Métodos e partituras em PDF para tocar lendo a página, com afinador, metrônomo e nota pedal do lado."
+        actions={<ImportPdfButton busy={isImporting} onFiles={(event) => void onFiles(event)} />}
+      />
       <RepertorioTabs />
 
-      {error ? <InlineError title="Algum PDF não entrou." nextStep={error} /> : null}
+      <div className="grid gap-4">
+        {error ? <InlineError title="Algum PDF não entrou." nextStep={error} /> : null}
 
-      {sheets === undefined ? <p className="text-ink-muted">Abrindo a estante…</p> : null}
+        {sheets === undefined ? <SkeletonList rows={3} label="Abrindo a estante…" /> : null}
 
-      {sheets !== undefined && sheets.length === 0 ? (
-        <EmptyState title="A estante está vazia." description="Importe um método ou uma partitura em PDF para tocar lendo a página, com afinador, metrônomo e nota pedal do lado. Nada aqui vale XP: é só estudo." />
-      ) : null}
+        {sheets !== undefined && sheets.length === 0 ? (
+          <EmptyState title="A estante está vazia." description="Importe um método ou uma partitura em PDF. Nada aqui vale XP: é só estudo com a página aberta." />
+        ) : null}
 
-      {sheets !== undefined && sheets.length > 0 ? (
-        <ul className="grid gap-4">
-          {sheets.map((sheet) => (
-            <SheetRow key={sheet.id} sheet={sheet} onRemove={confirmRemove} />
-          ))}
-        </ul>
-      ) : null}
+        {sheets !== undefined && sheets.length > 0 ? (
+          <List label="PDFs da estante">
+            {sheets.map((sheet) => (
+              <SheetRow key={sheet.id} sheet={sheet} onRemove={confirmRemove} />
+            ))}
+          </List>
+        ) : null}
+      </div>
     </>
   );
 }

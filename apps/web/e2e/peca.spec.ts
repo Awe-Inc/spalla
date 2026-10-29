@@ -12,7 +12,7 @@ test("um trecho marcado no detalhe da peça fica guardado e abre o Tocar em loop
   );
 
   await page.goto("/repertorio");
-  await page.getByRole("link", { name: `Trechos e andamento: ${LIBRARY_TITLE}` }).click();
+  await page.getByRole("link", { name: LIBRARY_TITLE, exact: true }).click();
   await expect(page.getByRole("heading", { name: LIBRARY_TITLE })).toBeVisible();
 
   await page.getByRole("button", { name: "Diminuir 5 bpm" }).click();
@@ -23,7 +23,7 @@ test("um trecho marcado no detalhe da peça fica guardado e abre o Tocar em loop
   await expect(page.getByRole("button", { name: `Apagar trecho: ${SECTION_LABEL}` })).toBeVisible();
 
   await page.reload();
-  const practice = page.getByRole("link", { name: `Praticar em loop: ${SECTION_LABEL}` }).first();
+  const practice = page.getByRole("link", { name: `Treinar trecho: ${SECTION_LABEL}` }).first();
   await expect(practice).toBeVisible();
   const href = await practice.getAttribute("href");
   expect(href).toContain("de=2&ate=3&bpm=");
