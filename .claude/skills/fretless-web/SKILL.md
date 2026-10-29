@@ -14,10 +14,11 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (99 cases) + vitest core (14) + vitest web (202)
+pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (210)
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
-                                   # scales.1oct.69 with the synthetic player (~35 s); first run needs
+                                   # scales.1oct.69 and one CC0 song from Músicas with the synthetic
+                                   # player (~55 s); first run needs
                                    # `pnpm --filter @fretless/web exec playwright install chromium`
 pnpm --filter @fretless/web build  # tsc -b + vite build → apps/web/dist (PWA, service worker, 404.html = SPA fallback)
 BASE_PATH=/fretless/ pnpm --filter @fretless/web build   # sub-path build (GitHub Pages); from PowerShell on Windows,
@@ -26,7 +27,7 @@ pnpm dev                           # vite on http://localhost:5180 (preview: 418
 ```
 
 `packages/core/scripts/build.mjs` finds `emcmake` in `%USERPROFILE%\emsdk` and Ninja through `vswhere`. The native
-test binary is compiled to `dist/fretless_core_tests.cjs` too, so the same 100 cases run in both worlds (the
+test binary is compiled to `dist/fretless_core_tests.cjs` too, so the same 101 cases run in both worlds (the
 threaded ring-buffer case is skipped without pthreads).
 
 Ports are fixed in `apps/web/vite.config.ts` (`strictPort`): 5180 dev, 4180 preview. Never change them to a port
@@ -93,7 +94,12 @@ apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDay
                                  dia que já existe não é tocado),
                                  pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
                                  estudo/dominada, filtros), importPiece.ts (MusicXML → `db.pieces`, 8 MB, mesmo
-                                 fileName substitui), lessons.ts (caderno da aula: CRUD de `lessonTasks`,
+                                 fileName substitui), library.ts (biblioteca CC0: `library.json` + URLs dos
+                                 .mxl de assets/songs/community por import.meta.glob `?url`, precacheados;
+                                 `/tocar/biblioteca/:librarySlug`, resultado `biblioteca:<slug>`; o json é
+                                 snapshot de library.manifest.test.ts, que lê os arquivos com o core real —
+                                 canção nova: `python tools/fetch_library.py --count N`, depois
+                                 `pnpm --filter @fretless/web exec vitest run src/data/library.manifest.test.ts -u`), lessons.ts (caderno da aula: CRUD de `lessonTasks`,
                                  `nextLessonSentence` a partir de `settings.lessonWeekday`), weekSummary.ts (janela
                                  desde a última aula, totais, exercício mais fraco, tendência ±5 cents, linhas PT-BR
                                  para a professora) — todos os .ts puros

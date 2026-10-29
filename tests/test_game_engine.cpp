@@ -37,6 +37,32 @@ score::Score loadFourNotes() {
     return parsed.value_or(score::Score{});
 }
 
+/// Eighth notes at 150 BPM, 0.2 s each — shorter than the onset tolerance
+/// window on both sides of a note — with one pitch repeated.
+score::Score loadFastRun() {
+    const char* steps[] = {"A", "B", "A", "G", "G", "A", "B", "A"};
+    std::string notes;
+    for (const char* step : steps) {
+        notes += std::string("<note><pitch><step>") + step +
+                 "</step><octave>4</octave></pitch><duration>2</duration></note>";
+    }
+    const std::string xml =
+        R"(<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>4</divisions><key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <direction><sound tempo="150"/></direction>)" +
+        notes + R"(
+    </measure>
+  </part>
+</score-partwise>)";
+    auto parsed = score::parseMusicXmlBuffer(xml.c_str(), xml.size());
+    return parsed.value_or(score::Score{});
+}
+
 /// Feeds the engine a stream that is `centsOffset` away from whatever note is
 /// written at that moment, at a realistic block rate.
 void playAlong(game::GameEngine& engine, const score::Score& sheet,
@@ -85,6 +111,22 @@ TEST(game_engine_judges_each_note_exactly_once) {
     // was scored ~85 times and a sixteenth twice.
     CHECK_EQ(engine.stats().judgedNotes, 4);
     CHECK_EQ(engine.allJudgements().size(), std::size_t{4});
+}
+
+TEST(a_fast_run_played_in_tune_has_no_misses) {
+    const auto sheet = loadFastRun();
+    CHECK_EQ(sheet.noteCount(), std::size_t{8});
+
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    playAlong(engine, sheet, 0.0f, 3.0);
+
+    // Each note used to keep the next one's first 180 ms, so a note shorter
+    // than the tolerance window on both sides never reached its voiced ratio.
+    CHECK_EQ(engine.stats().judgedNotes, 8);
+    CHECK_EQ(engine.stats().miss, 0);
 }
 
 TEST(game_engine_grades_by_distance_from_the_written_pitch) {

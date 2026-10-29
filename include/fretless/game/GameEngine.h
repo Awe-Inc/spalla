@@ -150,6 +150,8 @@ public:
 private:
     void  judgeCurrentNote(double atTime);
     void  advanceCursorTo(double time);
+    void  accumulate(const audio::PitchFrame& frame);
+    void  releaseNoteTheFrameHasLeft(const audio::PitchFrame& frame);
     void  resetAccumulator() noexcept;
     [[nodiscard]] int comboMultiplier() const noexcept;
 

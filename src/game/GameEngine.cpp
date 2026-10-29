@@ -131,36 +131,10 @@ void GameEngine::update(double deltaSeconds,
     const auto& events = score_->events;
 
     // ── Fold this tick's audio into the current note's accumulator ────────
-    if (cursor_ < events.size() && !events[cursor_].isRest) {
-        const auto& note = events[cursor_];
-        const double windowStart = note.startSeconds - config_.onsetToleranceSec;
-        const double windowEnd   = note.endSeconds() + config_.onsetToleranceSec;
-
-        acc_.hasLive = false;
-        for (std::size_t i = 0; i < frameCount; ++i) {
-            const auto& frame = frames[i];
-            if (songTime_ < windowStart || songTime_ > windowEnd) {
-                break;
-            }
-            ++acc_.samples;
-            if (frame.frequencyHz <= 0.0f) {
-                continue;
-            }
-
-            const float cents = centsBetween(frame.frequencyHz, note.frequencyHz);
-            acc_.lastCents = cents;
-            acc_.hasLive   = true;
-
-            if (std::fabs(cents) <= config_.centsGood) {
-                ++acc_.voicedInTune;
-                acc_.centsSum += cents;
-                acc_.worstCents = std::max(acc_.worstCents, std::fabs(cents));
-                if (!acc_.onsetSeen) {
-                    acc_.onsetSeen = true;
-                    acc_.onsetTime = songTime_;
-                }
-            }
-        }
+    acc_.hasLive = false;
+    for (std::size_t i = 0; i < frameCount; ++i) {
+        releaseNoteTheFrameHasLeft(frames[i]);
+        accumulate(frames[i]);
     }
 
     // ── Close out every note whose window has passed ──────────────────────
@@ -173,6 +147,83 @@ void GameEngine::update(double deltaSeconds,
 
     if (cursor_ >= events.size() && songTime_ > score_->durationSeconds()) {
         state_ = GameState::Finished;
+    }
+}
+
+void GameEngine::accumulate(const audio::PitchFrame& frame) {
+    const auto& events = score_->events;
+    if (cursor_ >= events.size() || events[cursor_].isRest) {
+        return;
+    }
+    const auto& note = events[cursor_];
+    if (songTime_ < note.startSeconds - config_.onsetToleranceSec ||
+        songTime_ > note.endSeconds() + config_.onsetToleranceSec) {
+        return;
+    }
+
+    const bool  voiced  = frame.frequencyHz > 0.0f;
+    const float cents   = voiced ? centsBetween(frame.frequencyHz, note.frequencyHz) : 0.0f;
+    const bool  inTune  = voiced && std::fabs(cents) <= config_.centsGood;
+    // Past the written end the window only exists to credit a late player.
+    // Counting silence or other pitches there would charge this note for the
+    // gap before, or the start of, the next one.
+    if (songTime_ > note.endSeconds() && !inTune) {
+        return;
+    }
+
+    ++acc_.samples;
+    if (!voiced) {
+        return;
+    }
+    acc_.lastCents = cents;
+    acc_.hasLive   = true;
+    if (inTune) {
+        ++acc_.voicedInTune;
+        acc_.centsSum += cents;
+        acc_.worstCents = std::max(acc_.worstCents, std::fabs(cents));
+        if (!acc_.onsetSeen) {
+            acc_.onsetSeen = true;
+            acc_.onsetTime = songTime_;
+        }
+    }
+}
+
+void GameEngine::releaseNoteTheFrameHasLeft(const audio::PitchFrame& frame) {
+    const auto& events = score_->events;
+    if (cursor_ >= events.size() || events[cursor_].isRest) {
+        return;
+    }
+    const auto& note = events[cursor_];
+    if (songTime_ <= note.endSeconds() || frame.frequencyHz <= 0.0f) {
+        return;
+    }
+
+    // Holding the window open until end + tolerance used to swallow the first
+    // 180 ms of the next note, so every note shorter than the window on both
+    // sides was a miss however well it was played. Once the written time is
+    // over, a sounding frame that is not this note — or that is, but the next
+    // note repeats the pitch — belongs to what comes next.
+    const bool stillThisNote =
+        std::fabs(centsBetween(frame.frequencyHz, note.frequencyHz)) <= config_.centsGood;
+    const score::ScoreEvent* next = nullptr;
+    for (std::size_t i = cursor_ + 1; i < events.size(); ++i) {
+        if (!events[i].isRest) {
+            next = &events[i];
+            break;
+        }
+    }
+    const bool nextRepeats = next != nullptr &&
+        std::fabs(centsBetween(next->frequencyHz, note.frequencyHz)) <= config_.centsGood;
+    if (stillThisNote && !nextRepeats) {
+        return;
+    }
+
+    judgeCurrentNote(note.endSeconds());
+    ++cursor_;
+    resetAccumulator();
+    while (cursor_ < events.size() && events[cursor_].isRest &&
+           songTime_ > events[cursor_].endSeconds()) {
+        ++cursor_;
     }
 }
 

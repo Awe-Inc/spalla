@@ -1,0 +1,992 @@
+[
+  {
+    "slug": "5_abendd_mmerung_johannes_brahms",
+    "file": "5_Abendd_mmerung_Johannes_Brahms.mxl",
+    "title": "Abenddämmerung",
+    "composer": "Johannes Brahms",
+    "noteCount": 196,
+    "beatsPerMinute": 80,
+    "level": 4
+  },
+  {
+    "slug": "4_ach_wende_diesen_blick_johannes_brahms",
+    "file": "4_Ach_wende_diesen_Blick_Johannes_Brahms.mxl",
+    "title": "Ach, wende diesen Blick",
+    "composer": "Johannes Brahms",
+    "noteCount": 129,
+    "beatsPerMinute": 60,
+    "level": 3
+  },
+  {
+    "slug": "adieu_cousine_lo_sa_puget",
+    "file": "Adieu_cousine_Lo_sa_Puget.mxl",
+    "title": "Adieu, cousine",
+    "composer": "Loïsa Puget",
+    "noteCount": 366,
+    "beatsPerMinute": 100,
+    "level": 4
+  },
+  {
+    "slug": "4_adieux_de_l_h_tesse_arabe_georges_bizet",
+    "file": "4_Adieux_de_l_h_tesse_arabe_Georges_Bizet.mxl",
+    "title": "Adieux de l'hôtesse arabe",
+    "composer": "Georges Bizet",
+    "noteCount": 42,
+    "beatsPerMinute": 72,
+    "level": 2
+  },
+  {
+    "slug": "1_air_du_rat_erik_satie",
+    "file": "1_Air_du_rat_Erik_Satie.mxl",
+    "title": "Air du rat",
+    "composer": "Erik Satie",
+    "noteCount": 48,
+    "beatsPerMinute": 70,
+    "level": 2
+  },
+  {
+    "slug": "6_altdeutsches_fr_hlingslied_mwv_k_127_felix_mendelssohn",
+    "file": "6_Altdeutsches_Fr_hlingslied_MWV_K_127_Felix_Mendelssohn.mxl",
+    "title": "Altdeutsches Frühlingslied, MWV K 127",
+    "composer": "Felix Mendelssohn",
+    "noteCount": 161,
+    "beatsPerMinute": 112,
+    "level": 4
+  },
+  {
+    "slug": "1_am_wasserfall_josephine_lang",
+    "file": "1_Am_Wasserfall_Josephine_Lang.mxl",
+    "title": "Am Wasserfall",
+    "composer": "Josephine Lang",
+    "noteCount": 120,
+    "beatsPerMinute": 114,
+    "level": 3
+  },
+  {
+    "slug": "5_an_den_mond_johanna_kinkel",
+    "file": "5_An_den_Mond_Johanna_Kinkel.mxl",
+    "title": "An den Mond",
+    "composer": "Johanna Kinkel",
+    "noteCount": 220,
+    "beatsPerMinute": 94,
+    "level": 4
+  },
+  {
+    "slug": "12_an_meine_entfernte_lieben_maria_theresia_von_paradis",
+    "file": "12_An_meine_entfernte_Lieben_Maria_Theresia_von_Paradis.mxl",
+    "title": "An meine entfernte Lieben",
+    "composer": "Maria Theresia von Paradis",
+    "noteCount": 81,
+    "beatsPerMinute": 50,
+    "level": 3
+  },
+  {
+    "slug": "15_apr_s_l_hiver_georges_bizet",
+    "file": "15_Apr_s_l_hiver_Georges_Bizet.mxl",
+    "title": "Après l’hiver",
+    "composer": "Georges Bizet",
+    "noteCount": 261,
+    "beatsPerMinute": 96,
+    "level": 4
+  },
+  {
+    "slug": "2_au_cimeti_re_gabriel_faur",
+    "file": "2_Au_cimeti_re_Gabriel_Faur.mxl",
+    "title": "Au cimetière",
+    "composer": "Gabriel Fauré",
+    "noteCount": 224,
+    "beatsPerMinute": 66,
+    "level": 4
+  },
+  {
+    "slug": "aubade_c_cile_chaminade",
+    "file": "Aubade_C_cile_Chaminade.mxl",
+    "title": "Aubade",
+    "composer": "Cécile Chaminade",
+    "noteCount": 233,
+    "beatsPerMinute": 60,
+    "level": 4
+  },
+  {
+    "slug": "7_auf_dem_flusse_franz_schubert",
+    "file": "7_Auf_dem_Flusse_Franz_Schubert.mxl",
+    "title": "Auf dem Flusse",
+    "composer": "Franz Schubert",
+    "noteCount": 204,
+    "beatsPerMinute": 43,
+    "level": 4
+  },
+  {
+    "slug": "07_auf_einer_burg_robert_schumann",
+    "file": "07_Auf_einer_Burg_Robert_Schumann.mxl",
+    "title": "Auf einer Burg",
+    "composer": "Robert Schumann",
+    "noteCount": 131,
+    "beatsPerMinute": 70,
+    "level": 3
+  },
+  {
+    "slug": "15_aus_den_hebr_ischen_ges_ngen_mein_herz_ist_schwer_robert_schumann",
+    "file": "15_Aus_den_hebr_ischen_Ges_ngen_Mein_Herz_ist_schwer_Robert_Schumann.mxl",
+    "title": "Aus den hebräischen Gesängen (Mein Herz ist schwer)",
+    "composer": "Robert Schumann",
+    "noteCount": 149,
+    "beatsPerMinute": 53,
+    "level": 3
+  },
+  {
+    "slug": "03_aus_dem_siegwart_wohl_und_immer_wohl_dem_mann_maria_theresia_von_para",
+    "file": "03_Aus_dem_Siegwart_Wohl_und_immer_wohl_dem_Mann_Maria_Theresia_von_Para.mxl",
+    "title": "Aus Siegwart",
+    "composer": "Maria Theresia von Paradis",
+    "noteCount": 86,
+    "beatsPerMinute": 92,
+    "level": 3
+  },
+  {
+    "slug": "3_barcarole_josephine_lang",
+    "file": "3_Barcarole_Josephine_Lang.mxl",
+    "title": "Barcarole",
+    "composer": "Josephine Lang",
+    "noteCount": 231,
+    "beatsPerMinute": 45,
+    "level": 4
+  },
+  {
+    "slug": "by_dimpled_brook_thomas_arne",
+    "file": "By_Dimpled_Brook_Thomas_Arne.mxl",
+    "title": "By Dimpled Brook",
+    "composer": "Thomas Arne",
+    "noteCount": 94,
+    "beatsPerMinute": 116,
+    "level": 3
+  },
+  {
+    "slug": "celia_s_complaint_thomas_arne",
+    "file": "Celia_s_Complaint_Thomas_Arne.mxl",
+    "title": "Celia’s Complaint",
+    "composer": "Thomas Arne",
+    "noteCount": 146,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "17_chant_d_amour_georges_bizet",
+    "file": "17_Chant_d_amour_Georges_Bizet.mxl",
+    "title": "Chant d’amour",
+    "composer": "Georges Bizet",
+    "noteCount": 284,
+    "beatsPerMinute": 100,
+    "level": 4
+  },
+  {
+    "slug": "5_das_ist_ein_tag_der_klingen_mag_clara_schumann",
+    "file": "5_Das_ist_ein_Tag_der_klingen_mag_Clara_Schumann.mxl",
+    "title": "Das ist ein Tag, der klingen mag",
+    "composer": "Clara Schumann",
+    "noteCount": 84,
+    "beatsPerMinute": 108,
+    "level": 3
+  },
+  {
+    "slug": "11_das_m_dchen_am_ufer_corona_schr_ter",
+    "file": "11_Das_M_dchen_am_Ufer_Corona_Schr_ter.mxl",
+    "title": "Das Mädchen am Ufer",
+    "composer": "Corona Elisabeth Wilhelmine Schröter",
+    "noteCount": 58,
+    "beatsPerMinute": 80,
+    "level": 2
+  },
+  {
+    "slug": "1_dein_luise_greger",
+    "file": "1_Dein_Luise_Greger.mxl",
+    "title": "Dein, Op.122",
+    "composer": "Luise Greger",
+    "noteCount": 169,
+    "beatsPerMinute": 120,
+    "level": 4
+  },
+  {
+    "slug": "3_der_himmel_mit_all_seinen_sonnen_w_r_mein_josephine_lang",
+    "file": "3_Der_Himmel_mit_all_seinen_Sonnen_w_r_mein_Josephine_Lang.mxl",
+    "title": "Der Himmel mit all' seinen Sonnen wär' mein",
+    "composer": "Josephine Lang",
+    "noteCount": 258,
+    "beatsPerMinute": 116,
+    "level": 4
+  },
+  {
+    "slug": "5_der_schnee_ist_zergangen_robert_franz",
+    "file": "5_Der_Schnee_ist_zergangen_Robert_Franz.mxl",
+    "title": "Der Schnee is zergangen",
+    "composer": "Robert Franz",
+    "noteCount": 100,
+    "beatsPerMinute": 116,
+    "level": 3
+  },
+  {
+    "slug": "05_der_soldat_i_hugo_wolf",
+    "file": "05_Der_Soldat_I_Hugo_Wolf.mxl",
+    "title": "Der Soldat I",
+    "composer": "Hugo Wolf",
+    "noteCount": 128,
+    "beatsPerMinute": 140,
+    "level": 3
+  },
+  {
+    "slug": "1_der_spanische_zitherknabe_johanna_kinkel",
+    "file": "1_Der_spanische_Zitherknabe_Johanna_Kinkel.mxl",
+    "title": "Der Spanische Zitherknabe",
+    "composer": "Johanna Kinkel",
+    "noteCount": 462,
+    "beatsPerMinute": 116,
+    "level": 4
+  },
+  {
+    "slug": "14_der_verzweifelte_liebhaber_hugo_wolf",
+    "file": "14_Der_verzweifelte_Liebhaber_Hugo_Wolf.mxl",
+    "title": "Der verzweifelte Liebhaber",
+    "composer": "Hugo Wolf",
+    "noteCount": 111,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "4_der_vielsch_nen_fraue_robert_franz",
+    "file": "4_Der_vielsch_nen_Fraue_Robert_Franz.mxl",
+    "title": "Der vielschönen Fraue",
+    "composer": "Robert Franz",
+    "noteCount": 152,
+    "beatsPerMinute": 118,
+    "level": 3
+  },
+  {
+    "slug": "20_der_wegweiser_franz_schubert",
+    "file": "20_Der_Wegweiser_Franz_Schubert.mxl",
+    "title": "Der Wegweiser",
+    "composer": "Franz Schubert",
+    "noteCount": 230,
+    "beatsPerMinute": 120,
+    "level": 4
+  },
+  {
+    "slug": "16_die_alten_b_sen_lieder_robert_schumann",
+    "file": "16_Die_alten_b_sen_Lieder_Robert_Schumann.mxl",
+    "title": "Die alten, bösen Lieder",
+    "composer": "Robert Schumann",
+    "noteCount": 168,
+    "beatsPerMinute": 80,
+    "level": 4
+  },
+  {
+    "slug": "03_die_blume_der_blumen_louise_reichardt",
+    "file": "03_Die_Blume_der_Blumen_Louise_Reichardt.mxl",
+    "title": "Die Blume der Blumen",
+    "composer": "Louise Reichardt",
+    "noteCount": 151,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "3_die_geister_haben_s_vernommen_johanna_kinkel",
+    "file": "3_Die_Geister_haben_s_vernommen_Johanna_Kinkel.mxl",
+    "title": "Die Geister haben's vernommen",
+    "composer": "Johanna Kinkel",
+    "noteCount": 201,
+    "beatsPerMinute": 53,
+    "level": 4
+  },
+  {
+    "slug": "3a_die_k_nige_peter_cornelius",
+    "file": "3a_Die_K_nige_Peter_Cornelius.mxl",
+    "title": "Die Könige",
+    "composer": "Peter Cornelius",
+    "noteCount": 174,
+    "beatsPerMinute": 85,
+    "level": 4
+  },
+  {
+    "slug": "3_die_lotosblume_robert_franz",
+    "file": "3_Die_Lotosblume_Robert_Franz.mxl",
+    "title": "Die Lotosblume",
+    "composer": "Robert Franz",
+    "noteCount": 113,
+    "beatsPerMinute": 65,
+    "level": 3
+  },
+  {
+    "slug": "11_die_stadt_franz_schubert",
+    "file": "11_Die_Stadt_Franz_Schubert.mxl",
+    "title": "Die Stadt",
+    "composer": "Franz Schubert",
+    "noteCount": 85,
+    "beatsPerMinute": 60,
+    "level": 3
+  },
+  {
+    "slug": "07_die_zigeunerin_hugo_wolf",
+    "file": "07_Die_Zigeunerin_Hugo_Wolf.mxl",
+    "title": "Die Zigeunerin",
+    "composer": "Hugo Wolf",
+    "noteCount": 221,
+    "beatsPerMinute": 55,
+    "level": 4
+  },
+  {
+    "slug": "5_disturb_it_not_liza_lehmann",
+    "file": "5_Disturb_It_Not_Liza_Lehmann.mxl",
+    "title": "Disturb It Not",
+    "composer": "Liza Lehmann",
+    "noteCount": 133,
+    "beatsPerMinute": 92,
+    "level": 3
+  },
+  {
+    "slug": "3_du_denkst_an_mich_so_selten_josephine_lang",
+    "file": "3_Du_denkst_an_mich_so_selten_Josephine_Lang.mxl",
+    "title": "Du denkst an mich so selten",
+    "composer": "Josephine Lang",
+    "noteCount": 169,
+    "beatsPerMinute": 92,
+    "level": 4
+  },
+  {
+    "slug": "12_duettino_louise_reichardt",
+    "file": "12_Duettino_Louise_Reichardt.mxl",
+    "title": "Duettino",
+    "composer": "Louise Reichardt",
+    "noteCount": 131,
+    "beatsPerMinute": 100,
+    "level": 3
+  },
+  {
+    "slug": "4_fauves_las_ernest_chausson",
+    "file": "4_Fauves_las_Ernest_Chausson.mxl",
+    "title": "Fauves las",
+    "composer": "Ernest Chausson",
+    "noteCount": 133,
+    "beatsPerMinute": 114,
+    "level": 3
+  },
+  {
+    "slug": "2_feuerfarb_ludwig_van_beethoven",
+    "file": "2_Feuerfarb_Ludwig_van_Beethoven.mxl",
+    "title": "Feuerfarb",
+    "composer": "Ludwig van Beethoven",
+    "noteCount": 297,
+    "beatsPerMinute": 75,
+    "level": 4
+  },
+  {
+    "slug": "five_o_clock_in_the_morning_charlotte_alington_barnard",
+    "file": "Five_o_clock_in_the_morning_Charlotte_Alington_Barnard.mxl",
+    "title": "Five o’clock in the morning",
+    "composer": "Charlotte Alington Barnard [published as \"Claribel\"]",
+    "noteCount": 263,
+    "beatsPerMinute": 114,
+    "level": 4
+  },
+  {
+    "slug": "4_flieder_mathilde_kralik",
+    "file": "4_Flieder_Mathilde_Kralik.mxl",
+    "title": "Flieder",
+    "composer": "Mathilde Kralik",
+    "noteCount": 102,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "forgiven_elizabeth_philp",
+    "file": "Forgiven_Elizabeth_Philp.mxl",
+    "title": "Forgiven",
+    "composer": "Elizabeth Philp",
+    "noteCount": 233,
+    "beatsPerMinute": 94,
+    "level": 4
+  },
+  {
+    "slug": "1_gedenkst_du_mein_josephine_lang",
+    "file": "1_Gedenkst_du_mein_Josephine_Lang.mxl",
+    "title": "Gedenkst du mein?",
+    "composer": "Josephine Lang",
+    "noteCount": 199,
+    "beatsPerMinute": 92,
+    "level": 4
+  },
+  {
+    "slug": "hail_frederic_hymen_cowen",
+    "file": "Hail_Frederic_Hymen_Cowen.mxl",
+    "title": "Hail!",
+    "composer": "Frederic Hymen Cowen",
+    "noteCount": 136,
+    "beatsPerMinute": 62,
+    "level": 3
+  },
+  {
+    "slug": "3_halt_franz_schubert",
+    "file": "3_Halt_Franz_Schubert.mxl",
+    "title": "Halt!",
+    "composer": "Franz Schubert",
+    "noteCount": 142,
+    "beatsPerMinute": 125,
+    "level": 3
+  },
+  {
+    "slug": "14_hochl_ndisches_wiegenlied_robert_schumann",
+    "file": "14_Hochl_ndisches_Wiegenlied_Robert_Schumann.mxl",
+    "title": "Hochländisches Wiegenlied",
+    "composer": "Robert Schumann",
+    "noteCount": 168,
+    "beatsPerMinute": 85,
+    "level": 4
+  },
+  {
+    "slug": "2_hope_alexander_mackenzie",
+    "file": "2_Hope_Alexander_Mackenzie.mxl",
+    "title": "Hope",
+    "composer": "Alexander Campbell Mackenzie",
+    "noteCount": 117,
+    "beatsPerMinute": 46,
+    "level": 3
+  },
+  {
+    "slug": "13_hymne_au_soleil_augusta_mary_anne_holm_s",
+    "file": "13_Hymne_au_Soleil_Augusta_Mary_Anne_Holm_s.mxl",
+    "title": "Hymne au soleil",
+    "composer": "Augusta Holmès",
+    "noteCount": 190,
+    "beatsPerMinute": 90,
+    "level": 4
+  },
+  {
+    "slug": "1_ich_stand_in_dunklen_tr_umen_clara_schumann",
+    "file": "1_Ich_stand_in_dunklen_Tr_umen_Clara_Schumann.mxl",
+    "title": "Ich stand in dunklen Träumen",
+    "composer": "Clara Schumann",
+    "noteCount": 86,
+    "beatsPerMinute": 70,
+    "level": 3
+  },
+  {
+    "slug": "10_ida_aus_ariels_offenbarungen_louise_reichardt",
+    "file": "10_Ida_aus_Ariels_Offenbarungen_Louise_Reichardt.mxl",
+    "title": "Ida (aus Ariels Offenbarungen)",
+    "composer": "Louise Reichardt",
+    "noteCount": 137,
+    "beatsPerMinute": 90,
+    "level": 3
+  },
+  {
+    "slug": "23_im_westen_robert_schumann",
+    "file": "23_Im_Westen_Robert_Schumann.mxl",
+    "title": "Im Westen",
+    "composer": "Robert Schumann",
+    "noteCount": 80,
+    "beatsPerMinute": 110,
+    "level": 3
+  },
+  {
+    "slug": "2_im_windesweben_anton_webern",
+    "file": "2_Im_Windesweben_Anton_Webern.mxl",
+    "title": "Im Windesweben",
+    "composer": "Anton Webern",
+    "noteCount": 53,
+    "beatsPerMinute": 100,
+    "level": 2
+  },
+  {
+    "slug": "in_1822_guy_d_hardelot",
+    "file": "In_1822_Guy_d_Hardelot.mxl",
+    "title": "In 1822",
+    "composer": "Guy d’ Hardelot",
+    "noteCount": 180,
+    "beatsPerMinute": 94,
+    "level": 4
+  },
+  {
+    "slug": "6_in_der_ferne_franz_schubert",
+    "file": "6_In_der_Ferne_Franz_Schubert.mxl",
+    "title": "In der Ferne",
+    "composer": "Franz Schubert",
+    "noteCount": 230,
+    "beatsPerMinute": 70,
+    "level": 4
+  },
+  {
+    "slug": "5_in_meiner_n_chte_sehnen_johannes_brahms",
+    "file": "5_In_meiner_N_chte_Sehnen_Johannes_Brahms.mxl",
+    "title": "In meine Nächte Sehnen",
+    "composer": "Johannes Brahms",
+    "noteCount": 133,
+    "beatsPerMinute": 84,
+    "level": 3
+  },
+  {
+    "slug": "09_irrlicht_franz_schubert",
+    "file": "09_Irrlicht_Franz_Schubert.mxl",
+    "title": "Irrlicht",
+    "composer": "Franz Schubert",
+    "noteCount": 153,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "2_italien_fanny_hensel",
+    "file": "2_Italien_Fanny_Hensel.mxl",
+    "title": "Italien",
+    "composer": "Fanny (Mendelssohn) Hensel",
+    "noteCount": 192,
+    "beatsPerMinute": 116,
+    "level": 4
+  },
+  {
+    "slug": "3_ja_heil_und_dank_dir_die_den_segen_brachte_anton_webern",
+    "file": "3_Ja_Heil_und_Dank_dir_die_den_Segen_brachte_Anton_Webern.mxl",
+    "title": "Ja Heil und Dank dir die den Segen brachte!",
+    "composer": "Anton Webern",
+    "noteCount": 88,
+    "beatsPerMinute": 40,
+    "level": 3
+  },
+  {
+    "slug": "6_julia_s_hair_roger_quilter",
+    "file": "6_Julia_s_Hair_Roger_Quilter.mxl",
+    "title": "Julia’s Hair",
+    "composer": "Roger Quilter",
+    "noteCount": 41,
+    "beatsPerMinute": 40,
+    "level": 2
+  },
+  {
+    "slug": "5_kahl_reckt_der_baum_anton_webern",
+    "file": "5_Kahl_reckt_der_Baum_Anton_Webern.mxl",
+    "title": "Kahl reckt der Baum",
+    "composer": "Anton Webern",
+    "noteCount": 55,
+    "beatsPerMinute": 44,
+    "level": 2
+  },
+  {
+    "slug": "6_klage_johanna_kinkel",
+    "file": "6_Klage_Johanna_Kinkel.mxl",
+    "title": "Klage",
+    "composer": "Johanna Kinkel",
+    "noteCount": 126,
+    "beatsPerMinute": 60,
+    "level": 3
+  },
+  {
+    "slug": "l_amour_captif_c_cile_chaminade",
+    "file": "L_amour_captif_C_cile_Chaminade.mxl",
+    "title": "L’amour captif",
+    "composer": "Cécile Chaminade",
+    "noteCount": 199,
+    "beatsPerMinute": 92,
+    "level": 4
+  },
+  {
+    "slug": "4_l_heure_d_azur_augusta_mary_anne_holm_s",
+    "file": "4_L_Heure_d_Azur_Augusta_Mary_Anne_Holm_s.mxl",
+    "title": "L'Heure d'Azur",
+    "composer": "Augusta Holmès",
+    "noteCount": 175,
+    "beatsPerMinute": 44,
+    "level": 4
+  },
+  {
+    "slug": "1_larmes_gabriel_faur",
+    "file": "1_Larmes_Gabriel_Faur.mxl",
+    "title": "Larmes",
+    "composer": "Gabriel Fauré",
+    "noteCount": 161,
+    "beatsPerMinute": 62,
+    "level": 4
+  },
+  {
+    "slug": "le_ch_ne_et_le_roseau_vwv_1036_pauline_viardot",
+    "file": "Le_ch_ne_et_le_roseau_VWV_1036_Pauline_Viardot.mxl",
+    "title": "Le chêne et le roseau, VWV 1036",
+    "composer": "Pauline Viardot",
+    "noteCount": 365,
+    "beatsPerMinute": 100,
+    "level": 4
+  },
+  {
+    "slug": "3_le_jet_d_eau_claude_debussy",
+    "file": "3_Le_Jet_d_Eau_Claude_Debussy.mxl",
+    "title": "Le Jet d'Eau",
+    "composer": "Claude Debussy",
+    "noteCount": 305,
+    "beatsPerMinute": 120,
+    "level": 4
+  },
+  {
+    "slug": "le_r_ve_de_j_sus_vwv_1074_pauline_viardot",
+    "file": "Le_r_ve_de_J_sus_VWV_1074_Pauline_Viardot.mxl",
+    "title": "Le rêve de Jésus, VWV 1074",
+    "composer": "Pauline Viardot",
+    "noteCount": 276,
+    "beatsPerMinute": 92,
+    "level": 4
+  },
+  {
+    "slug": "3_lied_der_mignon_so_lasst_mich_scheinen_franz_schubert",
+    "file": "3_Lied_der_Mignon_So_lasst_mich_scheinen_Franz_Schubert.mxl",
+    "title": "Lied der Mignon (So lasst mich scheinen)",
+    "composer": "Franz Schubert",
+    "noteCount": 149,
+    "beatsPerMinute": 45,
+    "level": 3
+  },
+  {
+    "slug": "12_lieder_der_braut_ii_lass_mich_ihm_am_busen_hangen_robert_schumann",
+    "file": "12_Lieder_der_Braut_II_Lass_mich_ihm_am_Busen_hangen_Robert_Schumann.mxl",
+    "title": "Lieder der Braut II (Lass mich ihm am Busen hangen)",
+    "composer": "Robert Schumann",
+    "noteCount": 62,
+    "beatsPerMinute": 63,
+    "level": 2
+  },
+  {
+    "slug": "5_mollys_abschied_ludwig_van_beethoven",
+    "file": "5_Mollys_Abschied_Ludwig_van_Beethoven.mxl",
+    "title": "Mollys Abschied",
+    "composer": "Ludwig van Beethoven",
+    "noteCount": 49,
+    "beatsPerMinute": 60,
+    "level": 2
+  },
+  {
+    "slug": "22_muth_franz_schubert",
+    "file": "22_Muth_Franz_Schubert.mxl",
+    "title": "Muth",
+    "composer": "Franz Schubert",
+    "noteCount": 130,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "3_mutter_o_sing_mich_zur_ruh_robert_franz",
+    "file": "3_Mutter_o_sing_mich_zur_Ruh_Robert_Franz.mxl",
+    "title": "Mutter, o sing’ mich zur Ruh’!",
+    "composer": "Robert Franz",
+    "noteCount": 92,
+    "beatsPerMinute": 94,
+    "level": 3
+  },
+  {
+    "slug": "02_nachtlied_robert_franz",
+    "file": "02_Nachtlied_Robert_Franz.mxl",
+    "title": "Nachtlied",
+    "composer": "Robert Franz",
+    "noteCount": 204,
+    "beatsPerMinute": 120,
+    "level": 4
+  },
+  {
+    "slug": "1_nanny_ernest_chausson",
+    "file": "1_Nanny_Ernest_Chausson.mxl",
+    "title": "Nanny",
+    "composer": "Ernest Chausson",
+    "noteCount": 117,
+    "beatsPerMinute": 60,
+    "level": 3
+  },
+  {
+    "slug": "22_niemand_robert_schumann",
+    "file": "22_Niemand_Robert_Schumann.mxl",
+    "title": "Niemand",
+    "composer": "Robert Schumann",
+    "noteCount": 104,
+    "beatsPerMinute": 116,
+    "level": 3
+  },
+  {
+    "slug": "7_no_l_d_irlande_augusta_mary_anne_holm_s",
+    "file": "7_No_l_d_Irlande_Augusta_Mary_Anne_Holm_s.mxl",
+    "title": "Noël d'Irlande",
+    "composer": "Augusta Mary Anne Holmès",
+    "noteCount": 142,
+    "beatsPerMinute": 60,
+    "level": 3
+  },
+  {
+    "slug": "2_o_mistress_mine_roger_quilter",
+    "file": "2_O_Mistress_Mine_Roger_Quilter.mxl",
+    "title": "O Mistress Mine",
+    "composer": "Roger Quilter",
+    "noteCount": 108,
+    "beatsPerMinute": 80,
+    "level": 3
+  },
+  {
+    "slug": "4_oft_denk_ich_sie_sind_nur_ausgegangen_gustav_mahler",
+    "file": "4_Oft_denk_ich_sie_sind_nur_ausgegangen_Gustav_Mahler.mxl",
+    "title": "Oft denk’ ich, sie sind nur ausgegangen",
+    "composer": "Gustav Mahler",
+    "noteCount": 159,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "1_oh_what_comes_over_the_sea_samuel_coleridge_taylor",
+    "file": "1_Oh_what_comes_over_the_Sea_Samuel_Coleridge_Taylor.mxl",
+    "title": "Oh what comes over the Sea",
+    "composer": "Samuel Coleridge-Taylor",
+    "noteCount": 90,
+    "beatsPerMinute": 130,
+    "level": 3
+  },
+  {
+    "slug": "2_reiterlied_clara_mathilda_faisst",
+    "file": "2_Reiterlied_Clara_Mathilda_Faisst.mxl",
+    "title": "Reiterlied",
+    "composer": "Clara Mathilda Faisst",
+    "noteCount": 262,
+    "beatsPerMinute": 120,
+    "level": 4
+  },
+  {
+    "slug": "1_rencontre_gabriel_faur",
+    "file": "1_Rencontre_Gabriel_Faur.mxl",
+    "title": "Rencontre",
+    "composer": "Gabriel Fauré",
+    "noteCount": 206,
+    "beatsPerMinute": 66,
+    "level": 4
+  },
+  {
+    "slug": "6_rondel_edward_elgar",
+    "file": "6_Rondel_Edward_Elgar.mxl",
+    "title": "Rondel",
+    "composer": "Edward Elgar",
+    "noteCount": 155,
+    "beatsPerMinute": 70,
+    "level": 3
+  },
+  {
+    "slug": "5_rosen_mathilde_kralik",
+    "file": "5_Rosen_Mathilde_Kralik.mxl",
+    "title": "Rosen",
+    "composer": "Mathilde Kralik",
+    "noteCount": 147,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "5_schlusslied_des_narren_robert_schumann",
+    "file": "5_Schlusslied_des_Narren_Robert_Schumann.mxl",
+    "title": "Schlusslied des Narren",
+    "composer": "Robert Schumann",
+    "noteCount": 128,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "3_sehnsucht_clara_mathilda_faisst",
+    "file": "3_Sehnsucht_Clara_Mathilda_Faisst.mxl",
+    "title": "Sehnsucht",
+    "composer": "Clara Mathilda Faisst",
+    "noteCount": 93,
+    "beatsPerMinute": 70,
+    "level": 3
+  },
+  {
+    "slug": "09_she_never_told_her_love_hob_xxvia34_joseph_haydn",
+    "file": "09_She_never_told_her_love_Hob_XXVIa34_Joseph_Haydn.mxl",
+    "title": "She never told her love, Hob.XXVIa:34",
+    "composer": "Joseph Haydn",
+    "noteCount": 63,
+    "beatsPerMinute": 60,
+    "level": 2
+  },
+  {
+    "slug": "05_sitz_ich_allein_robert_schumann",
+    "file": "05_Sitz_ich_allein_Robert_Schumann.mxl",
+    "title": "Sitz’ ich allein",
+    "composer": "Robert Schumann",
+    "noteCount": 120,
+    "beatsPerMinute": 90,
+    "level": 3
+  },
+  {
+    "slug": "6a_song_of_the_summer_winds_ann_mounsey_bartholomew",
+    "file": "6a_Song_of_the_Summer_Winds_Ann_Mounsey_Bartholomew.mxl",
+    "title": "Song of the Summer Winds  (arranged for three voices)",
+    "composer": "Ann Mounsey Bartholomew",
+    "noteCount": 201,
+    "beatsPerMinute": 118,
+    "level": 4
+  },
+  {
+    "slug": "2_spleen_erik_satie",
+    "file": "2_Spleen_Erik_Satie.mxl",
+    "title": "Spleen",
+    "composer": "Erik Satie",
+    "noteCount": 54,
+    "beatsPerMinute": 70,
+    "level": 2
+  },
+  {
+    "slug": "3_spring_the_sweet_spring_frederick_delius",
+    "file": "3_Spring_the_Sweet_Spring_Frederick_Delius.mxl",
+    "title": "Spring, the Sweet Spring",
+    "composer": "Frederick Delius",
+    "noteCount": 150,
+    "beatsPerMinute": 120,
+    "level": 3
+  },
+  {
+    "slug": "04_st_ndchen_franz_schubert",
+    "file": "04_St_ndchen_Franz_Schubert.mxl",
+    "title": "Ständchen",
+    "composer": "Franz Schubert",
+    "noteCount": 183,
+    "beatsPerMinute": 62,
+    "level": 4
+  },
+  {
+    "slug": "3_still_keiner_darw_dat_weiten_op_34_luise_greger",
+    "file": "3_Still_keiner_darw_dat_weiten_Op_34_Luise_Greger.mxl",
+    "title": "Still, keiner darw dat weiten! (Op.34)",
+    "composer": "Luise Greger",
+    "noteCount": 236,
+    "beatsPerMinute": 140,
+    "level": 4
+  },
+  {
+    "slug": "06_tanzlied_im_mai_robert_franz",
+    "file": "06_Tanzlied_im_Mai_Robert_Franz.mxl",
+    "title": "Tanzlied im Mai",
+    "composer": "Robert Franz",
+    "noteCount": 96,
+    "beatsPerMinute": 98,
+    "level": 3
+  },
+  {
+    "slug": "the_bird_and_the_rose_amy_elsie_horrocks",
+    "file": "The_Bird_and_the_Rose_Amy_Elsie_Horrocks.mxl",
+    "title": "The Bird and the Rose",
+    "composer": "Amy Elsie Horrocks",
+    "noteCount": 183,
+    "beatsPerMinute": 92,
+    "level": 4
+  },
+  {
+    "slug": "5_the_owl_liza_lehmann",
+    "file": "5_The_Owl_Liza_Lehmann.mxl",
+    "title": "The Owl",
+    "composer": "Liza Lehmann",
+    "noteCount": 117,
+    "beatsPerMinute": 100,
+    "level": 3
+  },
+  {
+    "slug": "3_the_splendour_falls_charles_villiers_stanford",
+    "file": "3_The_splendour_falls_Charles_Villiers_Stanford.mxl",
+    "title": "The splendour falls",
+    "composer": "Charles Villiers Stanford",
+    "noteCount": 200,
+    "beatsPerMinute": 80,
+    "level": 4
+  },
+  {
+    "slug": "4_the_wren_liza_lehmann",
+    "file": "4_The_Wren_Liza_Lehmann.mxl",
+    "title": "The Wren",
+    "composer": "Liza Lehmann",
+    "noteCount": 134,
+    "beatsPerMinute": 116,
+    "level": 3
+  },
+  {
+    "slug": "5_through_the_long_days_edward_elgar",
+    "file": "5_Through_the_Long_Days_Edward_Elgar.mxl",
+    "title": "Through the Long Days",
+    "composer": "Edward Elgar",
+    "noteCount": 94,
+    "beatsPerMinute": 33,
+    "level": 3
+  },
+  {
+    "slug": "18_toujours_elle_augusta_mary_anne_holm_s",
+    "file": "18_Toujours_elle_Augusta_Mary_Anne_Holm_s.mxl",
+    "title": "Toujours elle!",
+    "composer": "Holmès, Augusta Mary Anne",
+    "noteCount": 173,
+    "beatsPerMinute": 116,
+    "level": 4
+  },
+  {
+    "slug": "07_two_short_songs_peter_warlock",
+    "file": "07_Two_Short_Songs_Peter_Warlock.mxl",
+    "title": "Two Short Songs (I. I held Love's head, and II. Thou gav'st me leave to kiss)",
+    "composer": "Peter Warlock",
+    "noteCount": 108,
+    "beatsPerMinute": 92,
+    "level": 3
+  },
+  {
+    "slug": "6_um_mitternacht_robert_franz",
+    "file": "6_Um_Mitternacht_Robert_Franz.mxl",
+    "title": "Um Mitternacht",
+    "composer": "Robert Franz",
+    "noteCount": 250,
+    "beatsPerMinute": 63,
+    "level": 4
+  },
+  {
+    "slug": "19_un_r_ve_2_voix_augusta_mary_anne_holm_s",
+    "file": "19_Un_r_ve_2_voix_Augusta_Mary_Anne_Holm_s.mxl",
+    "title": "Un rêve",
+    "composer": "Augusta Holmès",
+    "noteCount": 50,
+    "beatsPerMinute": 110,
+    "level": 3
+  },
+  {
+    "slug": "8_unbewegte_laue_luft_johannes_brahms",
+    "file": "8_Unbewegte_laue_Luft_Johannes_Brahms.mxl",
+    "title": "Unbewegte laue Luft",
+    "composer": "Johannes Brahms",
+    "noteCount": 194,
+    "beatsPerMinute": 56,
+    "level": 4
+  },
+  {
+    "slug": "1_unklarheit_evelyn_faltis",
+    "file": "1_Unklarheit_Evelyn_Faltis.mxl",
+    "title": "Unklarheit",
+    "composer": "Evelyn Faltis",
+    "noteCount": 89,
+    "beatsPerMinute": 46,
+    "level": 3
+  },
+  {
+    "slug": "2_when_i_am_dead_my_dearest_samuel_coleridge_taylor",
+    "file": "2_When_I_am_dead_my_dearest_Samuel_Coleridge_Taylor.mxl",
+    "title": "When I am dead, my dearest",
+    "composer": "Samuel Coleridge-Taylor",
+    "noteCount": 122,
+    "beatsPerMinute": 94,
+    "level": 3
+  },
+  {
+    "slug": "5_wie_die_wolke_nach_der_sonne_johannes_brahms",
+    "file": "5_Wie_die_Wolke_nach_der_Sonne_Johannes_Brahms.mxl",
+    "title": "Wie die Wolke nach der Sonne",
+    "composer": "Johannes Brahms",
+    "noteCount": 130,
+    "beatsPerMinute": 92,
+    "level": 3
+  },
+  {
+    "slug": "5_wiegenlied_luise_adolpha_le_beau",
+    "file": "5_Wiegenlied_Luise_Adolpha_Le_Beau.mxl",
+    "title": "Wiegenlied",
+    "composer": "Luise Adolpha Le Beau",
+    "noteCount": 119,
+    "beatsPerMinute": 118,
+    "level": 3
+  }
+]

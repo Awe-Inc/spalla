@@ -37,6 +37,7 @@ export const router = createBrowserRouter(
         { path: "configuracoes", Component: ConfiguracoesPage },
         { path: "componentes", lazy: async () => ({ Component: (await import("@/areas/componentes/ComponentesPage")).ComponentesPage }) },
         { path: "tocar/musica/:pieceId", Component: TocarPage },
+        { path: "tocar/biblioteca/:librarySlug", Component: TocarPage },
         { path: "tocar/:exerciseId", Component: TocarPage },
         { path: "boas-vindas", Component: BoasVindasPage },
       ],

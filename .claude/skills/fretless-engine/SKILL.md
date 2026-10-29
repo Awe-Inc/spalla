@@ -150,6 +150,10 @@ window and graded when it closes. The properties worth preserving:
   average intonation.
 - Onset error is tracked separately from pitch, so timing and intonation can
   be practised independently.
+- The window reaches `onsetToleranceSec` past the written end only for a late
+  player: there, only frames in tune with the note count, and a frame sounding
+  anything else (or the same pitch when the next note repeats it) closes the
+  note and goes to the next one.
 
 The most useful number on screen is **drift**: the *signed* mean deviation.
 "18 cents off" tells a player nothing actionable; "18 cents flat" tells them
@@ -173,6 +177,17 @@ existing suite is full of them — the ring buffer under two real threads, an
 octave error in the pitch detector, a confidently played wrong note, one
 verdict per note, a `.mxl` with backslash entry names, a bar that does not add
 up to a bar.
+
+## Armadilhas
+
+- **A note's tail must not eat the next note.** Every note under ~0.36 s was a
+  Miss even when played perfectly (OpenScore songs at 72 bpm scored 21% with the
+  synthetic player): the window stayed open until end + 180 ms, counted the next
+  note's first frames as this note's out-of-tune samples, and the next note
+  started accumulating 180 ms late. `releaseNoteTheFrameHasLeft` closes a note
+  as soon as a frame past its written end is something else, and
+  `a_fast_run_played_in_tune_has_no_misses` holds it. Any change to the window:
+  test a fast run, not only quarter notes.
 
 ## House style
 

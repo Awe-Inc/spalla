@@ -32,7 +32,7 @@ function spaFallbackForStaticHosts(): Plugin {
 
 const PDFJS_DIR = dirname(createRequire(import.meta.url).resolve("pdfjs-dist/package.json"));
 const PDFJS_ASSET_CONTENT_TYPES: Record<string, string> = { ".wasm": "application/wasm", ".js": "text/javascript", ".ttf": "font/ttf" };
-const PRECACHED_EXTENSIONS = ["js", "mjs", "css", "html", "wasm", "svg", "woff2", "woff", ...PDFJS_ASSET_EXTENSIONS];
+const PRECACHED_EXTENSIONS = ["js", "mjs", "css", "html", "wasm", "svg", "woff2", "woff", "mxl", ...PDFJS_ASSET_EXTENSIONS];
 
 function pdfjsAssetPath(requestUrl: string | undefined): string | null {
   try {

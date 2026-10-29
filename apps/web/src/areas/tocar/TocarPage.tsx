@@ -43,10 +43,10 @@ function readSnapshot(session: PracticeSession): Snapshot {
 }
 
 export function TocarPage() {
-  const { exerciseId, pieceId } = useParams();
+  const { exerciseId, pieceId, librarySlug } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId, pieceId);
+  const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId, pieceId, librarySlug);
   const mic = usePitchInput();
   const { takeFrames, stop: stopMic, start: startMic } = mic;
   const isSynthetic = isSyntheticPlayerRequested(searchParams, import.meta.env.VITE_JOGADOR_SINTETICO);

@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, db } from "@/data/db";
 import { importPieceFile, removePiece } from "@/data/importPiece";
+import { catalogFromLibrary, LIBRARY_GENRE, LIBRARY_SOURCE_URL } from "@/data/library";
 import {
   catalogFromCurriculum,
   catalogFromStored,
@@ -57,6 +58,8 @@ function PieceRow({ piece, status, stars, onRemove }: { piece: CatalogPiece; sta
   );
 }
 
+const LIBRARY_CATALOG = catalogFromLibrary();
+
 export function MusicasPage() {
   const core = useCore();
   const stored = useLiveQuery(() => db.pieces.orderBy("importedAt").reverse().toArray(), []) ?? [];
@@ -65,7 +68,7 @@ export function MusicasPage() {
   const [error, setError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
-  const catalog = [...catalogFromStored(stored), ...(core.status === "ready" ? catalogFromCurriculum(core.core.curriculum) : [])];
+  const catalog = [...catalogFromStored(stored), ...(core.status === "ready" ? catalogFromCurriculum(core.core.curriculum) : []), ...LIBRARY_CATALOG];
   const statuses = statusByPiece(catalog, results);
   const best = bestResultsByExercise(results);
   const visible = filterPieces(catalog, statuses, filters);
@@ -116,6 +119,16 @@ export function MusicasPage() {
           ))}
         </ul>
       )}
+
+      {visible.some((piece) => piece.genre === LIBRARY_GENRE) ? (
+        <p className="text-caption text-ink-subtle">
+          As canções da {LIBRARY_GENRE} são do{" "}
+          <a href={LIBRARY_SOURCE_URL} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-ink">
+            OpenScore Lieder
+          </a>
+          : partituras digitadas por voluntários e liberadas em domínio público (CC0). Só ficaram as que cabem no violino do Sol solto à terceira posição, sem transpor.
+        </p>
+      ) : null}
     </>
   );
 }

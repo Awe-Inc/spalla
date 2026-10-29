@@ -174,7 +174,9 @@ def main() -> int:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     kept, scanned = 0, 0
-    manifest: list[tuple[str, str, str, int, int]] = []
+    # The same score can come back under a new file name when the corpus
+    # renumbers its folders; comparing bytes keeps it from being stored twice.
+    on_disk = {path.read_bytes() for path in OUT_DIR.glob("*.mxl")}
 
     for path in paths:
         if kept >= args.count:
@@ -195,7 +197,7 @@ def main() -> int:
                 ElementTree.ParseError) as error:
             print(f"  skip {title}: {error}")
             continue
-        if root is None:
+        if root is None or payload in on_disk:
             continue
 
         low, high, count = first_part_range(root)
@@ -205,17 +207,38 @@ def main() -> int:
             continue
 
         destination.write_bytes(payload)
-        manifest.append((title, composer, name, count, high - low))
+        on_disk.add(payload)
         kept += 1
         print(f"  + {title} - {composer}  ({count} notes, range {high - low} st)")
 
-    write_attribution(manifest)
+    write_attribution(local_manifest())
     print(f"\n{kept} pieces in {OUT_DIR.relative_to(ROOT)} "
           f"(scanned {scanned})")
     return 0
 
 
-def write_attribution(manifest: list[tuple[str, str, str, int, int]]) -> None:
+def local_manifest() -> list[tuple[str, int]]:
+    """(title - composer, note count) of every score on disk, read back from
+    the files themselves. The corpus has renamed its folders before, so a
+    manifest built from this run's downloads alone dropped every file kept
+    from an earlier run."""
+    entries: list[tuple[str, int]] = []
+    for path in sorted(OUT_DIR.glob("*.mxl")):
+        root = read_mxl(path.read_bytes())
+        if root is None:
+            continue
+        title = (root.findtext("movement-title") or root.findtext("work/work-title")
+                 or path.stem).strip()
+        composer = ""
+        for creator in root.iter("creator"):
+            if creator.get("type") == "composer":
+                composer = (creator.text or "").strip()
+                break
+        entries.append((f"{title} | {composer}", first_part_range(root)[2]))
+    return entries
+
+
+def write_attribution(manifest: list[tuple[str, int]]) -> None:
     lines = [
         "# Community library",
         "",
@@ -238,8 +261,7 @@ def write_attribution(manifest: list[tuple[str, str, str, int, int]]) -> None:
     ]
     if manifest:
         lines += ["| Piece | Composer | Notes |", "|---|---|---|"]
-        lines += [f"| {title} | {composer} | {count} |"
-                  for title, composer, _, count, _ in sorted(manifest)]
+        lines += [f"| {piece} | {count} |" for piece, count in sorted(manifest)]
         lines.append("")
     (OUT_DIR / "ATTRIBUTION.md").write_text("\n".join(lines), encoding="utf-8")
 
