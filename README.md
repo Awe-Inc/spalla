@@ -4,7 +4,7 @@ A violin practice platform that listens to you play. It reads the score, judges 
 intonation and timing, and plans the day's session for you, so the answer to "what should I
 practise today" is on the first screen.
 
-**Live:** https://pataxo-inc.github.io/spalla/ · installable as an app (PWA), works offline.
+**Live:** https://awe-inc.github.io/spalla/ · installable as an app (PWA), works offline.
 
 The name is the orchestra's first violin, the one who tunes and leads the others. Inside the
 code the project is still called **Fretless** (`@fretless/*` packages, storage keys, the native

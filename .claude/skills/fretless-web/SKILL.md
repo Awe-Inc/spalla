@@ -52,7 +52,7 @@ apps/web/src/design/fonts.css    Fontsource imports (Instrument Serif 400 + itá
                                  self-hosted woff2 (and the woff fallbacks) land in the precache, no Google Fonts
 .github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
-                                 variable DEPLOY_PAGES is "true" (set; repo public since 29/10, transferred to Pataxo-Inc and renamed spalla on 29/10, site at pataxo-inc.github.io/spalla)
+                                 variable DEPLOY_PAGES is "true" (set; repo public since 29/10, transferred to Awe-Inc and renamed spalla on 29/10, site at awe-inc.github.io/spalla)
 apps/web/src/design/components.tsx  Card (plain | inset | hero), StringChip, Stars, GoalDots (pontos da série de
                                  repetições), AccuracyBars, ProgressRing, HeadphoneNotice, EmptyState, InlineError;
                                  re-exporta actions e layout
