@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
 import { clampBpm, TEMPO_MAX_BPM, TEMPO_MIN_BPM, TempoClock, type ProgressivePlan, type TempoClockSettings } from "@/audio/tempoClock";
-import { Button, Card, PageTitle } from "@/design/components";
+import { Button, Card } from "@/design/components";
+
+import { ToolLayout } from "./ToolLayout";
 
 const BEATS_OPTIONS = [2, 3, 4, 6] as const;
 const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
@@ -68,8 +70,7 @@ export function MetronomoPage() {
   const isProgressive = settings.progressive !== null;
 
   return (
-    <>
-      <PageTitle title="Metrônomo" eyebrow="Ferramentas" />
+    <ToolLayout title="Metrônomo" description="Compasso, subdivisão e andamento progressivo, com o som que preferir." isWide>
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <Card className="grid place-items-center gap-5">
           <div className="grid place-items-center gap-1">
@@ -150,6 +151,6 @@ export function MetronomoPage() {
           </Card>
         </div>
       </div>
-    </>
+    </ToolLayout>
   );
 }

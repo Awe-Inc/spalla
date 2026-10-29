@@ -53,7 +53,7 @@ export const router = createBrowserRouter(
         { path: "repertorio/peca/biblioteca/:librarySlug", lazy: peca },
         { path: "repertorio/peca/:exerciseId", lazy: peca },
         { path: "ferramentas", Component: FerramentasPage },
-        { path: "ferramentas/afinador", handle: FULLSCREEN, Component: AfinadorPage },
+        { path: "ferramentas/afinador", Component: AfinadorPage },
         { path: "ferramentas/metronomo", Component: MetronomoPage },
         { path: "ferramentas/pedal", Component: PedalPage },
         { path: "ferramentas/gravador", lazy: async () => ({ Component: (await import("@/areas/ferramentas/GravadorPage")).GravadorPage }) },

@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { useSettings } from "@/app/settings";
 import { Drone, type DroneTimbre, midiToHz } from "@/audio/drone";
 import { useCore } from "@/core/useCore";
-import { Button, Card, HeadphoneNotice, PageTitle } from "@/design/components";
+import { Button, Card, HeadphoneNotice } from "@/design/components";
 import { displayNoteName } from "@/music/noteNames";
+
+import { ToolLayout } from "./ToolLayout";
 
 const OCTAVES = [3, 4, 5] as const;
 const PITCH_CLASSES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
@@ -78,8 +80,7 @@ export function PedalPage() {
   const noteLabel = core.status === "ready" ? displayNoteName(core.core.noteName(midi), naming) : "…";
 
   return (
-    <>
-      <PageTitle title="Nota pedal" eyebrow="Ferramentas" />
+    <ToolLayout title="Nota pedal" description="Um bordão contínuo para afinar cada nota por cima até o som parar de bater." isWide>
       {!headphonesConfirmed ? <HeadphoneNotice onConfirm={() => setHeadphonesConfirmed(true)} /> : null}
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <Card className="grid place-items-center gap-5">
@@ -124,6 +125,6 @@ export function PedalPage() {
           </Card>
         </div>
       </div>
-    </>
+    </ToolLayout>
   );
 }

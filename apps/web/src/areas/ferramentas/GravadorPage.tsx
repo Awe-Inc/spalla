@@ -18,9 +18,11 @@ import {
   toggleCompared,
   type RecordingPiece,
 } from "@/data/recordings";
-import { Button, Card, InlineError, PageTitle } from "@/design/components";
+import { Button, Card, InlineError } from "@/design/components";
 
 import { CompareRecordings, RecordingRow, useObjectUrl } from "./RecordingPlayer";
+
+import { ToolLayout } from "./ToolLayout";
 
 const FIELD_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 text-body text-ink";
 const NO_PIECE = "";
@@ -138,8 +140,7 @@ export function GravadorPage() {
   }
 
   return (
-    <>
-      <PageTitle title="Gravador" eyebrow="Ferramentas" />
+    <ToolLayout title="Gravador" description="Grave uma passada, ouça logo depois e compare duas gravações da mesma peça.">
       <div className="grid gap-6">
         <Card className="grid gap-4">
           <label className="grid max-w-md gap-1 text-caption text-ink-subtle">
@@ -149,7 +150,7 @@ export function GravadorPage() {
               <PieceOptions pieces={pieces} />
             </select>
           </label>
-          {pieces.length === 0 ? <p className="text-caption text-ink-subtle">Para ligar a uma peça, abra o detalhe dela em Músicas e toque em Gravar.</p> : null}
+          {pieces.length === 0 ? <p className="text-caption text-ink-subtle">Para ligar a uma peça, abra a peça no Repertório e toque em Gravar.</p> : null}
           <RecordButton status={recorder.status} elapsedMs={recorder.elapsedMs} onStart={() => void recorder.start()} onStop={() => void recorder.stop()} />
           {recorder.error ? <InlineError title="O gravador não abriu." nextStep={recorder.error} /> : null}
           {recorder.take ? <TakeForm take={recorder.take} piece={piece} onSaved={recorder.discard} onDiscard={recorder.discard} /> : null}
@@ -192,6 +193,6 @@ export function GravadorPage() {
           )}
         </Card>
       </div>
-    </>
+    </ToolLayout>
   );
 }
