@@ -12,7 +12,7 @@ function AssignmentRow({ assignment }: { assignment: TeacherAssignment }) {
   const overdue = assignment.dueOn !== null && assignment.dueOn < todayIso() && assignment.done < assignment.recipients;
   return (
     <li>
-      <Link to={`/professor/tarefas/${assignment.id}`} className="grid gap-2 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-fretless hover:bg-surface-soft sm:grid-cols-[1fr_auto] sm:items-center">
+      <Link to={`/professor/tarefas/${assignment.id}`} className="grid gap-2 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-spalla hover:bg-surface-soft sm:grid-cols-[1fr_auto] sm:items-center">
         <div className="grid gap-1">
           <h2 className="text-heading font-semibold text-ink">{assignment.title}</h2>
           <p className="text-caption text-ink-muted">

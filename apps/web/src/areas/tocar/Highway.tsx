@@ -41,10 +41,10 @@ function readPalette(element: HTMLElement): Palette {
     paper: token("--surface-sunken"),
     ink: token("--ink"),
     barline: token("--hairline-strong"),
-    strings: [token("--color-string-g"), token("--color-string-d"), token("--color-string-a"), token("--color-string-e")],
-    inTune: token("--color-in-tune"),
-    close: token("--color-close"),
-    off: token("--color-off"),
+    strings: [token("--string-g"), token("--string-d"), token("--string-a"), token("--string-e")],
+    inTune: token("--in-tune"),
+    close: token("--close"),
+    off: token("--off"),
     sans: token("--font-sans"),
   };
 }

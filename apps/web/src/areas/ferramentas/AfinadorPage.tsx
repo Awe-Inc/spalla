@@ -94,7 +94,7 @@ export function AfinadorPage() {
                   key={midi}
                   type="button"
                   aria-pressed={active}
-                  className={`grid h-16 place-items-center rounded-md font-semibold transition-colors duration-fast ease-fretless ${active ? "bg-primary-soft text-primary" : "bg-surface-soft hover:bg-surface-sunken"}`}
+                  className={`grid h-16 place-items-center rounded-md font-semibold transition-colors duration-fast ease-spalla ${active ? "bg-primary-soft text-primary" : "bg-surface-soft hover:bg-surface-sunken"}`}
                   onClick={() => toggleReference(midi)}
                 >
                   <span className="text-heading">{STRING_NAMES[index]}</span>

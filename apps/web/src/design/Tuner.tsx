@@ -33,7 +33,7 @@ export function Tuner({ noteLabel, cents, frequencyHz, compact = false }: TunerP
         <span className="absolute inset-y-0 left-[45%] w-[10%] rounded-pill bg-in-tune-soft" aria-hidden />
         {cents !== null ? (
           <span
-            className={`absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-raised transition-[left] duration-fast ease-fretless ${toneClass(cents)}`}
+            className={`absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-raised transition-[left] duration-fast ease-spalla ${toneClass(cents)}`}
             style={{ left: `${position}%` }}
             aria-hidden
           />

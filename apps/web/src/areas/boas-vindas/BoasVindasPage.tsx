@@ -19,7 +19,7 @@ const GOAL_OPTIONS = [
 ] as const;
 
 function choiceClass(active: boolean): string {
-  return `grid gap-1 rounded-md p-4 text-left transition-colors duration-fast ease-fretless ${active ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`;
+  return `grid gap-1 rounded-md p-4 text-left transition-colors duration-fast ease-spalla ${active ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`;
 }
 
 function StepDots({ current }: { current: number }) {

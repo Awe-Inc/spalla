@@ -17,7 +17,7 @@ export function Button({ variant = "secondary", icon, className = "", children, 
   return (
     <button
       type="button"
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-body font-semibold transition-colors duration-fast ease-fretless disabled:cursor-not-allowed disabled:opacity-50 md:h-10 ${buttonVariantClass[variant]} ${className}`}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-body font-semibold transition-colors duration-fast ease-spalla disabled:cursor-not-allowed disabled:opacity-50 md:h-10 ${buttonVariantClass[variant]} ${className}`}
       {...rest}
     >
       {icon}
@@ -133,7 +133,7 @@ export function ProgressRing({ value, max, caption, size = 112 }: ProgressRingPr
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference * (1 - ratio)}
-          className="stroke-primary transition-[stroke-dashoffset] duration-slow ease-fretless"
+          className="stroke-primary transition-[stroke-dashoffset] duration-slow ease-spalla"
         />
       </svg>
       <figcaption className="absolute inset-0 grid place-content-center text-center">

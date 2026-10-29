@@ -11,7 +11,7 @@ import { Card, InlineError, PageTitle, Stars } from "@/design/components";
 import { HistoricoExercicio } from "./HistoricoExercicio";
 import { RoutinePicker } from "./RoutinePicker";
 
-const HISTORY_BUTTON_CLASS = "rounded-sm px-2 py-1 text-caption text-ink-subtle transition-colors duration-fast ease-fretless hover:bg-surface-sunken hover:text-ink";
+const HISTORY_BUTTON_CLASS = "rounded-sm px-2 py-1 text-caption text-ink-subtle transition-colors duration-fast ease-spalla hover:bg-surface-sunken hover:text-ink";
 
 function ExerciseRow({ exercise, best, results }: { exercise: Exercise; best: ExerciseResult | undefined; results: readonly ExerciseResult[] }) {
   const [showHistory, setShowHistory] = useState(false);

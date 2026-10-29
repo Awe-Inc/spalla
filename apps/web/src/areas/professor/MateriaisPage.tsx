@@ -83,7 +83,7 @@ function NewMaterialForm({ classes, onCreated, onCancel }: { classes: TeacherCla
               type="button"
               role="radio"
               aria-checked={kind === option}
-              className={`h-11 rounded-pill px-5 text-body font-semibold transition-colors duration-fast ease-fretless md:h-10 ${kind === option ? "bg-primary text-on-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`}
+              className={`h-11 rounded-pill px-5 text-body font-semibold transition-colors duration-fast ease-spalla md:h-10 ${kind === option ? "bg-primary text-on-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`}
               onClick={() => setKind(option)}
             >
               {MATERIAL_KIND_LABELS[option]}

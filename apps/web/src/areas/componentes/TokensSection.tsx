@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Card } from "@/design/components";
-import { COLOR_GROUPS, DURATIONS, EASINGS, FONTS, LAYOUT, RADII, SHADOWS, TEXT_SCALE, THEME_OPTIONS, type ColorToken, type ScaleToken } from "@/design/tokenCatalog";
+import { ANIMATIONS, COLOR_GROUPS, DURATIONS, EASINGS, FONTS, LAYOUT, RADII, SHADOWS, TEXT_SCALE, THEME_OPTIONS, type ColorToken, type ScaleToken } from "@/design/tokenCatalog";
 
 function TokenName({ name }: { name: string }) {
   return <code className="font-mono text-caption text-ink">{name}</code>;
@@ -113,10 +113,10 @@ export function FormaSection() {
       <ScaleList label="Sombras" tokens={SHADOWS} render={(token) => <span className={`size-16 rounded-md bg-surface ${token.className}`} aria-hidden />} />
       <ScaleList
         label="Durações"
-        tokens={[...DURATIONS, ...EASINGS]}
+        tokens={[...DURATIONS, ...EASINGS, ...ANIMATIONS]}
         render={(token) => (
           <span className="group grid size-16 place-items-center rounded-md bg-surface-soft" tabIndex={0} aria-label={`Passe o ponteiro para ver ${token.name}`}>
-            <span className={`size-6 rounded-pill bg-primary transition-transform ease-fretless group-hover:translate-x-4 group-focus:translate-x-4 ${token.className}`} />
+            <span className={`size-6 rounded-pill bg-primary transition-transform ease-spalla group-hover:translate-x-4 group-focus:translate-x-4 ${token.className}`} />
           </span>
         )}
       />

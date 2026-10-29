@@ -14,7 +14,7 @@ function Stat({ label, value, to }: { label: string; value: number; to?: string 
     </>
   );
   return to ? (
-    <Link to={to} className="grid rounded-md bg-surface-soft p-4 transition-colors duration-fast ease-fretless hover:bg-surface-sunken">
+    <Link to={to} className="grid rounded-md bg-surface-soft p-4 transition-colors duration-fast ease-spalla hover:bg-surface-sunken">
       {body}
     </Link>
   ) : (

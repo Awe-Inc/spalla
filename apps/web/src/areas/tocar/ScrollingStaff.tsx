@@ -70,9 +70,9 @@ function readPalette(element: HTMLElement): Palette {
     inkSubtle: token("--ink-subtle"),
     barline: token("--hairline-strong"),
     current: token("--primary"),
-    inTune: token("--color-in-tune"),
-    close: token("--color-close"),
-    off: token("--color-off"),
+    inTune: token("--in-tune"),
+    close: token("--close"),
+    off: token("--off"),
     mono: token("--font-mono"),
     sans: token("--font-sans"),
   };

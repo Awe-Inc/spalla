@@ -285,7 +285,7 @@ function AreaLinks({ user }: { user: Me }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {links.map((link) => (
-        <Link key={link.to} to={link.to} className="grid gap-1 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-fretless hover:bg-surface-soft">
+        <Link key={link.to} to={link.to} className="grid gap-1 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-spalla hover:bg-surface-soft">
           <span className="text-heading font-semibold text-ink">{link.label}</span>
           <span className="text-caption text-ink-muted">{link.text}</span>
         </Link>

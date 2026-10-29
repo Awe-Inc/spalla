@@ -51,7 +51,7 @@ interface SettingsState extends PracticeAudioPrefs {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: "system",
+      theme: "dark",
       noteNaming: "latin",
       inputDeviceId: null,
       headphonesConfirmedAt: null,

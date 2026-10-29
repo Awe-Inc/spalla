@@ -46,7 +46,7 @@ export function AlunosPage() {
               <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {visible.map((student) => (
                   <li key={student.id}>
-                    <Link to={`/professor/alunos/${student.id}`} className="grid h-full gap-2 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-fretless hover:bg-surface-soft">
+                    <Link to={`/professor/alunos/${student.id}`} className="grid h-full gap-2 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-spalla hover:bg-surface-soft">
                       <span className="text-heading font-semibold text-ink">{student.name}</span>
                       <span className="text-caption text-ink-muted">{student.classes.join(", ") || "Sem turma"}</span>
                       <span className="flex flex-wrap items-center gap-2 text-caption text-ink-muted">
@@ -123,7 +123,7 @@ export function AlunoPage() {
                 type="button"
                 role="radio"
                 aria-checked={days === window}
-                className={`h-10 rounded-pill px-4 text-body font-semibold transition-colors duration-fast ease-fretless ${days === window ? "bg-primary text-on-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`}
+                className={`h-10 rounded-pill px-4 text-body font-semibold transition-colors duration-fast ease-spalla ${days === window ? "bg-primary text-on-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`}
                 onClick={() => setDays(window)}
               >
                 {window} dias

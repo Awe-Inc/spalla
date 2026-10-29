@@ -54,7 +54,7 @@ function AreaIcon({ path }: { path: string }) {
 }
 
 function navClass({ isActive }: { isActive: boolean }): string {
-  const base = "flex items-center gap-3 rounded-md px-3 py-2.5 text-body font-medium transition-colors duration-fast ease-fretless";
+  const base = "flex items-center gap-3 rounded-md px-3 py-2.5 text-body font-medium transition-colors duration-fast ease-spalla";
   return isActive ? `${base} bg-primary-soft text-primary` : `${base} text-ink-muted hover:bg-surface-soft hover:text-ink`;
 }
 

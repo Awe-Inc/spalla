@@ -70,7 +70,7 @@ export function CriarContaPage() {
             return (
               <label
                 key={option.value}
-                className={`grid cursor-pointer gap-1 rounded-lg border-2 bg-surface p-4 transition-colors duration-fast ease-fretless ${
+                className={`grid cursor-pointer gap-1 rounded-lg border-2 bg-surface p-4 transition-colors duration-fast ease-spalla ${
                   selected ? "border-primary" : "border-hairline hover:border-hairline-strong"
                 }`}
               >

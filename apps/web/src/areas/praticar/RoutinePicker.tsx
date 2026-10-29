@@ -35,7 +35,7 @@ interface RoutineEditorProps {
 }
 
 const FIELD_CLASS = "h-9 rounded-sm border border-hairline bg-surface px-2 text-body text-ink";
-const SMALL_BUTTON_CLASS = "rounded-sm px-2 py-1 text-caption text-ink-subtle transition-colors duration-fast ease-fretless hover:bg-surface-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
+const SMALL_BUTTON_CLASS = "rounded-sm px-2 py-1 text-caption text-ink-subtle transition-colors duration-fast ease-spalla hover:bg-surface-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
 const ADDABLE_TYPES: readonly BlockKind[] = [...ROUTINE_ORDER, "estudo", "livre"];
 
 function range(min: number, max: number): number[] {
@@ -81,7 +81,7 @@ function BlockRow({ block, index, count, dragging, onMove, onMinutes, onGoal, on
         onDrop();
       }}
       onDragEnd={onDragEnd}
-      className={`grid gap-2 rounded-md bg-surface-soft p-3 transition-opacity duration-fast ease-fretless sm:grid-cols-[auto_1fr_auto] sm:items-center ${dragging ? "opacity-50" : ""}`}
+      className={`grid gap-2 rounded-md bg-surface-soft p-3 transition-opacity duration-fast ease-spalla sm:grid-cols-[auto_1fr_auto] sm:items-center ${dragging ? "opacity-50" : ""}`}
     >
       <span className="flex items-center gap-2 text-body font-semibold">
         <span aria-hidden className="cursor-grab select-none text-ink-subtle">
@@ -235,7 +235,7 @@ export function RoutinePicker({ routines }: RoutinePickerProps) {
                 role="radio"
                 aria-checked={active}
                 onClick={() => routine.id !== undefined && setRoutine(routine.id)}
-                className={`grid gap-1 rounded-md p-4 text-left transition-colors duration-fast ease-fretless ${active ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`}
+                className={`grid gap-1 rounded-md p-4 text-left transition-colors duration-fast ease-spalla ${active ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink hover:bg-surface-sunken"}`}
               >
                 <span className="font-semibold">{routine.name}</span>
                 <span className="text-caption text-ink-subtle">

@@ -35,7 +35,7 @@ const VIEWS: { value: PlayView; label: string }[] = [
 ];
 
 const toggleClass =(on: boolean) =>
-  `inline-flex h-9 items-center gap-2 rounded-pill px-4 text-caption font-semibold transition-colors duration-fast ease-fretless ${
+  `inline-flex h-9 items-center gap-2 rounded-pill px-4 text-caption font-semibold transition-colors duration-fast ease-spalla ${
     on ? "bg-primary text-on-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
   }`;
 

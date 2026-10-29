@@ -17,7 +17,7 @@ export function FerramentasPage() {
       <ul className="grid gap-4 md:grid-cols-2">
         {TOOLS.map((tool) => (
           <li key={tool.to}>
-            <Link to={tool.to} className="block rounded-lg transition-transform duration-fast ease-fretless hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-primary">
+            <Link to={tool.to} className="block rounded-lg transition-transform duration-fast ease-spalla hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-primary">
               <Card as="article" className="grid h-full gap-2">
                 <h2 className="text-heading font-semibold">{tool.title}</h2>
                 <p className="text-ink-muted">{tool.description}</p>

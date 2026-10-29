@@ -11,9 +11,9 @@ import { DadosCard } from "./DadosCard";
 import { MicrofoneCard } from "./MicrofoneCard";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: "system", label: "Igual ao sistema" },
-  { value: "light", label: "Claro" },
   { value: "dark", label: "Escuro" },
+  { value: "light", label: "Claro" },
+  { value: "system", label: "Igual ao sistema" },
 ];
 
 const NAMING_OPTIONS: { value: NoteNaming; label: string }[] = [
@@ -46,8 +46,8 @@ export function ConfiguracoesPage() {
   const settings = useSettings();
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
   const accentOptions: { value: Accent; label: string }[] = [
-    { value: "padrao", label: "Verniz" },
-    { value: "sepia", label: "Sépia" },
+    { value: "padrao", label: "Abeto" },
+    { value: "sepia", label: "Ébano" },
   ];
 
   return (

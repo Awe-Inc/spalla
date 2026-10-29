@@ -37,7 +37,7 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
       { name: "primary-hover", role: "Ação principal sob o ponteiro", swatchClass: "bg-primary-hover", onDark: true },
       { name: "primary-soft", role: "Destaque suave: item atual da rotina, dica", swatchClass: "bg-primary-soft" },
       { name: "on-primary", role: "Texto sobre a cor principal", swatchClass: "bg-on-primary" },
-      { name: "focus", role: "Anel de foco do teclado", swatchClass: "bg-focus", onDark: true },
+      { name: "focus", role: "Anel de foco do teclado (o mel do tema)", swatchClass: "bg-focus", onDark: true },
     ],
   },
   {
@@ -79,9 +79,9 @@ export interface FontToken {
 }
 
 export const FONTS: readonly FontToken[] = [
-  { name: "display", family: "Fraunces", role: "Nome da tela, título da peça, saudação", className: "font-display" },
-  { name: "sans", family: "Figtree", role: "Toda a interface", className: "font-sans" },
-  { name: "mono", family: "JetBrains Mono", role: "Cents, bpm, cronômetro, contadores", className: "font-mono" },
+  { name: "display", family: "Instrument Serif", role: "Nome da tela e saudação; em itálico (font-work), título de obra", className: "font-display" },
+  { name: "sans", family: "Instrument Sans", role: "Toda a interface", className: "font-sans" },
+  { name: "mono", family: "Geist Mono", role: "Afinador, cents, bpm, cronômetro, contadores", className: "font-mono" },
 ];
 
 export interface TextToken {
@@ -92,13 +92,14 @@ export interface TextToken {
 }
 
 export const TEXT_SCALE: readonly TextToken[] = [
-  { name: "display", spec: "40 px · 1,1 · −0,5 px", className: "font-display text-display", sample: "Bom dia, Helena" },
-  { name: "title", spec: "28 px · 1,2", className: "font-display text-title", sample: "Praticar" },
-  { name: "heading", spec: "20 px · 1,3", className: "text-heading font-semibold", sample: "Escalas e arpejos" },
-  { name: "body", spec: "16 px · 1,5", className: "text-body", sample: "Toque a escala de Lá maior em duas oitavas, quatro notas por arcada." },
-  { name: "caption", spec: "13 px · 1,4 · 0,2 px", className: "text-caption text-ink-subtle", sample: "Última vez ontem · 80 bpm" },
-  { name: "numeric", spec: "32 px · 1", className: "font-mono text-numeric tabular", sample: "+12" },
-  { name: "note", spec: "72 px · 1", className: "font-mono text-note tabular", sample: "Lá" },
+  { name: "display", spec: "40–56 px, 1, −1 px", className: "font-display text-display", sample: "Boa tarde, Helena" },
+  { name: "title", spec: "30–38 px, 1,05, −0,5 px", className: "font-display text-title", sample: "Repertório" },
+  { name: "heading", spec: "19 px, 1,3, semibold", className: "text-heading font-semibold", sample: "Escalas e arpejos" },
+  { name: "body", spec: "16 px, 1,55", className: "text-body", sample: "Toque a escala de Lá maior em duas oitavas, quatro notas por arcada." },
+  { name: "small", spec: "14 px, 1,45", className: "text-small text-ink-muted", sample: "Última vez ontem, a 80 bpm" },
+  { name: "caption", spec: "12,5 px, 1,4, +0,1 px", className: "text-caption text-ink-subtle", sample: "3 de 5 limpas" },
+  { name: "numeric", spec: "32 px, 1, mono", className: "font-mono text-numeric tabular", sample: "+12" },
+  { name: "note", spec: "72 px, 1, mono", className: "font-mono text-note tabular", sample: "Lá" },
 ];
 
 export interface ScaleToken {
@@ -108,10 +109,10 @@ export interface ScaleToken {
 }
 
 export const RADII: readonly ScaleToken[] = [
-  { name: "sm", value: "8 px", className: "rounded-sm" },
-  { name: "md", value: "12 px", className: "rounded-md" },
-  { name: "lg", value: "16 px", className: "rounded-lg" },
-  { name: "xl", value: "24 px", className: "rounded-xl" },
+  { name: "sm", value: "6 px", className: "rounded-sm" },
+  { name: "md", value: "10 px", className: "rounded-md" },
+  { name: "lg", value: "18 px", className: "rounded-lg" },
+  { name: "xl", value: "28 px", className: "rounded-xl" },
   { name: "pill", value: "999 px", className: "rounded-pill" },
 ];
 
@@ -122,16 +123,25 @@ export const SHADOWS: readonly ScaleToken[] = [
 ];
 
 export const DURATIONS: readonly ScaleToken[] = [
-  { name: "fast", value: "120 ms", className: "duration-fast" },
-  { name: "normal", value: "200 ms", className: "duration-normal" },
-  { name: "slow", value: "320 ms", className: "duration-slow" },
+  { name: "fast", value: "140 ms", className: "duration-fast" },
+  { name: "normal", value: "220 ms", className: "duration-normal" },
+  { name: "slow", value: "360 ms", className: "duration-slow" },
 ];
 
-export const EASINGS: readonly ScaleToken[] = [{ name: "fretless", value: "cubic-bezier(0.2, 0.8, 0.2, 1)", className: "ease-fretless" }];
+export const EASINGS: readonly ScaleToken[] = [
+  { name: "spalla", value: "cubic-bezier(0.2, 0.8, 0.2, 1): toda transição", className: "ease-spalla" },
+  { name: "spring", value: "cubic-bezier(0.34, 1.56, 0.64, 1): só confirmação", className: "ease-spring" },
+];
+
+export const ANIMATIONS: readonly ScaleToken[] = [
+  { name: "rise", value: "Entrada: sobe 6 px e aparece", className: "animate-rise" },
+  { name: "pop", value: "Confirmação: estrela, marco", className: "animate-pop" },
+];
 
 export const LAYOUT: readonly ScaleToken[] = [
-  { name: "container-page", value: "1120 px", className: "max-w-page" },
-  { name: "grid-template-columns-shell", value: "240 px · 1fr", className: "grid-cols-shell" },
+  { name: "container-page", value: "1080 px", className: "max-w-page" },
+  { name: "container-prose", value: "68 caracteres", className: "max-w-prose" },
+  { name: "grid-template-columns-shell", value: "248 px + 1fr", className: "grid-cols-shell" },
 ];
 
 export interface ThemeOption {
@@ -141,10 +151,10 @@ export interface ThemeOption {
 }
 
 export const THEME_OPTIONS: readonly ThemeOption[] = [
-  { theme: "light", accent: "padrao", label: "Claro" },
-  { theme: "dark", accent: "padrao", label: "Escuro" },
-  { theme: "light", accent: "sepia", label: "Sépia" },
-  { theme: "dark", accent: "sepia", label: "Sépia escuro" },
+  { theme: "dark", accent: "padrao", label: "Abeto escuro" },
+  { theme: "light", accent: "padrao", label: "Abeto claro" },
+  { theme: "dark", accent: "sepia", label: "Ébano escuro" },
+  { theme: "light", accent: "sepia", label: "Ébano claro" },
 ];
 
 export function colorTokenNames(): string[] {

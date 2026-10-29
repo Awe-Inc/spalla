@@ -7,7 +7,7 @@ const TABS = [
 ] as const;
 
 function tabClass({ isActive }: { isActive: boolean }): string {
-  const base = "inline-flex h-10 items-center rounded-pill px-4 font-medium transition-colors duration-fast ease-fretless";
+  const base = "inline-flex h-10 items-center rounded-pill px-4 font-medium transition-colors duration-fast ease-spalla";
   return isActive ? `${base} bg-primary-soft text-primary` : `${base} bg-surface-soft text-ink-muted hover:text-ink`;
 }
 

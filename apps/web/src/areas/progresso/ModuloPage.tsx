@@ -8,7 +8,7 @@ import { db, type ExerciseResult } from "@/data/db";
 import { moduleSummary, type ExerciseSummary } from "@/data/moduleProgress";
 import { Card, EmptyState, PageTitle, Stars } from "@/design/components";
 
-const ROW_BUTTON_CLASS = "rounded-sm px-2 py-1 text-caption text-ink-subtle transition-colors duration-fast ease-fretless hover:bg-surface-sunken hover:text-ink";
+const ROW_BUTTON_CLASS = "rounded-sm px-2 py-1 text-caption text-ink-subtle transition-colors duration-fast ease-spalla hover:bg-surface-sunken hover:text-ink";
 
 function lastPlayedSentence(playedAt: number | null): string {
   if (playedAt === null) return "Ainda não tocado";

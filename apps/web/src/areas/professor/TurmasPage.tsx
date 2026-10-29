@@ -50,7 +50,7 @@ function ClassCard({ klass }: { klass: TeacherClass }) {
   return (
     <Link
       to={`/professor/turmas/${klass.id}`}
-      className={`grid gap-3 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-fretless hover:bg-surface-soft ${klass.archivedAt ? "opacity-70" : ""}`}
+      className={`grid gap-3 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-spalla hover:bg-surface-soft ${klass.archivedAt ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-heading font-semibold text-ink">{klass.name}</h2>

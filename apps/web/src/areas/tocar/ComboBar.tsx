@@ -15,7 +15,7 @@ export function ComboBar({ combo }: ComboBarProps) {
       </div>
       <div className="h-1.5 overflow-hidden rounded-pill bg-surface-sunken">
         <div
-          className={`h-full rounded-pill transition-transform duration-fast ease-fretless ${doubled ? "bg-primary" : "bg-in-tune"}`}
+          className={`h-full rounded-pill transition-transform duration-fast ease-spalla ${doubled ? "bg-primary" : "bg-in-tune"}`}
           style={{ transform: `scaleX(${ratio})`, transformOrigin: "left" }}
         />
       </div>

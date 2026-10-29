@@ -98,7 +98,7 @@ export function ItemPicker({ onPick, onCancel }: ItemPickerProps) {
           <li key={item.key}>
             <button
               type="button"
-              className="grid w-full gap-0.5 rounded-md px-3 py-2 text-left transition-colors duration-fast ease-fretless hover:bg-surface"
+              className="grid w-full gap-0.5 rounded-md px-3 py-2 text-left transition-colors duration-fast ease-spalla hover:bg-surface"
               onClick={() => onPick(item)}
             >
               <span className="text-body font-medium text-ink">{item.title}</span>

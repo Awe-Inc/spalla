@@ -10,8 +10,8 @@ import { can, useAccount } from "./store";
 
 export const FIELD_CLASS = "h-11 w-full rounded-md border border-hairline bg-surface px-3 text-body text-ink md:h-10";
 export const AREA_CLASS = "min-h-28 w-full rounded-md border border-hairline bg-surface px-3 py-2 text-body text-ink";
-export const LINK_PRIMARY_CLASS = "inline-flex h-11 items-center justify-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors duration-fast ease-fretless hover:bg-primary-hover md:h-10";
-export const LINK_SECONDARY_CLASS = "inline-flex h-11 items-center justify-center rounded-pill bg-surface-soft px-5 font-semibold text-ink transition-colors duration-fast ease-fretless hover:bg-surface-sunken md:h-10";
+export const LINK_PRIMARY_CLASS = "inline-flex h-11 items-center justify-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors duration-fast ease-spalla hover:bg-primary-hover md:h-10";
+export const LINK_SECONDARY_CLASS = "inline-flex h-11 items-center justify-center rounded-pill bg-surface-soft px-5 font-semibold text-ink transition-colors duration-fast ease-spalla hover:bg-surface-sunken md:h-10";
 
 interface FieldShellProps {
   label: string;
@@ -162,7 +162,7 @@ export function SubNav({ items, label }: { items: readonly SubNavItem[]; label: 
               to={item.to}
               end={item.end ?? false}
               className={({ isActive }) =>
-                `inline-flex h-11 items-center border-b-2 px-3 text-body font-medium transition-colors duration-fast ease-fretless ${
+                `inline-flex h-11 items-center border-b-2 px-3 text-body font-medium transition-colors duration-fast ease-spalla ${
                   isActive ? "border-primary text-primary" : "border-transparent text-ink-muted hover:text-ink"
                 }`
               }
