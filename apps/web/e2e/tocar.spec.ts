@@ -6,6 +6,19 @@ const SETTINGS_STORAGE_KEY = "fretless-settings";
 const ONBOARDED_SETTINGS = JSON.stringify({ state: { onboardedAt: 1 }, version: 0 });
 const RUN_TIMEOUT_MS = 90_000;
 const MINIMUM_ACCURACY_PCT = 70;
+const MINIMUM_LANE_COLOURS = 5;
+
+function distinctColourCount(element: Element): number {
+  const canvas = element as HTMLCanvasElement;
+  const ctx = canvas.getContext("2d");
+  if (!ctx || canvas.width === 0 || canvas.height === 0) return 0;
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const colours = new Set<number>();
+  for (let offset = 0; offset < data.length; offset += 4 * 97) {
+    colours.add(((data[offset] ?? 0) << 16) | ((data[offset + 1] ?? 0) << 8) | (data[offset + 2] ?? 0));
+  }
+  return colours.size;
+}
 
 test("o jogador sintético toca um exercício do começo ao resultado", async ({ page }) => {
   await page.addInitScript(
@@ -19,9 +32,15 @@ test("o jogador sintético toca um exercício do começo ao resultado", async ({
   await expect(page.getByText("Jogador sintético")).toBeVisible();
 
   await page.getByRole("button", { name: "Estou de fone" }).click();
+  await page.getByRole("group", { name: "Vista" }).getByRole("button", { name: "As duas" }).click();
   await page.getByRole("button", { name: "Começar" }).click();
 
-  await expect(page.getByRole("region", { name: "Nota atual" })).toBeVisible();
+  const playing = page.getByRole("region", { name: "Nota atual" });
+  await expect(playing).toBeVisible();
+  const lanes = playing.getByRole("img", { name: /pistas das cordas/i });
+  await expect(lanes).toBeVisible();
+  await expect(playing.getByRole("img", { name: /partitura rolando/i })).toBeVisible();
+  await expect.poll(() => lanes.evaluate(distinctColourCount)).toBeGreaterThan(MINIMUM_LANE_COLOURS);
 
   const result = page.getByRole("region", { name: "Resultado" });
   await expect(result).toBeVisible({ timeout: RUN_TIMEOUT_MS });

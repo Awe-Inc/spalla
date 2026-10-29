@@ -9,6 +9,8 @@ export type NoteNaming = "latin" | "letters";
 export type Accent = "padrao" | "sepia";
 export const STAFF_SCALES = [1, 1.25, 1.5] as const;
 export type StaffScale = (typeof STAFF_SCALES)[number];
+export const PLAY_VIEWS = ["pauta", "pistas", "ambos"] as const;
+export type PlayView = (typeof PLAY_VIEWS)[number];
 
 export interface PracticeAudioPrefs {
   metronomeOn: boolean;
@@ -28,6 +30,7 @@ interface SettingsState extends PracticeAudioPrefs {
   onboardedAt: number | null;
   inputGain: number;
   staffScale: StaffScale;
+  playView: PlayView;
   accent: Accent;
   lessonWeekday: number | null;
   setLessonWeekday: (weekday: number | null) => void;
@@ -35,6 +38,7 @@ interface SettingsState extends PracticeAudioPrefs {
   completeOnboarding: () => void;
   setInputGain: (gain: number) => void;
   setStaffScale: (scale: StaffScale) => void;
+  setPlayView: (view: PlayView) => void;
   setAccent: (accent: Accent) => void;
   setTheme: (theme: ThemePreference) => void;
   setNoteNaming: (naming: NoteNaming) => void;
@@ -54,6 +58,7 @@ export const useSettings = create<SettingsState>()(
       onboardedAt: null,
       inputGain: 1,
       staffScale: 1,
+      playView: "pauta",
       accent: "padrao",
       lessonWeekday: null,
       setLessonWeekday: (lessonWeekday) => set({ lessonWeekday }),
@@ -61,6 +66,7 @@ export const useSettings = create<SettingsState>()(
       completeOnboarding: () => set({ onboardedAt: Date.now() }),
       setInputGain: (inputGain) => set({ inputGain: Math.max(0.25, Math.min(4, inputGain)) }),
       setStaffScale: (staffScale) => set({ staffScale }),
+      setPlayView: (playView) => set({ playView }),
       setAccent: (accent) => set({ accent }),
       metronomeOn: false,
       metronomeSubdivision: 1,
@@ -76,7 +82,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, autoSlowdown }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, autoSlowdown }) => ({
         theme,
         lessonWeekday,
         noteNaming,
@@ -85,6 +91,7 @@ export const useSettings = create<SettingsState>()(
         onboardedAt,
         inputGain,
         staffScale,
+        playView,
         accent,
         metronomeOn,
         metronomeSubdivision,

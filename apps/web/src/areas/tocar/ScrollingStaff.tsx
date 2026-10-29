@@ -1,5 +1,5 @@
 import type { NoteJudgement, Score } from "@fretless/core";
-import { type CSSProperties, useEffect, useRef, useState, type RefObject } from "react";
+import { type CSSProperties, useEffect, useRef } from "react";
 
 import {
   accidentalOf,
@@ -30,6 +30,8 @@ import {
   type StaffGeometry,
 } from "@/notation/staffLayout";
 
+import { fitCanvas, useCanvasSize, type CanvasSize } from "./canvas";
+
 interface ScrollingStaffProps {
   score: Score;
   songTime: number;
@@ -51,11 +53,6 @@ interface Palette {
   off: string;
   mono: string;
   sans: string;
-}
-
-interface CanvasSize {
-  width: number;
-  height: number;
 }
 
 const LINE_ALPHA = 0.6;
@@ -312,37 +309,14 @@ export function drawStaff(ctx: CanvasRenderingContext2D, size: CanvasSize, palet
   drawPlayhead(ctx, geometry, palette);
 }
 
-function useCanvasSize(ref: RefObject<HTMLCanvasElement | null>): CanvasSize {
-  const [size, setSize] = useState<CanvasSize>({ width: 0, height: 0 });
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry) return;
-      const { width, height } = entry.contentRect;
-      setSize({ width: Math.round(width), height: Math.round(height) });
-    });
-    observer.observe(canvas);
-    return () => observer.disconnect();
-  }, [ref]);
-  return size;
-}
-
 export function ScrollingStaff({ className = "", style, ...props }: ScrollingStaffProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const size = useCanvasSize(canvasRef);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || size.width === 0 || size.height === 0) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const ratio = window.devicePixelRatio || 1;
-    if (canvas.width !== size.width * ratio || canvas.height !== size.height * ratio) {
-      canvas.width = size.width * ratio;
-      canvas.height = size.height * ratio;
-    }
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    const ctx = canvas ? fitCanvas(canvas, size) : null;
+    if (!canvas || !ctx) return;
     drawStaff(ctx, size, readPalette(canvas), props);
   }, [size, props]);
 

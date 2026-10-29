@@ -1,6 +1,6 @@
 import type { MeasureRange, Score } from "@fretless/core";
 
-import { useSettings } from "@/app/settings";
+import { useSettings, type PlayView } from "@/app/settings";
 import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
 import { Button } from "@/design/components";
@@ -28,7 +28,13 @@ const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
   { value: 4, label: "Semicolcheias" },
 ];
 
-const toggleClass = (on: boolean) =>
+const VIEWS: { value: PlayView; label: string }[] = [
+  { value: "pauta", label: "Pauta" },
+  { value: "pistas", label: "Pistas das cordas" },
+  { value: "ambos", label: "As duas" },
+];
+
+const toggleClass =(on: boolean) =>
   `inline-flex h-9 items-center gap-2 rounded-pill px-4 text-caption font-semibold transition-colors duration-fast ease-fretless ${
     on ? "bg-primary text-on-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
   }`;
@@ -77,6 +83,14 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
           >
             Diminuir ao errar
           </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Vista">
+          <span className="text-caption text-ink-subtle">Vista</span>
+          {VIEWS.map((view) => (
+            <button key={view.value} type="button" aria-pressed={prefs.playView === view.value} className={toggleClass(prefs.playView === view.value)} onClick={() => prefs.setPlayView(view.value)}>
+              {view.label}
+            </button>
+          ))}
         </div>
         {prefs.metronomeOn ? (
           <div className="flex flex-wrap items-center gap-3 text-caption">

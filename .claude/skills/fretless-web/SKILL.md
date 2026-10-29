@@ -14,7 +14,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (99 cases) + vitest core (14) + vitest web (187)
+pnpm test                          # WASM harness (99 cases) + vitest core (14) + vitest web (202)
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 with the synthetic player (~35 s); first run needs
@@ -67,7 +67,9 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  useAccompaniment (metronome + drone bound to the mic context), TocarControls
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
                                  tempo advice, "repetir compassos", cartão da meta do bloco com GoalDots e a
-                                 frase da série), tempo.ts, measureMap.ts and autoSlowdown.ts (pure, tested; the "Diminuir ao errar" toggle lives in settings.autoSlowdown)
+                                 frase da série), tempo.ts, measureMap.ts and autoSlowdown.ts (pure, tested; the "Diminuir ao errar" toggle lives in settings.autoSlowdown),
+                                 ScoreView (picks the view from settings.playView: "pauta" | "pistas" | "ambos"),
+                                 Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
 apps/web/src/data/               db.ts (Dexie v5: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles), sheets.ts (estante:
                                  importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas),
@@ -138,6 +140,7 @@ apps/web/src/areas/praticar/     PraticarPage (módulos e exercícios; botão "H
                                  adicionar/tirar bloco, aviso de vizinhos iguais; testado em RoutinePicker.test.tsx)
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
 apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested
+apps/web/src/notation/highwayLayout.ts  pure lane geometry; reuses the staff TimeAxis so both views line up, tested
 apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolling into the playhead
 ```
 

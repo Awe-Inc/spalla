@@ -14,7 +14,7 @@ import { displayNoteName } from "@/music/noteNames";
 import { autoSlowdown, slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { ComboBar } from "./ComboBar";
 import { ResultScreen } from "./ResultScreen";
-import { ScrollingStaff } from "./ScrollingStaff";
+import { ScoreView } from "./ScoreView";
 import { TocarControls } from "./TocarControls";
 import { useAccompaniment } from "./useAccompaniment";
 import { LEAD_IN_SECONDS, useSession } from "./useSession";
@@ -30,7 +30,6 @@ interface Snapshot {
 }
 
 const LOOP_RESTART_DELAY_MS = 1200;
-const STAFF_BASE_HEIGHT_PX = 208;
 
 function readSnapshot(session: PracticeSession): Snapshot {
   return {
@@ -59,8 +58,6 @@ export function TocarPage() {
     else void stopMic();
   }, [isSynthetic, stopSynthetic, stopMic]);
   const naming = useSettings((state) => state.noteNaming);
-  const staffScale = useSettings((state) => state.staffScale);
-  const staffHeight = { height: `${Math.round(STAFF_BASE_HEIGHT_PX * staffScale)}px` };
   const headphonesConfirmedAt = useSettings((state) => state.headphonesConfirmedAt);
   const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
   const isAutoSlowdownOn = useSettings((state) => state.autoSlowdown);
@@ -235,13 +232,7 @@ export function TocarPage() {
 
         {score && snapshot && isRunning ? (
           <section className="grid gap-6" aria-label="Nota atual">
-            <ScrollingStaff
-              score={score}
-              songTime={snapshot.songTime}
-              currentNoteIndex={snapshot.currentNoteIndex}
-              judgements={snapshot.judgements}
-              style={staffHeight}
-            />
+            <ScoreView score={score} songTime={snapshot.songTime} currentNoteIndex={snapshot.currentNoteIndex} judgements={snapshot.judgements} />
             <div className="grid gap-2">
               <span className="text-caption text-ink-subtle">
                 {snapshot.state === "countdown" ? "Prepare o arco" : `Compasso ${currentEvent?.measure ?? "—"}`}
@@ -312,7 +303,7 @@ export function TocarPage() {
 
         {isIdle && score ? (
           <section className="grid justify-items-center gap-4 text-center">
-            <ScrollingStaff score={score} songTime={-LEAD_IN_SECONDS} currentNoteIndex={0} judgements={[]} className="w-full" style={staffHeight} />
+            <ScoreView score={score} songTime={-LEAD_IN_SECONDS} currentNoteIndex={0} judgements={[]} />
             {exercise ? <p className="max-w-prose text-ink-muted">{exercise.howTo}</p> : null}
             <p className="text-caption text-ink-subtle">
               {score.noteCount} notas · {bpm} bpm

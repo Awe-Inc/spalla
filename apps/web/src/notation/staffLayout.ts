@@ -30,6 +30,8 @@ export interface StaffGeometry {
   songTime: number;
 }
 
+export type TimeAxis = Pick<StaffGeometry, "cursorX" | "pixelsPerSecond" | "songTime">;
+
 export interface BeamLine {
   stemUp: boolean;
   levels: number;
@@ -122,7 +124,7 @@ export function buildGeometry(width: number, height: number, songTime: number): 
   return { width, height, spacing, staffTop, bottomY, cursorX, pixelsPerSecond, headWidth: headHeight * 1.32, headHeight, songTime };
 }
 
-export function noteX(geometry: StaffGeometry, startSeconds: number): number {
+export function noteX(geometry: TimeAxis, startSeconds: number): number {
   return geometry.cursorX + (startSeconds - geometry.songTime) * geometry.pixelsPerSecond;
 }
 
@@ -146,14 +148,14 @@ export function beamGap(geometry: StaffGeometry): number {
   return geometry.spacing * 0.72;
 }
 
-export function visibleWindow(geometry: StaffGeometry): { start: number; end: number } {
+export function visibleWindow(geometry: TimeAxis): { start: number; end: number } {
   return {
     start: geometry.songTime - geometry.cursorX / geometry.pixelsPerSecond - 0.5,
     end: geometry.songTime + SECONDS_VISIBLE + 0.5,
   };
 }
 
-export function visibleEventIndices(score: Score, geometry: StaffGeometry): number[] {
+export function visibleEventIndices(score: Score, geometry: TimeAxis): number[] {
   const { start, end } = visibleWindow(geometry);
   const indices: number[] = [];
   score.events.forEach((event, index) => {
@@ -162,7 +164,7 @@ export function visibleEventIndices(score: Score, geometry: StaffGeometry): numb
   return indices;
 }
 
-export function barlineTimes(score: Score, geometry: StaffGeometry): number[] {
+export function barlineTimes(score: Score, geometry: TimeAxis): number[] {
   const { start, end } = visibleWindow(geometry);
   return score.measures.map((measure) => measure.startSeconds).filter((time) => time >= start && time <= end);
 }

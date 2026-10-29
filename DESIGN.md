@@ -182,7 +182,9 @@ clicável inteiro ganha `elevation.raised` no hover e borda `focus` no teclado.
 
 **Highway.** Quatro pistas horizontais com a cor da corda a 12% de opacidade sobre `surface-sunken`; notas como
 pílulas com a cor da corda; linha de agora em `ink`; barras de compasso em `hairline-strong`. Acerto pinta a nota de
-`in-tune`, erro de `off`, quase de `close`.
+`in-tune`, erro de `off`, quase de `close`. Mi fica em cima e Sol embaixo, cada pista com o nome da corda à
+esquerda; a nota da vez ganha contorno de 2px em `ink`. Usa o mesmo eixo de tempo da pauta (linha de agora a 20%, 6 s à
+frente), então na vista "As duas" as notas das pistas e da pauta passam pela linha juntas.
 
 **Pauta.** Canvas próprio em `apps/web/src/areas/tocar/ScrollingStaff.tsx` (portado do `StaffView` nativo; VexFlow foi
 descartado em 28/10 porque a pauta precisa rolar a 60 fps e seguir os tokens). Fundo `surface-sunken`, linhas em
