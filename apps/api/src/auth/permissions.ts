@@ -20,6 +20,17 @@ export type Permission = keyof typeof PERMISSIONS;
 
 export const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[];
 
+export const PLATFORM_PERMISSIONS: readonly Permission[] = [
+  "users.read",
+  "users.manage",
+  "roles.manage",
+  "invites.manage",
+  "teachers.approve",
+  "audit.read",
+  "reports.read",
+  "settings.manage",
+];
+
 export function isPermission(value: string): value is Permission {
   return Object.hasOwn(PERMISSIONS, value);
 }

@@ -7,6 +7,7 @@ import { useApiData } from "@/api/useApiData";
 import { Badge, FIELD_CLASS, FormError, formatDate, LINK_SECONDARY_CLASS, LoadState, Notice, TextAreaField, TextField } from "@/account/ui";
 import { Button, Card, EmptyState, PageTitle } from "@/design/components";
 
+import { safeExternalUrl } from "@/areas/aulas/lessons";
 import { formatBytes, looksLikePdf, MATERIAL_KIND_LABELS, MAX_PDF_BYTES } from "./teaching";
 
 function ClassChecklist({ classes, selected, onChange }: { classes: TeacherClass[]; selected: string[]; onChange: (ids: string[]) => void }) {
@@ -127,6 +128,7 @@ function MaterialRow({ material, classes, onChanged }: { material: TeacherMateri
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const shared = classes.filter((klass) => material.classIds.includes(klass.id));
+  const linkUrl = safeExternalUrl(material.url);
 
   async function act(action: () => Promise<unknown>) {
     setError(null);
@@ -158,8 +160,8 @@ function MaterialRow({ material, classes, onChanged }: { material: TeacherMateri
           {material.kind === "pdf" && material.fileId ? (
             <Button onClick={() => void act(() => openPdf(material.fileId!))}>Abrir</Button>
           ) : null}
-          {material.kind === "link" && material.url ? (
-            <a href={material.url} target="_blank" rel="noopener noreferrer" className={LINK_SECONDARY_CLASS}>
+          {material.kind === "link" && linkUrl ? (
+            <a href={linkUrl} target="_blank" rel="noopener noreferrer" className={LINK_SECONDARY_CLASS}>
               Abrir link
             </a>
           ) : null}

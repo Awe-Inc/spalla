@@ -42,7 +42,9 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext): Prom
     );
   });
 
-  app.post("/me/classes/join", async (request, reply) => {
+  const strict = { config: { rateLimit: { max: ctx.config.rateLimitAuthMax, timeWindow: "1 minute" } } };
+
+  app.post("/me/classes/join", strict, async (request, reply) => {
     const me = requireAuth(request);
     const { code } = joinBody.parse(request.body);
     const klass = await db.transaction((tx) => joinClassByCode(tx, me.id, code));

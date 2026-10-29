@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 
 import type { AppContext } from "../app.js";
-import { ADMIN_ROLE, ALL_PERMISSIONS, isPermission, PERMISSIONS, TEACHER_ROLE, type Permission } from "../auth/permissions.js";
+import { ADMIN_ROLE, ALL_PERMISSIONS, isPermission, PERMISSIONS, PLATFORM_PERMISSIONS, TEACHER_ROLE, type Permission } from "../auth/permissions.js";
 import { requirePermission, type AuthUser } from "../auth/session.js";
 import { hashToken, newCode, RESET_CODE_HOURS } from "../auth/tokens.js";
 import type { Queryable } from "../db/db.js";
@@ -85,6 +85,13 @@ async function findUser(db: Queryable, id: string): Promise<{ id: string; status
   );
   if (!user) throw notFound("Usuário não encontrado.");
   return { id: user.id, status: user.status, roles: user.roles ?? [] };
+}
+
+async function assertCanManage(db: Queryable, me: AuthUser, user: { id: string; roles: string[] }): Promise<void> {
+  if (user.id === me.id) return;
+  const roles = await rolePermissions(db, user.roles);
+  const permissions = [...roles.values()].flatMap((role) => role.permissions);
+  assertCanGrant(me, permissions.filter((permission) => PLATFORM_PERMISSIONS.includes(permission)));
 }
 
 async function assertNotLastAdmin(db: Queryable, user: { roles: string[]; status: string }): Promise<void> {
@@ -183,10 +190,10 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     const { id } = idParams.parse(request.params);
     const body = userPatch.parse(request.body);
     const user = await findUser(db, id);
+    await assertCanManage(db, me, user);
     if (body.status === "suspended") {
       if (id === me.id) throw badRequest("propria-conta", "Você não pode suspender a própria conta.");
       await assertNotLastAdmin(db, user);
-      if (user.roles.includes(ADMIN_ROLE) && !me.permissions.has("roles.manage")) throw forbidden();
     }
     if (body.email) {
       const taken = await db.query("SELECT 1 FROM users WHERE lower(email) = $1 AND id <> $2", [body.email, id]);
@@ -226,9 +233,9 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
   });
 
   app.post("/admin/users/:id/revoke-sessions", async (request) => {
-    requirePermission(request, "users.manage");
+    const me = requirePermission(request, "users.manage");
     const { id } = idParams.parse(request.params);
-    await findUser(db, id);
+    await assertCanManage(db, me, await findUser(db, id));
     const rows = await db.query("UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL RETURNING id", [id]);
     await audit(db, request, "usuario.sessoes-encerradas", target(id), { count: rows.length });
     return { revoked: rows.length };
@@ -237,8 +244,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
   app.post("/admin/users/:id/reset-code", async (request) => {
     const me = requirePermission(request, "users.manage");
     const { id } = idParams.parse(request.params);
-    const user = await findUser(db, id);
-    if (user.roles.includes(ADMIN_ROLE) && id !== me.id && !me.permissions.has("roles.manage")) throw forbidden();
+    await assertCanManage(db, me, await findUser(db, id));
     const code = newCode(RESET_CODE_LENGTH);
     await db.query("UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL", [id]);
     await db.query(
@@ -255,8 +261,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     if (id === me.id) throw badRequest("propria-conta", "Para apagar a própria conta, use a tela da conta.");
     const user = await findUser(db, id);
     await assertNotLastAdmin(db, user);
-    const roles = await rolePermissions(db, user.roles);
-    assertCanGrant(me, [...roles.values()].flatMap((role) => role.permissions));
+    await assertCanManage(db, me, user);
     await deleteAccount(ctx, id);
     await audit(db, request, "usuario.apagado", target(id));
     return reply.code(204).send();
@@ -271,11 +276,13 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
   });
 
   const decide = (decision: "approved" | "rejected") => async (request: FastifyRequest) => {
-    requirePermission(request, "teachers.approve");
+    const me = requirePermission(request, "teachers.approve");
     const { id } = idParams.parse(request.params);
+    if (id === me.id) throw badRequest("propria-conta", "Outra pessoa precisa decidir o seu pedido de professor.");
     await findUser(db, id);
     await db.transaction(async (tx) => {
-      await tx.query("UPDATE users SET teacher_application = $2 WHERE id = $1", [id, decision]);
+      const decided = await tx.query("UPDATE users SET teacher_application = $2 WHERE id = $1 AND teacher_application = 'pending' RETURNING id", [id, decision]);
+      if (decided.length === 0) throw conflict("sem-pedido", "Esta conta não tem pedido de professor esperando decisão.");
       const [role] = await tx.query<{ id: string }>("SELECT id FROM roles WHERE key = $1", [TEACHER_ROLE]);
       if (decision === "approved") await tx.query("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", [id, role!.id]);
       else await tx.query("DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2", [id, role!.id]);

@@ -67,6 +67,33 @@ describe("admin", () => {
     expect(allowed.statusCode).toBe(201);
   });
 
+  it("quem gerencia pessoas não toma a conta de quem tem mais permissões", async () => {
+    const role = await call(t.app, "POST", "/admin/roles", admin.token, { name: "Atendimento", permissions: ["users.read", "users.manage"] });
+    const manager = await signup(t.app);
+    await call(t.app, "PUT", `/admin/users/${manager.id}/roles`, admin.token, { roles: [role.json().key] });
+    const support = await supportToken();
+    const reset = await call(t.app, "POST", `/admin/users/${support.id}/reset-code`, manager.token);
+    expect(reset.statusCode).toBe(403);
+    const email = await call(t.app, "PATCH", `/admin/users/${support.id}`, manager.token, { email: uniqueEmail("tomada") });
+    expect(email.statusCode).toBe(403);
+    expect((await call(t.app, "PATCH", `/admin/users/${support.id}`, manager.token, { status: "suspended" })).statusCode).toBe(403);
+    expect((await call(t.app, "POST", `/admin/users/${support.id}/revoke-sessions`, manager.token)).statusCode).toBe(403);
+    expect((await call(t.app, "PATCH", `/admin/users/${admin.id}`, manager.token, { name: "Outro" })).statusCode).toBe(403);
+    const student = await signup(t.app);
+    expect((await call(t.app, "POST", `/admin/users/${student.id}/reset-code`, manager.token)).statusCode).toBe(200);
+    expect((await call(t.app, "PATCH", `/admin/users/${manager.id}`, manager.token, { name: "Eu mesmo" })).statusCode).toBe(200);
+  });
+
+  it("aprovação de professor só vale para pedido pendente e nunca para si", async () => {
+    const support = await supportToken();
+    const self = await call(t.app, "POST", `/admin/teachers/${support.id}/approve`, support.token);
+    expect(self.statusCode).toBe(400);
+    const student = await signup(t.app);
+    const notPending = await call(t.app, "POST", `/admin/teachers/${student.id}/approve`, support.token);
+    expect(notPending.statusCode).toBe(409);
+    expect((await call(t.app, "GET", "/teacher/classes", student.token)).statusCode).toBe(403);
+  });
+
   it("papel novo com permissão inexistente é recusado", async () => {
     const response = await call(t.app, "POST", "/admin/roles", admin.token, { name: "Estranho", permissions: ["tudo.liberado"] });
     expect(response.statusCode).toBe(400);
