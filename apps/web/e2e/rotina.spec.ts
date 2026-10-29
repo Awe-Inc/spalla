@@ -13,8 +13,8 @@ test("uma peça da biblioteca entra na rotina e aparece na sessão de hoje", asy
   );
 
   await page.goto("/repertorio");
-  await page.getByRole("link", { name: `Trechos e andamento: ${LIBRARY_TITLE}` }).click();
-  await page.waitForURL(/\/musicas\/peca\/biblioteca\//);
+  await page.getByRole("link", { name: LIBRARY_TITLE, exact: true }).click();
+  await page.waitForURL(/\/repertorio\/peca\/biblioteca\//);
   const slug = new URL(page.url()).pathname.split("/").at(-1)!;
 
   const form = page.getByRole("form", { name: "Adicionar à rotina" });

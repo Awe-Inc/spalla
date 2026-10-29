@@ -26,8 +26,8 @@ test("duas gravações da mesma peça ficam guardadas, aparecem no detalhe e se 
   );
 
   await page.goto("/repertorio");
-  await page.getByRole("link", { name: `Trechos e andamento: ${LIBRARY_TITLE}` }).click();
-  await page.waitForURL(/\/musicas\/peca\/biblioteca\//);
+  await page.getByRole("link", { name: LIBRARY_TITLE, exact: true }).click();
+  await page.waitForURL(/\/repertorio\/peca\/biblioteca\//);
   const detailUrl = page.url();
   await page.getByRole("link", { name: "Gravar esta peça" }).click();
   await expect(page.getByRole("heading", { name: "Gravador" })).toBeVisible();

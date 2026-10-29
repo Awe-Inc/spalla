@@ -65,9 +65,9 @@ test("uma canção da biblioteca CC0 abre pelo catálogo e toca até o resultado
   );
 
   await page.goto("/repertorio");
-  const row = page.getByRole("article").filter({ has: page.getByRole("heading", { name: LIBRARY_TITLE }) });
+  const row = page.getByRole("listitem").filter({ has: page.getByRole("link", { name: LIBRARY_TITLE, exact: true }) });
   await expect(row).toContainText(LIBRARY_COMPOSER);
-  const href = await row.getByRole("link", { name: "Tocar" }).getAttribute("href");
+  const href = await row.getByRole("link", { name: `Tocar ${LIBRARY_TITLE}` }).getAttribute("href");
   await page.goto(`${href}?jogador=sintetico`);
 
   await expect(page.getByRole("heading", { name: LIBRARY_TITLE })).toBeVisible();
