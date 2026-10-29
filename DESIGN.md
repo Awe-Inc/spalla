@@ -56,6 +56,7 @@ typography:
   caption: { family: "Instrument Sans", size: "12.5px", line-height: 1.4, weight: 500 }
   numeric: { family: "Geist Mono", size: "32px", features: "tabular-nums" }
   note: { family: "Geist Mono", size: "72px" }
+  music: { family: "Noto Music, Bravura Text, símbolos do sistema", use: "clave de sol na partitura em página" }
 radius: { sm: 6px, md: 10px, lg: 18px, xl: 28px, pill: 999px }
 motion:
   ease-spalla: "cubic-bezier(0.2, 0.8, 0.2, 1)"

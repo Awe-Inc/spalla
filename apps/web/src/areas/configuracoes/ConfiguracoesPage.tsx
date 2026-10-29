@@ -8,6 +8,7 @@ import { setDailyGoal } from "@/data/progress";
 import { VoceTabs } from "@/areas/voce/VoceTabs";
 import { ButtonLink, PageHeader } from "@/design/components";
 import { ChoiceChips } from "@/design/fields";
+import { PAGE_STYLE_OPTIONS, READING_GUIDE_OPTIONS, VIEW_OPTIONS } from "@/areas/tocar/viewOptions";
 
 import { DadosCard } from "./DadosCard";
 import { MicrofoneCard } from "./MicrofoneCard";
@@ -80,7 +81,16 @@ export function ConfiguracoesPage() {
             <SettingRow title="Nome das notas">
               <ChoiceChips name="naming" label="Nome das notas" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />
             </SettingRow>
-            <SettingRow title="Tamanho da partitura" hint="Vale para a pauta rolando na tela Tocar.">
+            <SettingRow title="Vista ao tocar" hint="Página é a partitura como no papel: uma linha depois da outra, e a página vira sozinha.">
+              <ChoiceChips name="view" label="Vista ao tocar" value={settings.playView} options={VIEW_OPTIONS} onChange={settings.setPlayView} />
+            </SettingRow>
+            <SettingRow title="Papel" hint="Aparência da partitura em página.">
+              <ChoiceChips name="page-style" label="Papel" value={settings.pageStyle} options={PAGE_STYLE_OPTIONS} onChange={settings.setPageStyle} />
+            </SettingRow>
+            <SettingRow title="Guia de leitura" hint="Sem guia, nada marca onde você está: é o treino de ler de verdade.">
+              <ChoiceChips name="guide" label="Guia de leitura" value={settings.readingGuide} options={READING_GUIDE_OPTIONS} onChange={settings.setReadingGuide} />
+            </SettingRow>
+            <SettingRow title="Tamanho da partitura" hint="Vale para a pauta e para a página na tela Tocar.">
               <ChoiceChips name="staff" label="Tamanho da partitura" value={settings.staffScale} options={STAFF_SCALES.map((scale) => ({ value: scale, label: STAFF_LABELS[scale] }))} onChange={settings.setStaffScale} />
             </SettingRow>
           </SettingGroup>

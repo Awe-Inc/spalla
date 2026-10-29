@@ -49,4 +49,11 @@ describe("ScoreView", () => {
     expect(first).toHaveAccessibleName(/pistas das cordas/i);
     expect(second).toHaveAccessibleName(/partitura rolando/i);
   });
+
+  it("shows the score as a page to read line by line", () => {
+    renderWith("pagina");
+    expect(screen.getByRole("img", { name: /partitura em página/i })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /partitura rolando/i })).toBeNull();
+    expect(screen.queryByRole("img", { name: /pistas das cordas/i })).toBeNull();
+  });
 });

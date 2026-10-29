@@ -1,5 +1,7 @@
 import { type ReactNode, useState } from "react";
 
+import type { PlayView } from "@/app/settings";
+import { VIEW_OPTIONS } from "@/areas/tocar/viewOptions";
 import { Button, ButtonLink, ConfirmButton, IconButton, Menu } from "@/design/actions";
 import { AccuracyBars, Card, EmptyState, GoalDots, HeadphoneNotice, InlineError, ProgressRing, Stars, StringChip } from "@/design/components";
 import { Badge, ChoiceChips, SelectField, TextAreaField, TextField } from "@/design/fields";
@@ -13,12 +15,6 @@ const SAMPLE_BARS = [
   { key: 3, accuracyPct: 91, bpm: 72 },
   { key: 4, accuracyPct: 96, bpm: 80 },
 ];
-const VIEW_OPTIONS = [
-  { value: "pauta", label: "Pauta" },
-  { value: "pistas", label: "Pistas" },
-  { value: "ambos", label: "As duas" },
-] as const;
-
 function Example({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
     <div className="grid gap-3 border-t border-hairline pt-5 first:border-t-0 first:pt-0">
@@ -141,7 +137,7 @@ export function EstruturaSection() {
 }
 
 export function FormularioSection() {
-  const [view, setView] = useState<(typeof VIEW_OPTIONS)[number]["value"]>("ambos");
+  const [view, setView] = useState<PlayView>("ambos");
   return (
     <Card className="grid gap-6">
       <Example title="TextField · SelectField">

@@ -102,7 +102,11 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  (tempo ±5, metronome, drone, loop pickers), ResultScreen (stars, measure map,
                                  tempo advice, "repetir compassos", cartão da meta do bloco com GoalDots e a
                                  frase da série), tempo.ts, measureMap.ts and autoSlowdown.ts (pure, tested; the "Diminuir ao errar" toggle lives in settings.autoSlowdown),
-                                 ScoreView (picks the view from settings.playView: "pauta" | "pistas" | "ambos"),
+                                 ScoreView (picks the view from settings.playView: "pagina" | "pauta" | "pistas" | "ambos"),
+                                 PageStaff.tsx ("pagina": the score as paper, systems read line by line, the page turns
+                                 by itself; settings.pageStyle papel/sepia/noite themes the subtree, settings.readingGuide
+                                 nota/compasso/nenhum), viewOptions.ts (labels shared by TocarControls, Ajustes and
+                                 /componentes), staffPaint.ts (palette and note/beam/slur painters shared by both staves),
                                  Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
 apps/web/src/data/               db.ts (Dexie v9: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections,
@@ -205,7 +209,8 @@ apps/web/src/areas/aulas/        visão do aluno: tarefas, materiais, planos ado
 apps/web/src/areas/admin/        /admin: visão geral, usuários (filtros na URL), professores, papéis, convites,
                                  auditoria, configurações; cada página exige a permissão da rota na API
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
-apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested
+apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window; optional `xAt` replaces the time axis), tested
+apps/web/src/notation/pageLayout.ts   pure page layout: greedy line breaks by measure, justified lines, header room, pages by height, reading x per system, tested
 apps/web/src/notation/highwayLayout.ts  pure lane geometry; reuses the staff TimeAxis so both views line up, tested
 apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolling into the playhead
 ```
@@ -241,6 +246,11 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 - No comments in TypeScript. What needs explaining goes in this file.
 
 ## Armadilhas
+
+- **Subárvore clara dentro do Tocar escuro** (29/10, vista Página). Sintoma: `data-theme="light"` não fazia nada, porque
+  os valores claros só existiam em `:root` e o Tocar força escuro. Regra: o bloco claro de `tokens.css` abre com
+  `[data-theme="light"],` antes de `:root {` (nessa ordem: o `tokenCatalog.test` procura o texto `:root {`), e a
+  sépia/ébano vem depois para ganhar. O canvas lê as cores do elemento com o tema (`getComputedStyle(canvas)`).
 
 - **Toda tela tem volta dentro do app** (pedido do dono, 29/10: "nao sendo necessario ter q voltar com o botao de voltar
   do navegador"). Sintoma: Entrar, Criar conta, Termos e `/componentes` só saíam pelo voltar do navegador. Regra: tela

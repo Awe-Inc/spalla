@@ -82,6 +82,7 @@ export const FONTS: readonly FontToken[] = [
   { name: "display", family: "Instrument Serif", role: "Nome da tela e saudação; em itálico (font-work), título de obra", className: "font-display" },
   { name: "sans", family: "Instrument Sans", role: "Toda a interface", className: "font-sans" },
   { name: "mono", family: "Geist Mono", role: "Afinador, cents, bpm, cronômetro, contadores", className: "font-mono" },
+  { name: "music", family: "Símbolos musicais do sistema", role: "Clave de sol na partitura em página", className: "font-music" },
 ];
 
 export interface TextToken {

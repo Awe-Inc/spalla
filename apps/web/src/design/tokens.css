@@ -2,6 +2,7 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+[data-theme="light"],
 :root {
   --canvas: #f2f4ef;
   --surface: #ffffff;
@@ -126,6 +127,7 @@
   --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --font-sans: "Instrument Sans Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-music: "Noto Music", "Bravura Text", "Segoe UI Symbol", "Apple Symbols", serif;
 
   --text-display: clamp(40px, 4.5vw + 22px, 56px);
   --text-display--line-height: 1;

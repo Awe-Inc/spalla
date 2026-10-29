@@ -28,9 +28,10 @@ export interface StaffGeometry {
   headWidth: number;
   headHeight: number;
   songTime: number;
+  xAt?: (startSeconds: number) => number;
 }
 
-export type TimeAxis = Pick<StaffGeometry, "cursorX" | "pixelsPerSecond" | "songTime">;
+export type TimeAxis = Pick<StaffGeometry, "cursorX" | "pixelsPerSecond" | "songTime" | "xAt">;
 
 export interface BeamLine {
   stemUp: boolean;
@@ -125,6 +126,7 @@ export function buildGeometry(width: number, height: number, songTime: number): 
 }
 
 export function noteX(geometry: TimeAxis, startSeconds: number): number {
+  if (geometry.xAt) return geometry.xAt(startSeconds);
   return geometry.cursorX + (startSeconds - geometry.songTime) * geometry.pixelsPerSecond;
 }
 

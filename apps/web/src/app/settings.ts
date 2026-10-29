@@ -9,8 +9,12 @@ export type NoteNaming = "latin" | "letters";
 export type Accent = "padrao" | "sepia";
 export const STAFF_SCALES = [1, 1.25, 1.5] as const;
 export type StaffScale = (typeof STAFF_SCALES)[number];
-export const PLAY_VIEWS = ["pauta", "pistas", "ambos"] as const;
+export const PLAY_VIEWS = ["pauta", "pistas", "ambos", "pagina"] as const;
 export type PlayView = (typeof PLAY_VIEWS)[number];
+export const PAGE_STYLES = ["papel", "sepia", "noite"] as const;
+export type PageStyle = (typeof PAGE_STYLES)[number];
+export const READING_GUIDES = ["nota", "compasso", "nenhum"] as const;
+export type ReadingGuide = (typeof READING_GUIDES)[number];
 
 export interface PracticeAudioPrefs {
   metronomeOn: boolean;
@@ -32,6 +36,8 @@ interface SettingsState extends PracticeAudioPrefs {
   inputGain: number;
   staffScale: StaffScale;
   playView: PlayView;
+  pageStyle: PageStyle;
+  readingGuide: ReadingGuide;
   accent: Accent;
   lessonWeekday: number | null;
   setLessonWeekday: (weekday: number | null) => void;
@@ -40,6 +46,8 @@ interface SettingsState extends PracticeAudioPrefs {
   setInputGain: (gain: number) => void;
   setStaffScale: (scale: StaffScale) => void;
   setPlayView: (view: PlayView) => void;
+  setPageStyle: (style: PageStyle) => void;
+  setReadingGuide: (guide: ReadingGuide) => void;
   setAccent: (accent: Accent) => void;
   setTheme: (theme: ThemePreference) => void;
   setNoteNaming: (naming: NoteNaming) => void;
@@ -60,6 +68,8 @@ export const useSettings = create<SettingsState>()(
       inputGain: 1,
       staffScale: 1,
       playView: "pauta",
+      pageStyle: "papel",
+      readingGuide: "nota",
       accent: "padrao",
       lessonWeekday: null,
       setLessonWeekday: (lessonWeekday) => set({ lessonWeekday }),
@@ -68,6 +78,8 @@ export const useSettings = create<SettingsState>()(
       setInputGain: (inputGain) => set({ inputGain: Math.max(0.25, Math.min(4, inputGain)) }),
       setStaffScale: (staffScale) => set({ staffScale }),
       setPlayView: (playView) => set({ playView }),
+      setPageStyle: (pageStyle) => set({ pageStyle }),
+      setReadingGuide: (readingGuide) => set({ readingGuide }),
       setAccent: (accent) => set({ accent }),
       metronomeOn: false,
       metronomeSubdivision: 1,
@@ -84,7 +96,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, autoSlowdown }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, autoSlowdown }) => ({
         theme,
         lessonWeekday,
         noteNaming,
@@ -94,6 +106,8 @@ export const useSettings = create<SettingsState>()(
         inputGain,
         staffScale,
         playView,
+        pageStyle,
+        readingGuide,
         accent,
         metronomeOn,
         metronomeSubdivision,

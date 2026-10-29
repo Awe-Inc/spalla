@@ -1,12 +1,13 @@
 import type { MeasureRange, Score } from "@fretless/core";
 
-import { useSettings, type PlayView } from "@/app/settings";
+import { useSettings } from "@/app/settings";
 import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
 import { Button } from "@/design/components";
 
 import { HARD_MEASURE_ACCURACY_PCT } from "./measureMap";
 import { BPM_STEP, type TempoLimits } from "./tempo";
+import { PAGE_STYLE_OPTIONS, READING_GUIDE_OPTIONS, VIEW_OPTIONS } from "./viewOptions";
 
 interface TocarControlsProps {
   score: Score;
@@ -26,12 +27,6 @@ const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
   { value: 2, label: "Colcheias" },
   { value: 3, label: "Tercinas" },
   { value: 4, label: "Semicolcheias" },
-];
-
-const VIEWS: { value: PlayView; label: string }[] = [
-  { value: "pauta", label: "Pauta" },
-  { value: "pistas", label: "Pistas das cordas" },
-  { value: "ambos", label: "As duas" },
 ];
 
 const toggleClass =(on: boolean) =>
@@ -86,12 +81,32 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
         </div>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Vista">
           <span className="text-caption text-ink-subtle">Vista</span>
-          {VIEWS.map((view) => (
+          {VIEW_OPTIONS.map((view) => (
             <button key={view.value} type="button" aria-pressed={prefs.playView === view.value} className={toggleClass(prefs.playView === view.value)} onClick={() => prefs.setPlayView(view.value)}>
               {view.label}
             </button>
           ))}
         </div>
+        {prefs.playView === "pagina" ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Papel">
+              <span className="text-caption text-ink-subtle">Papel</span>
+              {PAGE_STYLE_OPTIONS.map((option) => (
+                <button key={option.value} type="button" aria-pressed={prefs.pageStyle === option.value} className={toggleClass(prefs.pageStyle === option.value)} onClick={() => prefs.setPageStyle(option.value)}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Guia de leitura">
+              <span className="text-caption text-ink-subtle">Guia de leitura</span>
+              {READING_GUIDE_OPTIONS.map((option) => (
+                <button key={option.value} type="button" aria-pressed={prefs.readingGuide === option.value} className={toggleClass(prefs.readingGuide === option.value)} onClick={() => prefs.setReadingGuide(option.value)}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
         {prefs.metronomeOn ? (
           <div className="flex flex-wrap items-center gap-3 text-caption">
             <label className="flex items-center gap-2">
