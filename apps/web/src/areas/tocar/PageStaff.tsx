@@ -31,10 +31,6 @@ interface PageStaffProps {
   style?: CSSProperties;
 }
 
-interface PagePalette extends Palette {
-  music: string;
-}
-
 type PageDrawProps = Pick<PageStaffProps, "score" | "songTime" | "currentNoteIndex" | "judgements" | "staffScale" | "readingGuide">;
 
 const PAGE_THEMES: Record<PageStyle, { theme: "light" | "dark"; accent?: "sepia" }> = {
@@ -47,9 +43,8 @@ const FOOTER_SPACES = 2;
 const BAND_ALPHA = 0.14;
 const CURSOR_ALPHA = 0.55;
 
-function readPagePalette(element: HTMLElement): PagePalette {
-  const style = getComputedStyle(element);
-  return { ...readPalette(element), paper: style.getPropertyValue("--surface").trim(), music: style.getPropertyValue("--font-music").trim() };
+function readPagePalette(element: HTMLElement): Palette {
+  return { ...readPalette(element), paper: getComputedStyle(element).getPropertyValue("--surface").trim() };
 }
 
 function guideTone(guide: ReadingGuide, index: number, currentNoteIndex: number, judgements: NoteJudgement[]): NoteTone {
@@ -76,7 +71,7 @@ function systemGeometry(system: PageSystem, layout: PageLayout, size: CanvasSize
   };
 }
 
-function drawHeader(ctx: CanvasRenderingContext2D, score: Score, system: PageSystem, geometry: StaffGeometry, palette: PagePalette): void {
+function drawHeader(ctx: CanvasRenderingContext2D, score: Score, system: PageSystem, geometry: StaffGeometry, palette: Palette): void {
   const { spacing, staffTop } = geometry;
   const offsets = headerOffsets(score, spacing);
   ctx.fillStyle = palette.ink;
@@ -94,7 +89,7 @@ function drawHeader(ctx: CanvasRenderingContext2D, score: Score, system: PageSys
     ctx.fillText(String(score.beatUnit), x, staffTop + spacing * 3);
   }
   const first = score.measures[system.firstMeasure];
-  if (first && system.index > 0) {
+  if (first && first.number > 0 && system.index > 0) {
     ctx.fillStyle = palette.inkSubtle;
     ctx.font = `${Math.round(spacing * 1.1)}px ${palette.sans}`;
     ctx.textAlign = "left";
@@ -103,7 +98,7 @@ function drawHeader(ctx: CanvasRenderingContext2D, score: Score, system: PageSys
   }
 }
 
-function drawSystemBarlines(ctx: CanvasRenderingContext2D, score: Score, system: PageSystem, geometry: StaffGeometry, palette: PagePalette): void {
+function drawSystemBarlines(ctx: CanvasRenderingContext2D, score: Score, system: PageSystem, geometry: StaffGeometry, palette: Palette): void {
   const height = geometry.spacing * 4;
   fillRect(ctx, system.left, geometry.staffTop, 1.2, height, palette.ink);
   const endsPiece = system.lastMeasure === score.measures.length - 1;
@@ -118,7 +113,7 @@ function drawSystemBarlines(ctx: CanvasRenderingContext2D, score: Score, system:
   });
 }
 
-function drawGuide(ctx: CanvasRenderingContext2D, props: PageDrawProps, system: PageSystem, geometry: StaffGeometry, palette: PagePalette, isCurrent: boolean): void {
+function drawGuide(ctx: CanvasRenderingContext2D, props: PageDrawProps, system: PageSystem, geometry: StaffGeometry, palette: Palette, isCurrent: boolean): void {
   const { spacing, staffTop } = geometry;
   if (props.readingGuide === "compasso") {
     const measure = measureIndexAt(props.score, props.songTime);
@@ -132,7 +127,7 @@ function drawGuide(ctx: CanvasRenderingContext2D, props: PageDrawProps, system: 
   }
 }
 
-function drawSystem(ctx: CanvasRenderingContext2D, props: PageDrawProps, system: PageSystem, geometry: StaffGeometry, palette: PagePalette, isCurrent: boolean): void {
+function drawSystem(ctx: CanvasRenderingContext2D, props: PageDrawProps, system: PageSystem, geometry: StaffGeometry, palette: Palette, isCurrent: boolean): void {
   const { score } = props;
   drawGuide(ctx, props, system, geometry, palette, isCurrent);
   drawStaffLines(ctx, geometry, palette, system.left, system.barXs[system.barXs.length - 1] ?? system.right);
@@ -148,7 +143,7 @@ function drawSystem(ctx: CanvasRenderingContext2D, props: PageDrawProps, system:
   drawSlurs(ctx, systemScore, indices, geometry, palette);
 }
 
-export function drawPage(ctx: CanvasRenderingContext2D, size: CanvasSize, palette: PagePalette, props: PageDrawProps): void {
+export function drawPage(ctx: CanvasRenderingContext2D, size: CanvasSize, palette: Palette, props: PageDrawProps): void {
   ctx.clearRect(0, 0, size.width, size.height);
   fillRect(ctx, 0, 0, size.width, size.height, palette.paper);
   const footer = FOOTER_SPACES * PAGE_SPACING_PX * props.staffScale;

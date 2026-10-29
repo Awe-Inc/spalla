@@ -237,3 +237,28 @@ export function slurSpans(score: Score, indices: number[]): SlurSpan[] {
   }
   return spans;
 }
+
+export type RestKind = "whole" | "half" | "quarter" | "eighth" | "sixteenth";
+
+export interface RestShape {
+  kind: RestKind;
+  dotted: boolean;
+}
+
+const REST_KINDS: readonly { kind: RestKind; quarters: number }[] = [
+  { kind: "whole", quarters: 4 },
+  { kind: "half", quarters: 2 },
+  { kind: "quarter", quarters: 1 },
+  { kind: "eighth", quarters: 0.5 },
+  { kind: "sixteenth", quarters: 0.25 },
+];
+const DURATION_TOLERANCE = 0.02;
+
+export function restShape(quarters: number, measureQuarters: number): RestShape {
+  if (measureQuarters > 0 && Math.abs(quarters - measureQuarters) < DURATION_TOLERANCE) return { kind: "whole", dotted: false };
+  for (const { kind, quarters: base } of REST_KINDS) {
+    if (Math.abs(quarters - base * 1.5) < DURATION_TOLERANCE) return { kind, dotted: true };
+    if (quarters >= base - DURATION_TOLERANCE) return { kind, dotted: false };
+  }
+  return { kind: "sixteenth", dotted: false };
+}

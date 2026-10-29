@@ -2,6 +2,8 @@ import type { Score } from "@fretless/core";
 
 import {
   accidentalOf,
+  restShape,
+  type RestKind,
   beamCount,
   beamGap,
   beamGroupOf,
@@ -37,6 +39,7 @@ export interface Palette {
   off: string;
   mono: string;
   sans: string;
+  music: string;
 }
 
 export const LINE_ALPHA = 0.6;
@@ -59,6 +62,7 @@ export function readPalette(element: HTMLElement): Palette {
     off: token("--off"),
     mono: token("--font-mono"),
     sans: token("--font-sans"),
+    music: token("--font-music"),
   };
 }
 
@@ -121,9 +125,42 @@ export function drawStaffLines(ctx: CanvasRenderingContext2D, geometry: StaffGeo
   }
 }
 
-function drawRest(ctx: CanvasRenderingContext2D, x: number, geometry: StaffGeometry, palette: Palette): void {
-  const middleY = geometry.staffTop + geometry.spacing * 2;
-  fillRect(ctx, x - geometry.headWidth * 0.3, middleY - geometry.spacing * 0.5, geometry.headWidth * 0.6, geometry.spacing, palette.inkMuted, 0.7);
+const REST_GLYPHS: Record<Exclude<RestKind, "whole" | "half">, string> = {
+  quarter: "𝄽",
+  eighth: "𝄾",
+  sixteenth: "𝄿",
+};
+
+function drawRest(ctx: CanvasRenderingContext2D, score: Score, index: number, x: number, geometry: StaffGeometry, palette: Palette, tone: NoteTone): void {
+  const event = score.events[index];
+  if (!event) return;
+  const { spacing, staffTop } = geometry;
+  const { color, alpha } = toneColor(tone, palette);
+  const shape = restShape(durationQuarters(score, index), score.measures[event.measureIndex]?.lengthQuarters ?? 0);
+  const blockWidth = spacing * 1.2;
+  if (shape.kind === "whole") {
+    fillRect(ctx, x - blockWidth / 2, staffTop + spacing, blockWidth, spacing * 0.5, color, alpha);
+  } else if (shape.kind === "half") {
+    fillRect(ctx, x - blockWidth / 2, staffTop + spacing * 1.5, blockWidth, spacing * 0.5, color, alpha);
+  } else {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.font = `${Math.round(spacing * 4)}px ${palette.music}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(REST_GLYPHS[shape.kind], x, staffTop + spacing * 2);
+    ctx.restore();
+  }
+  if (shape.dotted) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x + spacing * 1.1, staffTop + spacing * 1.5, spacing * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawFlags(ctx: CanvasRenderingContext2D, sx: number, stemY: number, stemUp: boolean, flags: number, geometry: StaffGeometry, color: string, alpha: number): void {
@@ -141,7 +178,7 @@ export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: num
   const x = noteX(geometry, event.startSeconds);
   if (x < -OFFSCREEN_MARGIN || x > geometry.width + OFFSCREEN_MARGIN) return;
   if (event.isRest) {
-    drawRest(ctx, x, geometry, palette);
+    drawRest(ctx, score, index, x, geometry, palette, tone);
     return;
   }
   const position = staffPosition(event.noteName);

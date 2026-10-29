@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   barlineTimes,
+  restShape,
   beamCount,
   buildGeometry,
   durationQuarters,
@@ -194,5 +195,21 @@ describe("slurSpans", () => {
       event({ bowSpan: 1, bowSlot: 0, isRest: true }),
     ];
     expect(slurSpans(score(events), [0, 1, 2, 3])).toEqual([{ firstIndex: 0, lastIndex: 1 }]);
+  });
+});
+
+describe("restShape", () => {
+  it("draws a whole rest for a silent bar, whatever its length", () => {
+    expect(restShape(2, 2)).toEqual({ kind: "whole", dotted: false });
+    expect(restShape(3, 3)).toEqual({ kind: "whole", dotted: false });
+  });
+
+  it("picks the rest by duration and dots it when it lasts one and a half", () => {
+    expect(restShape(2, 4)).toEqual({ kind: "half", dotted: false });
+    expect(restShape(1, 4)).toEqual({ kind: "quarter", dotted: false });
+    expect(restShape(1.5, 4)).toEqual({ kind: "quarter", dotted: true });
+    expect(restShape(0.5, 4)).toEqual({ kind: "eighth", dotted: false });
+    expect(restShape(0.25, 4)).toEqual({ kind: "sixteenth", dotted: false });
+    expect(restShape(3, 4)).toEqual({ kind: "half", dotted: true });
   });
 });

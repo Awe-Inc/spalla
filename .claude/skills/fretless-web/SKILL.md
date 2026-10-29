@@ -106,7 +106,8 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  PageStaff.tsx ("pagina": the score as paper, systems read line by line, the page turns
                                  by itself; settings.pageStyle papel/sepia/noite themes the subtree, settings.readingGuide
                                  nota/compasso/nenhum), viewOptions.ts (labels shared by TocarControls, Ajustes and
-                                 /componentes), staffPaint.ts (palette and note/beam/slur painters shared by both staves),
+                                 /componentes), staffPaint.ts (palette and note/beam/slur/rest painters shared by both staves; rests come from
+                                 staffLayout `restShape` and use the --font-music glyphs),
                                  Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
 apps/web/src/data/               db.ts (Dexie v9: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections,
@@ -395,3 +396,7 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
   Todo `await` de abertura de áudio fica num `try` que volta o status a "parado" se o token ainda for o dele
   (`useListen.test.tsx`, "goes back to idle when the audio output cannot start"). Teste de hook que passa a partitura
   como `scoreOf()` dentro do `renderHook` cria uma nova a cada render e dispara o `stop` do efeito: fixar o objeto fora.
+- **Pausa como quadrado cinza e compasso "0" no começo da linha.** O pintor de pausa desenhava um retângulo genérico,
+  e a vista Página escrevia o número de compasso que o MusicXML dá ao compasso de anacruse (0). A forma da pausa vem
+  de `restShape(quarters, measureQuarters)` (pausa que ocupa o compasso inteiro é sempre semibreve; pontuada ganha
+  ponto), testada em `staffLayout.test.ts`; número de compasso ≤ 0 não se escreve.
