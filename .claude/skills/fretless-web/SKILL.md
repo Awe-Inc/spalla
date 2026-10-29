@@ -14,7 +14,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (224)
+pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (234)
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
@@ -61,7 +61,11 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
                                  (Metronome: look-ahead scheduler on the mic AudioContext, 3 sounds),
                                  drone.ts (Drone: timbre "corda" = sawtooth + octave through a low-pass, ou
                                  "senoidal"; fades in and out), tempoClock.ts (TempoClock: metrônomo autônomo
-                                 com AudioContext próprio, compasso, acento e andamento progressivo; puro testado)
+                                 com AudioContext próprio, compasso, acento e andamento progressivo; puro testado),
+                                 micErrors.ts (describeMicError, isStaleDevice: shared by the pitch input and the
+                                 recorder), recorder.ts (AudioRecorder: MediaRecorder on the same raw-mic constraints,
+                                 webm/opus → webm → mp4 → ogg), useRecorder.ts (status, elapsed, auto-stop at 15 min,
+                                 retries the default mic when the stored one is gone)
 apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),
                                  useSyntheticPlayer (`?jogador=sintetico` + build flag → the WASM SyntheticPlayer
                                  feeds the session instead of the mic; pure helpers tested; used by e2e/),
@@ -71,8 +75,11 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  frase da série), tempo.ts, measureMap.ts and autoSlowdown.ts (pure, tested; the "Diminuir ao errar" toggle lives in settings.autoSlowdown),
                                  ScoreView (picks the view from settings.playView: "pauta" | "pistas" | "ambos"),
                                  Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
-apps/web/src/data/               db.ts (Dexie v7: results, routines, practiceDays, userStats,
-                                 achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections), sections.ts (detalhe da peça:
+apps/web/src/data/               db.ts (Dexie v8: results, routines, practiceDays, userStats,
+                                 achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections,
+                                 recordings + recordingFiles), recordings.ts (gravador: metadados em `recordings`, bytes em
+                                 `recordingFiles`, `pieceKey` = resultId, `?peca=&titulo=`, par antes/depois só da mesma
+                                 peça; fora do backup e do reset), sections.ts (detalhe da peça:
                                  frases de 4 compassos, rótulo 1-based, `?de=&ate=&bpm=` de/para o Tocar, trechos por `pieceKey` = resultId), suzuki.ts (trilha
                                  Suzuki: livros do core `suzuki.book.N`, peças tocáveis por título, revisão 1/3/7/14/30 dias), sheets.ts (estante:
                                  importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas),
@@ -139,7 +146,10 @@ apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados →
 apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela cheia; corda provável = corda solta
                                  mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage
                                  (TempoClock; três sons livres), PedalPage (Drone próprio, nota/oitava/timbre),
-                                 LatenciaPage
+                                 LatenciaPage, GravadorPage (gravar, guardar com nome e peça, filtro, comparar),
+                                 RecordingPlayer (RecordingAudio, RecordingRow, CompareRecordings, useObjectUrl;
+                                 também usado no detalhe da peça)
+apps/web/src/areas/progresso/Gravacoes.tsx  gravações por peça (quantas, última data, link para o Gravador)
 apps/web/src/areas/praticar/     PraticarPage (módulos e exercícios; botão "Histórico" em cada exercício já tocado),
                                  HistoricoExercicio (painel: vezes/dias, última vez, melhor resultado, barras das
                                  últimas 12 execuções, tendência, andamento, deriva, séries fechadas),
@@ -248,6 +258,9 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 - **`TempoClock.start()` awaits `resume()` before setting its timer.** Two clicks before the context resumed
   created two intervals and `dispose()` during the await left one running on a closed context; `#isStarting` and
   `#isDisposed` guard both (`tempoClock.test.ts`, fake `AudioContext`/`GainNode` + `vi.getTimerCount()`).
+- **Player de gravação depende do id, não do objeto.** `useLiveQuery` devolve objetos novos a cada mudança na
+  tabela; com `[recording]` nas dependências, renomear uma gravação relia todos os blobs, trocava as object URLs e
+  cortava o áudio que estava tocando. `useRecordingBlob` depende de `[id, mimeType]` (`RecordingPlayer.tsx`).
 - **pdf.js 6 fecha o documento pelo `loadingTask`, não por `document.destroy()`.** `PDFDocumentProxy` perdeu o
   `destroy()` na versão 6 (só `cleanup()`); fechar é `document.loadingTask.destroy()`, embrulhado em `closePdf`.
   O `getDocument({ data })` toma posse do buffer, então os bytes guardados no Dexie vão como cópia (`bytes.slice()`).

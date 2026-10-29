@@ -4,10 +4,12 @@ import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 
 import { useSettings } from "@/app/settings";
+import { RecordingAudio, recordingDate } from "@/areas/ferramentas/RecordingPlayer";
 import { HistoricoExercicio } from "@/areas/praticar/HistoricoExercicio";
 import { BPM_STEP, clampBpm, type TempoLimits } from "@/areas/tocar/tempo";
 import { useSession } from "@/areas/tocar/useSession";
 import { db, type StoredSection } from "@/data/db";
+import { formatClock, newestFirst, recorderPath } from "@/data/recordings";
 import { addSection, phraseSections, practicePath, removeSection, sectionLabel, sortedSections } from "@/data/sections";
 import { Button, Card, InlineError, PageTitle } from "@/design/components";
 import { formatDuration, majorKeyName } from "@/music/noteNames";
@@ -90,6 +92,39 @@ function MarkSectionForm({ measureCount, onSave }: { measureCount: number; onSav
       </label>
       <Button type="submit">Guardar trecho</Button>
     </form>
+  );
+}
+
+const RECENT_PIECE_RECORDINGS = 3;
+
+function PieceRecordings({ pieceKey, title }: { pieceKey: string; title: string }) {
+  const recordings = useLiveQuery(async () => newestFirst(await db.recordings.where("pieceKey").equals(pieceKey).toArray()), [pieceKey]) ?? [];
+  const recent = recordings.slice(0, RECENT_PIECE_RECORDINGS);
+  return (
+    <Card title="Gravações" className="grid gap-3">
+      {recent.length === 0 ? (
+        <p className="text-ink-muted">Grave uma passada da peça hoje. Daqui a algumas semanas, compare com a próxima e escute o que mudou.</p>
+      ) : (
+        <ul className="divide-y divide-hairline">
+          {recent.map((recording) => (
+            <li key={recording.id} className="grid gap-2 py-3">
+              <span className="grid gap-0.5">
+                <span className="font-medium">{recording.name}</span>
+                <span className="text-caption text-ink-subtle">
+                  {recordingDate(recording.createdAt)} · {formatClock(recording.durationMs)}
+                </span>
+              </span>
+              <RecordingAudio recording={recording} />
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Link to={recorderPath({ key: pieceKey, title })} className={SECONDARY_LINK_CLASS}>
+          {recordings.length >= 2 ? "Gravar e comparar" : "Gravar esta peça"}
+        </Link>
+      </div>
+    </Card>
   );
 }
 
@@ -184,6 +219,9 @@ export function PecaPage() {
         <Card title="Histórico">
           <HistoricoExercicio exercise={{ id: resultId, title, defaultBpm: limits.writtenBpm }} results={results} />
         </Card>
+
+        <PieceRecordings pieceKey={resultId} title={title} />
+
       </div>
     </>
   );

@@ -7,6 +7,7 @@ import { medalProgress } from "@/data/medals";
 import { Card, EmptyState, PageTitle, ProgressRing } from "@/design/components";
 
 import { Conquistas } from "./Conquistas";
+import { Gravacoes } from "./Gravacoes";
 import { Heatmap } from "./Heatmap";
 import { HistoricoPrecisao } from "./HistoricoPrecisao";
 import { Medalhas } from "./Medalhas";
@@ -16,6 +17,7 @@ export function ProgressoPage() {
   const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
   const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
   const achievements = useLiveQuery(() => db.achievements.toArray(), []) ?? [];
+  const recordings = useLiveQuery(() => db.recordings.toArray(), []) ?? [];
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
   const today = new Date();
   const streak = currentStreak(days, localDayKey(today), stats.frozenDays);
@@ -97,6 +99,11 @@ export function ProgressoPage() {
         <div className="lg:col-span-3">
           <Medalhas medals={medals} />
         </div>
+        {recordings.length > 0 ? (
+          <div className="lg:col-span-3">
+            <Gravacoes recordings={recordings} />
+          </div>
+        ) : null}
       </div>
     </>
   );

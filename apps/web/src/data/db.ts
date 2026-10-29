@@ -128,6 +128,22 @@ export interface StoredSection {
   createdAt: number;
 }
 
+export interface StoredRecording {
+  id?: number;
+  name: string;
+  pieceKey: string | null;
+  pieceTitle: string | null;
+  mimeType: string;
+  durationMs: number;
+  sizeBytes: number;
+  createdAt: number;
+}
+
+export interface StoredRecordingFile {
+  id: number;
+  bytes: Uint8Array;
+}
+
 export class FretlessDatabase extends Dexie {
   results!: EntityTable<ExerciseResult, "id">;
   routines!: EntityTable<Routine, "id">;
@@ -140,6 +156,8 @@ export class FretlessDatabase extends Dexie {
   sheetFiles!: EntityTable<StoredSheetFile, "id">;
   suzukiPieces!: EntityTable<StoredSuzukiPiece, "key">;
   pieceSections!: EntityTable<StoredSection, "id">;
+  recordings!: EntityTable<StoredRecording, "id">;
+  recordingFiles!: EntityTable<StoredRecordingFile, "id">;
 
   constructor(name = "fretless") {
     super(name);
@@ -174,6 +192,10 @@ export class FretlessDatabase extends Dexie {
     });
     this.version(7).stores({
       pieceSections: "++id, pieceKey, createdAt",
+    });
+    this.version(8).stores({
+      recordings: "++id, pieceKey, createdAt",
+      recordingFiles: "id",
     });
   }
 }

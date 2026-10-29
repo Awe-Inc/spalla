@@ -6,6 +6,7 @@ const TOOLS = [
   { to: "/ferramentas/afinador", title: "Afinador", description: "Tela inteira, nota grande, mostrador de cents e referência de cada corda." },
   { to: "/ferramentas/metronomo", title: "Metrônomo", description: "Compasso, subdivisão, acento e andamento progressivo para escalas de velocidade." },
   { to: "/ferramentas/pedal", title: "Nota pedal", description: "Um bordão para afinar por cima: nota, oitava, timbre e volume." },
+  { to: "/ferramentas/gravador", title: "Gravador", description: "Grave uma passada, ouça logo depois e compare duas gravações da mesma peça." },
   { to: "/ferramentas/latencia", title: "Teste de latência", description: "Mede o atraso do som até a detecção, para o jogo julgar o ritmo no tempo certo." },
 ] as const;
 
