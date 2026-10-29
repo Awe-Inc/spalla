@@ -119,6 +119,15 @@ export interface StoredSuzukiPiece {
   reviewCount: number;
 }
 
+export interface StoredSection {
+  id?: number;
+  pieceKey: string;
+  firstIndex: number;
+  lastIndex: number;
+  bpm: number;
+  createdAt: number;
+}
+
 export class FretlessDatabase extends Dexie {
   results!: EntityTable<ExerciseResult, "id">;
   routines!: EntityTable<Routine, "id">;
@@ -130,6 +139,7 @@ export class FretlessDatabase extends Dexie {
   sheets!: EntityTable<StoredSheet, "id">;
   sheetFiles!: EntityTable<StoredSheetFile, "id">;
   suzukiPieces!: EntityTable<StoredSuzukiPiece, "key">;
+  pieceSections!: EntityTable<StoredSection, "id">;
 
   constructor(name = "fretless") {
     super(name);
@@ -161,6 +171,9 @@ export class FretlessDatabase extends Dexie {
     });
     this.version(6).stores({
       suzukiPieces: "key, book, learnedAt",
+    });
+    this.version(7).stores({
+      pieceSections: "++id, pieceKey, createdAt",
     });
   }
 }

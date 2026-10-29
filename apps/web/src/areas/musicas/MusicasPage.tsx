@@ -18,6 +18,7 @@ import {
   type PieceFilters,
   type PieceStatus,
 } from "@/data/pieces";
+import { detailPath } from "@/data/sections";
 import { Button, Card, EmptyState, InlineError, PageTitle, Stars } from "@/design/components";
 
 import { MusicasTabs } from "./MusicasTabs";
@@ -35,7 +36,11 @@ function PieceRow({ piece, status, stars, onRemove }: { piece: CatalogPiece; sta
       <Card as="article" className="flex flex-wrap items-center justify-between gap-4">
         <div className="grid gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-heading font-semibold">{piece.title}</h2>
+            <h2 className="text-heading font-semibold">
+              <Link to={detailPath(piece.playTo)} className="hover:text-primary">
+                {piece.title}
+              </Link>
+            </h2>
             <span className={`rounded-pill px-2 py-0.5 text-caption font-medium ${STATUS_CLASS[status]}`}>{PIECE_STATUS_LABELS[status]}</span>
           </div>
           <p className="text-ink-muted">
@@ -49,6 +54,9 @@ function PieceRow({ piece, status, stars, onRemove }: { piece: CatalogPiece; sta
               Remover
             </Button>
           ) : null}
+          <Link to={detailPath(piece.playTo)} className="inline-flex h-11 items-center rounded-pill px-5 font-semibold text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink md:h-10" aria-label={`Trechos e andamento: ${piece.title}`}>
+            Trechos
+          </Link>
           <Link to={piece.playTo} className="inline-flex h-11 items-center rounded-pill bg-surface-soft px-5 font-semibold transition-colors hover:bg-surface-sunken md:h-10">
             Tocar
           </Link>

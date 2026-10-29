@@ -12,11 +12,12 @@ interface Backup {
   achievements: unknown[];
   lessonTasks: unknown[];
   suzukiPieces: unknown[];
+  pieceSections: unknown[];
   pieces: { count: number };
 }
 
 export async function buildBackup(): Promise<Backup> {
-  const [results, routines, practiceDays, userStats, achievements, lessonTasks, suzukiPieces, pieceCount] = await Promise.all([
+  const [results, routines, practiceDays, userStats, achievements, lessonTasks, suzukiPieces, pieceSections, pieceCount] = await Promise.all([
     db.results.toArray(),
     db.routines.toArray(),
     db.practiceDays.toArray(),
@@ -24,6 +25,7 @@ export async function buildBackup(): Promise<Backup> {
     db.achievements.toArray(),
     db.lessonTasks.toArray(),
     db.suzukiPieces.toArray(),
+    db.pieceSections.toArray(),
     db.pieces.count(),
   ]);
   return {
@@ -36,6 +38,7 @@ export async function buildBackup(): Promise<Backup> {
     achievements,
     lessonTasks,
     suzukiPieces,
+    pieceSections,
     pieces: { count: pieceCount },
   };
 }

@@ -5,7 +5,7 @@ import { countSentence, driftSentence, exerciseHistory, lastPlayedSentence, seri
 import { AccuracyBars, Stars } from "@/design/components";
 
 interface HistoricoExercicioProps {
-  exercise: Exercise;
+  exercise: Pick<Exercise, "id" | "title" | "defaultBpm">;
   results: readonly ExerciseResult[];
   now?: number;
 }

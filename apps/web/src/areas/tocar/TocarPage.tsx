@@ -7,6 +7,7 @@ import { useBlockGoal } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
+import { readPracticeRequest } from "@/data/sections";
 import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
 import { Tuner } from "@/design/Tuner";
 import { displayNoteName } from "@/music/noteNames";
@@ -86,6 +87,13 @@ export function TocarPage() {
   useEffect(() => {
     setDroneOn(exerciseDrone > 0);
   }, [exerciseDrone]);
+
+  useEffect(() => {
+    if (!session) return;
+    const request = readPracticeRequest(searchParams, session.measureCount);
+    if (request.range) setLoop(request.range);
+    if (request.bpm !== null) setBpm(request.bpm);
+  }, [session, searchParams, setLoop, setBpm]);
 
   useEffect(() => {
     if (!session || !isListening) return;

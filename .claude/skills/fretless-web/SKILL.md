@@ -14,7 +14,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (216)
+pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (224)
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
@@ -71,8 +71,9 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  frase da série), tempo.ts, measureMap.ts and autoSlowdown.ts (pure, tested; the "Diminuir ao errar" toggle lives in settings.autoSlowdown),
                                  ScoreView (picks the view from settings.playView: "pauta" | "pistas" | "ambos"),
                                  Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
-apps/web/src/data/               db.ts (Dexie v6: results, routines, practiceDays, userStats,
-                                 achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces), suzuki.ts (trilha
+apps/web/src/data/               db.ts (Dexie v7: results, routines, practiceDays, userStats,
+                                 achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections), sections.ts (detalhe da peça:
+                                 frases de 4 compassos, rótulo 1-based, `?de=&ate=&bpm=` de/para o Tocar, trechos por `pieceKey` = resultId), suzuki.ts (trilha
                                  Suzuki: livros do core `suzuki.book.N`, peças tocáveis por título, revisão 1/3/7/14/30 dias), sheets.ts (estante:
                                  importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas),
                                  medals.ts (medalhas bronze/prata/ouro derivadas de results + practiceDays,
@@ -105,7 +106,8 @@ apps/web/src/data/               db.ts (Dexie v6: results, routines, practiceDay
                                  desde a última aula, totais, exercício mais fraco, tendência ±5 cents, linhas PT-BR
                                  para a professora) — todos os .ts puros
                                  têm teste ao lado
-apps/web/src/areas/musicas/      SuzukiPage (`/musicas/suzuki`, lazy), MusicasPage (catálogo + importadas com PieceFiltersBar); música importada toca em
+apps/web/src/areas/musicas/      PecaPage (`/musicas/peca/:exerciseId` | `musica/:pieceId` | `biblioteca/:slug`, lazy; usa useSession
+                                 só para ler a partitura), SuzukiPage (`/musicas/suzuki`, lazy), MusicasPage (catálogo + importadas com PieceFiltersBar); música importada toca em
                                  `/tocar/musica/:pieceId` e grava resultado como `musica:<fileName>`; MusicasTabs
                                  (Catálogo | Estante)
 apps/web/src/areas/estante/      modo estante, sem nota nem XP: EstantePage (lista + Importar PDF), LeitorPage
