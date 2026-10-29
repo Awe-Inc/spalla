@@ -32,7 +32,7 @@ O que roda agora, verificado nesta data:
 | Core em WASM (`pnpm build:core`) | os mesmos 99 casos passam no Node (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
 | `apps/web` | 187 testes vitest em 37 arquivos, typecheck limpo, `vite build` gera a PWA (213 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática; 1 teste e2e Playwright (`pnpm --filter @fretless/web test:e2e`) toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado |
-| CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`; deploy no Pages desligado (ver §11, item 6) |
+| CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`, e publica o site no GitHub Pages (https://henriquerl55.github.io/fretless/) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
 | Afinador no AudioWorklet | WASM carrega dentro do worklet e detecta 440,02 Hz de um oscilador com confiança 0,99999 (testado sem microfone) |
 | Microfone real no Chrome | **ainda não medido**: o bug de hoje (InvalidStateError) impedia; corrigido em `26e05f1`, falta rodar `/ferramentas/latencia` numa máquina com microfone |
@@ -175,7 +175,7 @@ escolha).
 | 4. Hoje, onboarding, Progresso | **feita (28/10)**: onboarding em 5 passos, sessão do dia na Hoje, nível e XP, heatmap de 12 semanas, histórico de precisão, conquistas, medalhas de constância em bronze/prata/ouro (só lembrança, sem desbloquear nada; a loja de resinas saiu em 28/10 e sons e paleta sépia ficaram livres); configurações com teste de microfone, sensibilidade, tamanho da partitura, backup `.json`, limpar cache, resetar, importar o `progress.txt` do app nativo (28/10: melhor resultado de cada exercício vira um resultado, a linha `days` vira dias de prática; o que já existe fica) | — |
 | 5. Músicas | **feita (28/10)**: catálogo do core + importações persistidas no Dexie (8 MB), filtros por nível, compositor, gênero e status (não iniciada, em estudo, dominada), tocar em `/tocar/musica/:id`; **estante de PDF (28/10)**: métodos e partituras em PDF lidos dentro do app (pdf.js), com afinador, metrônomo e pedal ao lado, sem julgamento nem XP | biblioteca CC0 maior, gravador com comparação (decisão 8 em §11) |
 | 6. Caderno da aula e Ferramentas | **feita (28/10)**: caderno na Hoje (tarefa → bloco "Da aula", dia da aula), afinador tela cheia com corda provável e referência, metrônomo progressivo, nota pedal, teste de latência; resumo da semana no caderno (28/10: desde a última aula, minutos, dias, execuções, tarefas, onde errou mais, tendência de afinação, botão de copiar para a professora) | — |
-| 7. Publicação | **CI feita (28/10)**; deploy aguarda decisão | Pages exige repo público ou plano Pro (§11, item 6); Render é a alternativa. Conta e sync (Supabase) e acesso da professora seguem pausados |
+| 7. Publicação | **Feita (29/10)**: repo público, site em https://henriquerl55.github.io/fretless/ publicado pelo CI | Conta e sync (Supabase) e acesso da professora seguem pausados |
 
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 
@@ -202,12 +202,9 @@ tamanhos soltos do Tailwind viraram tokens (`text-note`, `max-w-page`, `grid-col
 4. ~~Metrônomo e drone~~ **Feito dos dois jeitos em 28/10**: dentro do Tocar (presos ao contexto do microfone) e
    como ferramentas separadas (`/ferramentas/metronomo` com andamento progressivo, `/ferramentas/pedal`).
 5. ~~Conta e sincronização~~ **Decidido em 28/10: pausado.** Só local até a fundação offline estar impecável.
-6. **Publicação**: o CI já gera o site com `BASE_PATH=/fretless/` e o job de deploy no GitHub Pages existe, mas a
-   API respondeu em 28/10 (e de novo às 19h) que **o plano atual não oferece Pages para repositório privado**. Para publicar: tornar o
-   repo público (ou assinar o Pro) e criar a variável `DEPLOY_PAGES=true` em Settings → Secrets and variables →
-   Actions; ou apontar um Static Site do Render para `apps/web/dist` (build `pnpm install && pnpm build:core &&
-   pnpm --filter @fretless/web build`, que precisa do emsdk na imagem). PWA basta por enquanto; loja (Capacitor)
-   só se o teste de latência reprovar no Chrome Android.
+6. ~~Publicação~~ **Feita em 29/10.** O plano gratuito não oferece Pages para repositório privado, então o repo
+   ficou público. Pages no modo workflow, variável `DEPLOY_PAGES=true`; cada push na `main` publica
+   https://henriquerl55.github.io/fretless/. Loja (Capacitor) só se o teste de latência reprovar no Chrome Android.
 7. ~~Professora~~ **Pausado junto com a conta (28/10).** O Caderno da aula é só do aluno por enquanto.
 8. **Gravação de áudio** das sessões (comparar antes/depois): entra na fase 5 ou fica fora?
 9. **Nome e idioma das áreas**: Hoje · Praticar · Músicas · Ferramentas · Progresso está bom?

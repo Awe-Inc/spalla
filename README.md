@@ -8,6 +8,8 @@ so the answer to "what should I practise today" is on the first screen.
 scales; a drone and a metronome; sight reading that deals a new page every
 time; and a library of public-domain repertoire.
 
+Live at https://henriquerl55.github.io/fretless/.
+
 Since October 2026 the app is web-first: the C++ core is compiled to
 WebAssembly and the interface is React, installable as a PWA. The native
 build still works and runs the same test suite.

@@ -42,7 +42,7 @@ apps/web/src/design/fonts.css    Fontsource imports (Fraunces Variable, Figtree 
                                  self-hosted woff2 (and the woff fallbacks) land in the precache, no Google Fonts
 .github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
-                                 variable DEPLOY_PAGES is "true" (private repo on the free plan has no Pages)
+                                 variable DEPLOY_PAGES is "true" (set; repo public since 29/10, site at henriquerl55.github.io/fretless)
 apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, GoalDots (pontos da série de repetições),
                                  AccuracyBars (barras de precisão por execução, cor por faixa),
                                  ProgressRing, HeadphoneNotice, …
