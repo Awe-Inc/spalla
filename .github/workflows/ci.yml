@@ -55,6 +55,7 @@ jobs:
         run: pnpm --filter @fretless/web build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'

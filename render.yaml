@@ -1,0 +1,41 @@
+databases:
+  - name: fretless-db
+    databaseName: fretless
+    user: fretless
+    plan: free
+    region: oregon
+    postgresMajorVersion: "18"
+
+services:
+  - type: web
+    name: fretless-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/api/**
+        - pnpm-lock.yaml
+        - render.yaml
+    buildCommand: npx --yes pnpm@12.15.0 install --frozen-lockfile --filter "@fretless/api..." && npx --yes pnpm@12.15.0 --filter @fretless/api build
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: "true"
+      - key: FILES_STORE
+        value: database
+      - key: CORS_ORIGINS
+        value: https://henriquerl55.github.io
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fretless-db
+          property: connectionString

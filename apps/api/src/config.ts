@@ -9,6 +9,7 @@ const configSchema = z.object({
   DATABASE_URL: z.string().optional(),
   PGLITE_DIR: z.string().default(".data/pglite"),
   FILES_DIR: z.string().default(".data/files"),
+  FILES_STORE: z.enum(["disk", "database"]).default("disk"),
   CORS_ORIGINS: z.string().default("http://localhost:5180,http://127.0.0.1:5180"),
   TRUST_PROXY: booleanFlag.default(false),
   RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(300),
@@ -23,6 +24,7 @@ export interface Config {
   databaseUrl: string | undefined;
   pgliteDir: string;
   filesDir: string;
+  filesStore: "disk" | "database";
   corsOrigins: string[];
   trustProxy: boolean;
   rateLimitMax: number;
@@ -42,6 +44,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     databaseUrl: parsed.DATABASE_URL,
     pgliteDir: parsed.PGLITE_DIR,
     filesDir: parsed.FILES_DIR,
+    filesStore: parsed.FILES_STORE,
     corsOrigins: parsed.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean),
     trustProxy: parsed.TRUST_PROXY,
     rateLimitMax: parsed.RATE_LIMIT_MAX,

@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import type { Queryable } from "../db/db.js";
+
 export interface FileStore {
   put(key: string, data: Buffer): Promise<void>;
   get(key: string): Promise<Buffer>;
@@ -31,6 +33,22 @@ export function diskStore(dir: string): FileStore {
     },
     async remove(key) {
       await rm(join(dir, checkedKey(key)), { force: true });
+    },
+  };
+}
+
+export function databaseStore(db: Queryable): FileStore {
+  return {
+    async put(key, data) {
+      await db.query("INSERT INTO file_blobs (storage_key, data) VALUES ($1, $2)", [checkedKey(key), data]);
+    },
+    async get(key) {
+      const [row] = await db.query<{ data: Uint8Array }>("SELECT data FROM file_blobs WHERE storage_key = $1", [checkedKey(key)]);
+      if (!row) throw new Error("arquivo não encontrado");
+      return Buffer.from(row.data);
+    },
+    async remove(key) {
+      await db.query("DELETE FROM file_blobs WHERE storage_key = $1", [checkedKey(key)]);
     },
   };
 }
