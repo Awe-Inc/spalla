@@ -26,6 +26,11 @@ describe("ComponentesPage", () => {
     expect(screen.getByRole("link", { name: "Cores e temas" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("links back to Você › Ajustes, where it is opened from", () => {
+    renderTab();
+    expect(screen.getByRole("link", { name: /Ajustes/ })).toHaveAttribute("href", "/voce/ajustes");
+  });
+
   it("shows one part of the system per tab, chosen by the URL", () => {
     renderTab("acoes");
     expect(screen.getByRole("link", { name: "Ações e ícones" })).toHaveAttribute("aria-current", "page");

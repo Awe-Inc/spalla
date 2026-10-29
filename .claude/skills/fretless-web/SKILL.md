@@ -242,6 +242,12 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 
 ## Armadilhas
 
+- **Toda tela tem volta dentro do app** (pedido do dono, 29/10: "nao sendo necessario ter q voltar com o botao de voltar
+  do navegador"). Sintoma: Entrar, Criar conta, Termos e `/componentes` só saíam pelo voltar do navegador. Regra: tela
+  que não é raiz de área tem `PageHeader back={{ to, label }}` com destino fixo (nunca `navigate(-1)`, que falha em link
+  aberto direto); tela cheia tem "Sair"/link próprio; estado vazio ou de erro também oferece o caminho. Teste em
+  `areas/conta/voltarNoApp.test.tsx`.
+
 - **Nomes internos legados não se renomeiam.** A marca virou Spalla em 29/10, mas trocar o nome interno apaga dados
   ou quebra deploy: o Dexie `"fretless"` (outro nome = banco novo e vazio), as chaves `fretless-settings`,
   `fretless-conta`, `fretless-dispositivo` e `fretless-sync-*`, o worklet `fretless-pitch`, `%APPDATA%\Fretless`

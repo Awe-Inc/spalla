@@ -28,7 +28,7 @@ const SECTIONS: readonly { title: string; paragraphs: readonly string[] }[] = [
 export function TermosPage() {
   return (
     <div className="mx-auto grid max-w-2xl gap-6">
-      <PageHeader title="Termos e privacidade" />
+      <PageHeader back={{ to: "/criar-conta", label: "Criar conta" }} title="Termos e privacidade" />
       <p className="text-body text-ink-muted">Versão provisória. O texto jurídico definitivo será publicado antes da abertura para o público.</p>
       {SECTIONS.map((section) => (
         <Card key={section.title} title={section.title}>

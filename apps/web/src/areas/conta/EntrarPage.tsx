@@ -3,10 +3,11 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 
 import { api, ApiError, errorMessage, isPlatformEnabled } from "@/api/client";
 import { MIN_PASSWORD_LENGTH, safeReturnPath } from "@/account/forms";
+import { ACCOUNT_BACK } from "@/account/links";
 import { homePathFor, login, useAccount } from "@/account/store";
 import { FormError, Notice } from "@/account/ui";
 import { TextField } from "@/design/fields";
-import { Button, Card, EmptyState, PageHeader } from "@/design/components";
+import { Button, ButtonLink, Card, EmptyState, PageHeader } from "@/design/components";
 
 function LoginForm({ onForgot }: { onForgot: () => void }) {
   const navigate = useNavigate();
@@ -119,12 +120,12 @@ export function EntrarPage() {
   const user = useAccount((state) => state.user);
   const [mode, setMode] = useState<"entrar" | "trocar">("entrar");
   if (!isPlatformEnabled()) {
-    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Spalla funciona só no aparelho, sem contas." />;
+    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Spalla funciona só no aparelho, sem contas." action={<ButtonLink to={ACCOUNT_BACK.to} variant="secondary">Voltar para {ACCOUNT_BACK.label}</ButtonLink>} />;
   }
   if (user) return <Navigate to={homePathFor(user)} replace />;
   return (
     <div className="mx-auto grid max-w-md gap-6">
-      <PageHeader title={mode === "entrar" ? "Entrar" : "Trocar a senha"} />
+      <PageHeader back={ACCOUNT_BACK} title={mode === "entrar" ? "Entrar" : "Trocar a senha"} />
       <Card>{mode === "entrar" ? <LoginForm onForgot={() => setMode("trocar")} /> : <ResetForm onDone={() => setMode("entrar")} />}</Card>
       <p className="text-body text-ink-muted">
         O Spalla continua funcionando sem conta. A conta serve para entrar numa turma, receber tarefas do professor e mostrar seu progresso a ele.

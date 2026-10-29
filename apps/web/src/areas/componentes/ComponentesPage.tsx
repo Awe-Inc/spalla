@@ -31,7 +31,7 @@ export function ComponentesPage() {
   const current = ABAS.find((aba) => aba.id === params.get("aba")) ?? ABAS[0]!;
   return (
     <>
-      <PageHeader title="Design system" description="Tokens e componentes do Spalla. Antes de criar algo novo, procure o equivalente aqui." />
+      <PageHeader back={{ to: "/voce/ajustes", label: "Ajustes" }} title="Design system" description="Tokens e componentes do Spalla. Antes de criar algo novo, procure o equivalente aqui." />
       <Tabs label="Partes do design system" items={ABAS.map((aba) => ({ to: `?aba=${aba.id}`, label: aba.label, active: aba.id === current.id }))} />
       <div className="grid gap-6">{current.render()}</div>
     </>

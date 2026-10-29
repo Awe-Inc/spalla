@@ -3,10 +3,11 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 
 import { ApiError, errorMessage, isPlatformEnabled } from "@/api/client";
 import { EMPTY_SIGNUP, MIN_PASSWORD_LENGTH, needsGuardian, toSignupInput, validateSignup, type SignupDraft, type SignupErrors } from "@/account/forms";
+import { ACCOUNT_BACK } from "@/account/links";
 import { homePathFor, signup, useAccount } from "@/account/store";
 import { FormError } from "@/account/ui";
 import { TextAreaField, TextField } from "@/design/fields";
-import { Button, Card, EmptyState, PageHeader } from "@/design/components";
+import { Button, ButtonLink, Card, EmptyState, PageHeader } from "@/design/components";
 
 const ACCOUNT_TYPES: readonly { value: SignupDraft["accountType"]; title: string; description: string }[] = [
   { value: "aluno", title: "Sou aluno", description: "Entro na turma do meu professor, recebo tarefas e mostro meu progresso." },
@@ -33,7 +34,7 @@ export function CriarContaPage() {
   const [pending, setPending] = useState(false);
 
   if (!isPlatformEnabled()) {
-    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Spalla funciona só no aparelho, sem contas." />;
+    return <EmptyState title="Plataforma de aulas desligada" description="Esta instalação do Spalla funciona só no aparelho, sem contas." action={<ButtonLink to={ACCOUNT_BACK.to} variant="secondary">Voltar para {ACCOUNT_BACK.label}</ButtonLink>} />;
   }
   if (user) return <Navigate to={homePathFor(user)} replace />;
 
@@ -62,7 +63,7 @@ export function CriarContaPage() {
 
   return (
     <div className="mx-auto grid max-w-xl gap-6">
-      <PageHeader title="Criar conta" />
+      <PageHeader back={ACCOUNT_BACK} title="Criar conta" />
       <form onSubmit={submit} className="grid gap-6" noValidate>
         <fieldset className="grid gap-3 md:grid-cols-2">
           <legend className="mb-3 text-heading font-semibold">Como você vai usar o Spalla?</legend>
