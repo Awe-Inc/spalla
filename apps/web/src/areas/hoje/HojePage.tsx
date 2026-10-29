@@ -2,18 +2,25 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
 import { Link } from "react-router";
 
+import { useClassAssignments } from "@/account/classAssignments";
+import { useSettings } from "@/app/settings";
+import { fromState } from "@/areas/tocar/origin";
 import { db } from "@/data/db";
 import { SESSION_COMPLETE_XP } from "@/data/gamification";
+import { nextLessonSentence, splitTasks } from "@/data/lessons";
 import { blockProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
 import { grantSessionBonus } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
 import { BLOCK_LABELS } from "@/data/routines";
 import { dueReviews } from "@/data/suzuki";
-import { Card, EmptyState, GoalDots, PageTitle, ProgressRing } from "@/design/components";
+import { ButtonLink, Card, EmptyState, GoalDots, ProgressRing } from "@/design/components";
+import { Icon, type IconName } from "@/design/icons";
+import { PageHeader, SkeletonList } from "@/design/layout";
 
-import { CadernoDaAula } from "./CadernoDaAula";
-import { TarefasDaTurma } from "./TarefasDaTurma";
 import { useClassAssignmentsRefresh, useTodayPlan } from "./useTodayPlan";
+
+const STAGGER_MS = 40;
+const FROM_TODAY = fromState("/");
 
 function greeting(hour: number): string {
   if (hour < 12) return "Bom dia";
@@ -27,63 +34,126 @@ function streakSentence(streak: number, frozenToday: boolean): string {
   return `${streak} ${streak === 1 ? "dia seguido" : "dias seguidos"} batendo a meta.`;
 }
 
-function BlockRow({ planned, runsToday, isNext }: { planned: PlannedBlock; runsToday: RunsByExercise; isNext: boolean }) {
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+function BlockMarker({ index, done, current }: { index: number; done: boolean; current: boolean }) {
+  const tone = done ? "bg-in-tune-soft text-in-tune" : current ? "bg-primary text-on-primary" : "bg-surface-soft text-ink-muted";
+  return (
+    <span aria-hidden className={`flex size-8 shrink-0 items-center justify-center rounded-md font-mono text-small tabular ${tone}`}>
+      {done ? <Icon name="confirmar" className="size-4" /> : index + 1}
+    </span>
+  );
+}
+
+function BlockOrigin({ planned }: { planned: PlannedBlock }) {
+  if (planned.assignmentId) return <span className="rounded-sm bg-primary-soft px-1.5 text-caption text-primary">Da turma</span>;
+  if (planned.fromLesson) return <span className="rounded-sm bg-info-soft px-1.5 text-caption text-info">Da aula</span>;
+  return null;
+}
+
+interface BlockRowProps {
+  planned: PlannedBlock;
+  index: number;
+  runsToday: RunsByExercise;
+  current: boolean;
+}
+
+function BlockRow({ planned, index, runsToday, current }: BlockRowProps) {
   const item = planned.item;
   const progress = blockProgress(planned, runsToday);
   const done = progress?.complete ?? false;
   const goal = progress ? goalSentence(planned.block, progress) : null;
-  const toneClass = done ? "text-ink-subtle line-through" : isNext ? "text-ink" : "text-ink-muted";
+  const titleTone = done ? "text-ink-subtle line-through decoration-hairline-strong" : "text-ink";
   return (
-    <li className={`grid gap-1 py-3 ${isNext ? "border-l-2 border-primary pl-4" : "pl-4"}`}>
-      <div className="flex items-baseline justify-between gap-4">
-        <span className="text-caption text-ink-subtle">
-          {BLOCK_LABELS[planned.block.type]} · {planned.block.durationMinutes} min
-        </span>
-        {planned.assignmentId ? <span className="rounded-pill bg-primary-soft px-2 text-caption text-primary">Da turma</span> : null}
-        {planned.fromLesson ? <span className="rounded-pill bg-info-soft px-2 text-caption text-info">Da aula</span> : null}
+    <li
+      aria-current={current ? "step" : undefined}
+      style={{ animationDelay: `${index * STAGGER_MS}ms` }}
+      className={`relative flex animate-rise gap-4 rounded-md px-3 py-3 transition-colors duration-fast ease-spalla ${current ? "bg-primary-soft/60" : item ? "hover:bg-surface-soft" : ""}`}
+    >
+      <BlockMarker index={index} done={done} current={current} />
+      <div className="grid min-w-0 flex-1 gap-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-ink-subtle">
+          <span>{BLOCK_LABELS[planned.block.type]}</span>
+          <span aria-hidden>/</span>
+          <span className="font-mono tabular">{planned.block.durationMinutes} min</span>
+          <BlockOrigin planned={planned} />
+        </div>
+        {item ? (
+          <Link
+            to={item.playPath}
+            state={FROM_TODAY}
+            className={`w-fit max-w-full truncate text-body font-semibold after:absolute after:inset-0 after:rounded-md after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-focus ${titleTone}`}
+          >
+            {item.title}
+          </Link>
+        ) : (
+          <span className="text-body text-ink-subtle">{planned.reason}</span>
+        )}
+        {item ? (
+          <span className="text-small text-ink-muted">
+            {planned.reason}
+            {planned.variation ? ` Hoje: ${planned.variation}.` : ""}
+            {planned.targetBpm ? <span className="ml-2 font-mono text-primary tabular">{planned.targetBpm} bpm</span> : null}
+          </span>
+        ) : null}
+        {progress && goal ? (
+          <span className="flex items-center gap-2 text-small text-ink-muted">
+            <GoalDots recentClean={progress.recentClean} total={progress.total} label={goal} />
+            <span aria-hidden>{goal}</span>
+          </span>
+        ) : null}
       </div>
-      {item ? (
-        <Link to={item.playPath} className={`font-medium hover:text-primary ${toneClass}`}>
-          {item.title}
-          {planned.targetBpm ? <span className="ml-2 font-mono text-caption text-primary tabular">→ {planned.targetBpm} bpm</span> : null}
-        </Link>
-      ) : (
-        <span className="text-ink-subtle">{planned.reason}</span>
-      )}
-      {item ? (
-        <span className="text-caption text-ink-subtle">
-          {planned.reason}
-          {planned.variation ? ` · Hoje: ${planned.variation}.` : ""}
-        </span>
-      ) : null}
-      {progress && goal ? (
-        <span className="flex items-center gap-2 text-caption text-ink-muted">
-          <GoalDots recentClean={progress.recentClean} total={progress.total} label={goal} />
-          <span aria-hidden>{goal}</span>
-        </span>
-      ) : null}
     </li>
   );
 }
 
-function SuzukiReminder({ today }: { today: string }) {
-  const due = dueReviews(useLiveQuery(() => db.suzukiPieces.toArray(), []) ?? [], today);
-  if (due.length === 0) return null;
+interface Notice {
+  key: string;
+  icon: IconName;
+  text: string;
+  to?: string;
+}
+
+function useNotices(today: string): Notice[] {
+  const suzuki = useLiveQuery(() => db.suzukiPieces.toArray(), []) ?? [];
+  const lessonTasks = useLiveQuery(() => db.lessonTasks.toArray(), []) ?? [];
+  const assignments = useClassAssignments();
+  const lessonWeekday = useSettings((state) => state.lessonWeekday);
+  const openTasks = splitTasks(lessonTasks).open.length + assignments.filter((assignment) => assignment.doneAt === null).length;
+  const due = dueReviews(suzuki, today).length;
+  const nextLesson = nextLessonSentence(lessonWeekday, new Date());
+  const notices: Notice[] = [];
+  if (openTasks > 0) notices.push({ key: "tarefas", icon: "aulas", text: plural(openTasks, "tarefa da aula", "tarefas da aula"), to: "/estudar/caderno" });
+  if (due > 0) notices.push({ key: "suzuki", icon: "repertorio", text: `Revisão Suzuki: ${plural(due, "peça", "peças")}`, to: "/repertorio/suzuki" });
+  if (nextLesson) notices.push({ key: "aula", icon: "estudar", text: nextLesson.replace(/\.$/, ""), to: "/estudar/caderno" });
+  return notices;
+}
+
+function NoticeStrip({ notices }: { notices: readonly Notice[] }) {
+  if (notices.length === 0) return null;
   return (
-    <Card className="grid gap-2">
-      <span className="text-caption text-ink-subtle">Revisão Suzuki</span>
-      <span className="font-medium">
-        {due.length} {due.length === 1 ? "peça para revisar hoje" : "peças para revisar hoje"}
-      </span>
-      <Link to="/repertorio/suzuki" className="text-caption font-semibold text-primary">
-        Abrir a trilha
-      </Link>
-    </Card>
+    <ul aria-label="Avisos" className="grid gap-2 sm:grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]">
+      {notices.map((notice) => (
+        <li key={notice.key} className="min-w-0">
+          <Link
+            to={notice.to ?? "/"}
+            className="group flex min-h-14 items-center gap-3 rounded-md bg-surface-sunken px-4 text-small font-medium text-ink ring-1 ring-inset ring-hairline transition-colors duration-fast ease-spalla hover:bg-surface-soft"
+          >
+            <Icon name={notice.icon} className="size-5 shrink-0 text-primary" />
+            <span className="min-w-0 flex-1 truncate">{notice.text}</span>
+            <Icon name="avancar" className="size-4 shrink-0 text-ink-subtle transition-transform duration-fast ease-spalla group-hover:translate-x-0.5" />
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export function HojePage() {
   const today = useTodayPlan();
+  const notices = useNotices(today.today);
   const allDone = today.progress.total > 0 && today.progress.done === today.progress.total;
   const frozenToday = today.stats.frozenDays.includes(today.today);
   useClassAssignmentsRefresh();
@@ -92,79 +162,70 @@ export function HojePage() {
     if (allDone && !today.sessionCompleted) void grantSessionBonus(today.today);
   }, [allDone, today.sessionCompleted, today.today]);
 
+  const nextItem = today.next?.item ?? null;
+
   return (
     <>
-      <PageTitle eyebrow={greeting(new Date().getHours())} title="Sua prática de hoje">
-        {today.next ? (
-          <Link
-            to={today.next.item?.playPath ?? "/estudar"}
-            className="hidden h-10 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:inline-flex"
-          >
-            {today.progress.done === 0 ? "Começar" : "Continuar"}
-          </Link>
-        ) : null}
-      </PageTitle>
+      <PageHeader title={greeting(new Date().getHours())} description={streakSentence(today.streak, frozenToday)} size="display" />
 
-      <div className="grid gap-6 md:grid-cols-[auto_1fr]">
-        <div className="grid content-start gap-6 md:w-64">
-          <Card className="flex flex-col items-center gap-4">
-            <ProgressRing value={today.todayXp} max={today.stats.dailyGoalXp} caption={`de ${today.stats.dailyGoalXp} XP`} />
-            <p className="text-center text-body text-ink-muted">{streakSentence(today.streak, frozenToday)}</p>
-            <p className="text-center text-caption text-ink-subtle">{today.todayMinutes} min hoje</p>
-          </Card>
-          <Card className="grid gap-2">
-            <span className="text-caption text-ink-subtle">Rotina</span>
-            <span className="font-medium">{today.routine.name}</span>
-            <Link to="/estudar" className="text-caption font-semibold text-primary">
-              Trocar rotina
-            </Link>
-          </Card>
-          <SuzukiReminder today={today.today} />
-        </div>
-
-        <Card title={allDone ? "Sessão fechada" : "Sessão de hoje"}>
-          {!today.coreReady ? <p className="text-ink-muted">Montando a sessão…</p> : null}
-          {today.coreReady && allDone ? (
-            <EmptyState
-              title={`Tudo feito. +${SESSION_COMPLETE_XP} XP pela sessão completa.`}
-              description="Quer continuar? Repita o bloco que ficou mais fraco ou abra uma música da biblioteca."
-              action={
-                <Link to="/repertorio" className="font-semibold text-primary">
-                  Ir para Músicas
-                </Link>
-              }
-            />
-          ) : null}
-          {today.coreReady && !allDone ? (
-            <div className="grid gap-3">
-              <p className="text-caption text-ink-subtle">
-                {today.progress.done} de {today.progress.total} blocos · {today.routine.durationMinutes} min
+      <div className="grid gap-6">
+        <Card tone="hero" className="grid gap-8 md:grid-cols-[auto_minmax(0,1fr)] md:items-start md:gap-10">
+          <div className="grid gap-5 md:sticky md:top-10 md:w-64 md:justify-items-center">
+            <div className="flex items-center gap-5 md:flex-col md:gap-3">
+              <ProgressRing value={today.todayXp} max={today.stats.dailyGoalXp} caption={`de ${today.stats.dailyGoalXp} XP`} size={152} />
+              <p className="text-small text-ink-muted md:text-center">
+                <span className="font-mono text-ink tabular">{today.todayMinutes}</span> min tocados hoje
               </p>
-              <ol className="divide-y divide-hairline">
+            </div>
+            {today.coreReady && nextItem ? (
+              <ButtonLink variant="primary" size="lg" icon="play" to={nextItem.playPath} state={FROM_TODAY} className="w-full min-w-0">
+                <span className="truncate">Tocar {nextItem.title}</span>
+              </ButtonLink>
+            ) : null}
+          </div>
+
+          <div className="grid min-w-0 gap-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 className="text-heading font-semibold">{allDone ? "Sessão fechada" : "Sessão de hoje"}</h2>
+              <p className="text-small text-ink-muted">
+                <span className="tabular">
+                  {today.progress.done} de {today.progress.total} blocos
+                </span>{" "}
+                / {today.routine.durationMinutes} min
+              </p>
+            </div>
+
+            {!today.coreReady ? <SkeletonList rows={3} label="Montando a sessão…" /> : null}
+
+            {today.coreReady && allDone ? (
+              <EmptyState
+                title={`Tudo feito. +${SESSION_COMPLETE_XP} XP pela sessão completa.`}
+                description="Quer continuar? Repita o bloco que ficou mais fraco ou abra uma peça do repertório."
+                action={<ButtonLink to="/repertorio">Abrir o repertório</ButtonLink>}
+              />
+            ) : null}
+
+            {today.coreReady && !allDone ? (
+              <ol aria-label="Blocos da sessão" className="-mx-3 grid gap-1">
                 {today.plan.map((planned, index) => (
-                  <BlockRow
-                    key={`${planned.block.type}-${index}`}
-                    planned={planned}
-                    runsToday={today.runsToday}
-                    isNext={planned === today.next}
-                  />
+                  <BlockRow key={`${planned.block.type}-${index}`} planned={planned} index={index} runsToday={today.runsToday} current={planned === today.next} />
                 ))}
               </ol>
-              {today.next?.item ? (
-                <Link
-                  to={today.next.item.playPath}
-                  className="inline-flex h-11 w-fit items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10"
-                >
-                  Tocar {today.next.item.title}
+            ) : null}
+
+            <div className="border-t border-hairline pt-5">
+              <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-small text-ink-muted">
+                Rotina
+                <span className="font-semibold text-ink">{today.routine.name}</span>
+                <Link to="/estudar" className="font-semibold text-primary underline-offset-4 hover:underline">
+                  trocar
                 </Link>
-              ) : null}
+              </p>
             </div>
-          ) : null}
+          </div>
         </Card>
-        <div className="grid gap-6 md:col-span-2">
-          <TarefasDaTurma />
-          <CadernoDaAula />
-        </div>
+
+        <NoticeStrip notices={notices} />
       </div>
     </>
   );

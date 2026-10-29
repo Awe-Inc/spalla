@@ -1,10 +1,10 @@
 import type { GameStats, MeasureRange, NoteJudgement, PracticeSession, SessionState } from "@fretless/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { completeAssignmentsAfterRun } from "@/account/classAssignments";
 import { useSettings } from "@/app/settings";
-import { useBlockGoal } from "@/areas/hoje/useTodayPlan";
+import { useTodayBlock } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useListen } from "@/audio/useListen";
@@ -14,6 +14,7 @@ import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/compo
 import { Tuner } from "@/design/Tuner";
 import { displayNoteName } from "@/music/noteNames";
 
+import { fromState, tocarOrigin } from "./origin";
 import { autoSlowdown, slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { ComboBar } from "./ComboBar";
 import { ResultScreen } from "./ResultScreen";
@@ -71,7 +72,8 @@ export function TocarPage() {
   const slowedRunRef = useRef(false);
   const [outcome, setOutcome] = useState<RunOutcome | null>(null);
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
-  const goal = useBlockGoal(resultId ?? null);
+  const { goal, nextBlock } = useTodayBlock(resultId ?? null);
+  const origin = tocarOrigin(useLocation().state, Boolean(exercise));
   const [saveError, setSaveError] = useState<string | null>(null);
   const [droneOn, setDroneOn] = useState(false);
   const startedAtRef = useRef<number | null>(null);
@@ -215,10 +217,9 @@ export function TocarPage() {
     listen.stop();
     accompaniment.stopDrone();
     stopInput();
-    void navigate(exercise ? "/estudar" : "/repertorio");
+    void navigate(origin.to);
   }
 
-  const backTo = exercise ? "/estudar" : "/repertorio";
   const currentEvent = score && snapshot ? score.events[snapshot.currentNoteIndex] : undefined;
   const isRunning = snapshot !== null && snapshot.state !== "finished" && snapshot.state !== "idle";
   const isIdle = score !== null && (!snapshot || snapshot.state === "idle") && !error;
@@ -312,7 +313,8 @@ export function TocarPage() {
             slowdown={slowdown}
             saveError={saveError}
             completedTasks={completedTasks}
-            backTo={backTo}
+            back={origin}
+            next={origin.to === "/" && nextBlock ? { title: nextBlock.title, to: nextBlock.playPath, state: fromState("/") } : null}
             onPlayAgain={() => void begin()}
             onRepeatHardest={repeatHardest}
             onChangeTempo={(next) => {

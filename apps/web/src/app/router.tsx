@@ -9,7 +9,7 @@ import { MetronomoPage } from "@/areas/ferramentas/MetronomoPage";
 import { PedalPage } from "@/areas/ferramentas/PedalPage";
 import { HojePage } from "@/areas/hoje/HojePage";
 import { MusicasPage } from "@/areas/musicas/MusicasPage";
-import { PraticarPage } from "@/areas/praticar/PraticarPage";
+import { RotinaPage } from "@/areas/estudar/RotinaPage";
 import { ProgressoPage } from "@/areas/progresso/ProgressoPage";
 import { ErroDeRotaPage, NaoEncontradaPage } from "@/areas/sistema/SistemaPages";
 import { TocarPage } from "@/areas/tocar/TocarPage";
@@ -41,8 +41,10 @@ export const router = createBrowserRouter(
       errorElement: <ErroDeRotaPage />,
       children: [
         { index: true, Component: HojePage },
-        { path: "estudar", Component: PraticarPage },
-        { path: "estudar/modulo/:moduleId", lazy: async () => ({ Component: (await import("@/areas/progresso/ModuloPage")).ModuloPage }) },
+        { path: "estudar", Component: RotinaPage },
+        { path: "estudar/metodo", lazy: async () => ({ Component: (await import("@/areas/estudar/MetodoPage")).MetodoPage }) },
+        { path: "estudar/caderno", lazy: async () => ({ Component: (await import("@/areas/estudar/CadernoPage")).CadernoPage }) },
+        { path: "estudar/modulo/:moduleId", lazy: async () => ({ Component: (await import("@/areas/estudar/ModuloPage")).ModuloPage }) },
         { path: "repertorio", Component: MusicasPage },
         { path: "repertorio/estante", lazy: async () => ({ Component: (await import("@/areas/estante/EstantePage")).EstantePage }) },
         { path: "repertorio/estante/:sheetId", handle: FULLSCREEN, lazy: async () => ({ Component: (await import("@/areas/estante/LeitorPage")).LeitorPage }) },

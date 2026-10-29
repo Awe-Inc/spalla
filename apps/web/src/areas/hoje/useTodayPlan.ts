@@ -7,7 +7,7 @@ import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, latestResultsByExercise, localDayKey, type ExerciseResult, type Routine, type RoutineBlock, type UserStats } from "@/data/db";
 import { blockProgress, nextOpenBlock, planSession, sessionProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
 import { runsByExercise, shouldRaiseTempo, type GoalProgress } from "@/data/repetitions";
-import { defaultRoutines } from "@/data/routines";
+import { defaultRoutines, type RoutineItem } from "@/data/routines";
 
 export interface TodayPlan {
   today: string;
@@ -89,12 +89,19 @@ export interface BlockGoal {
   raiseTempo: boolean;
 }
 
-export function useBlockGoal(exerciseId: string | null): BlockGoal | null {
+export interface TodayBlock {
+  goal: BlockGoal | null;
+  nextBlock: RoutineItem | null;
+}
+
+export function useTodayBlock(exerciseId: string | null): TodayBlock {
   const today = useTodayPlan();
   const allRuns = useLiveQuery(() => (exerciseId ? db.results.where("exerciseId").equals(exerciseId).toArray() : Promise.resolve<ExerciseResult[]>([])), [exerciseId]) ?? [];
+  const nextItem = today.next?.item ?? null;
+  const nextBlock = nextItem && nextItem.id !== exerciseId ? nextItem : null;
   const planned = today.plan.find((item) => item.item?.id === exerciseId);
-  if (!planned || !exerciseId) return null;
+  if (!planned || !exerciseId) return { goal: null, nextBlock };
   const progress = blockProgress(planned, today.runsToday);
-  if (!progress || planned.block.goal === "uma-vez") return null;
-  return { block: planned.block, progress, raiseTempo: progress.complete && shouldRaiseTempo(planned.block, allRuns) };
+  if (!progress || planned.block.goal === "uma-vez") return { goal: null, nextBlock };
+  return { goal: { block: planned.block, progress, raiseTempo: progress.complete && shouldRaiseTempo(planned.block, allRuns) }, nextBlock };
 }

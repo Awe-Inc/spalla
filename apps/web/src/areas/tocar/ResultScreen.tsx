@@ -1,13 +1,13 @@
 import type { GameStats, MeasureRange, NoteJudgement, Score } from "@fretless/core";
-import { Link } from "react-router";
-
 import type { BlockGoal } from "@/areas/hoje/useTodayPlan";
 import { ACHIEVEMENTS, MASTERY_LEVELS, type MasteryLevel } from "@/data/gamification";
 import { driftSentence } from "@/data/history";
 import { earnedMedalTitle } from "@/data/medals";
 import type { RunOutcome } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
-import { Button, GoalDots, Stars } from "@/design/components";
+import { Button, ButtonLink, GoalDots, Stars } from "@/design/components";
+
+import type { TocarOrigin } from "./origin";
 
 import { slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { hardestRange, measureStats, measureTone, type MeasureStat } from "./measureMap";
@@ -25,11 +25,18 @@ interface ResultScreenProps {
   slowdown: Slowdown | null;
   saveError: string | null;
   completedTasks: readonly string[];
-  backTo: string;
+  back: TocarOrigin;
+  next: NextBlockLink | null;
   onPlayAgain: () => void;
   onRepeatHardest: (range: MeasureRange) => void;
   onChangeTempo: (bpm: number) => void;
   onKeepTempo: (bpm: number) => void;
+}
+
+export interface NextBlockLink {
+  title: string;
+  to: string;
+  state: { from: string };
 }
 
 const KEEP_TEMPO: TempoAdvice = { kind: "keep" };
@@ -67,7 +74,7 @@ function seriesSentence(goal: BlockGoal): string {
   return hadStreak ? "A série zerou. Mais devagar e de novo." : "Essa não contou: a série pede 90% ou mais.";
 }
 
-export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, slowdown, saveError, completedTasks, backTo, onPlayAgain, onRepeatHardest, onChangeTempo, onKeepTempo }: ResultScreenProps) {
+export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, slowdown, saveError, completedTasks, back, next, onPlayAgain, onRepeatHardest, onChangeTempo, onKeepTempo }: ResultScreenProps) {
   const perMeasure = measureStats(score, judgements);
   const hardest = loop ? null : hardestRange(perMeasure);
   const advice = slowdown ? KEEP_TEMPO : adviseTempo(stats.accuracyPct, bpm, limits);
@@ -179,7 +186,12 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
       ) : null}
 
       <div className="flex flex-wrap justify-center gap-3">
-        <Button variant="primary" onClick={onPlayAgain}>
+        {next ? (
+          <ButtonLink variant="primary" to={next.to} state={next.state} icon="play">
+            Próximo bloco: {next.title}
+          </ButtonLink>
+        ) : null}
+        <Button variant={next ? "secondary" : "primary"} onClick={onPlayAgain}>
           Tocar de novo
         </Button>
         {hardest ? (
@@ -187,9 +199,9 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
             Repetir compassos {hardest.firstIndex + 1}–{hardest.lastIndex + 1}
           </Button>
         ) : null}
-        <Link to={backTo} className="inline-flex h-11 items-center rounded-pill bg-surface-soft px-5 font-semibold md:h-10">
-          Voltar
-        </Link>
+        <ButtonLink variant="ghost" to={back.to} icon="voltar">
+          Voltar para {back.label}
+        </ButtonLink>
       </div>
     </section>
   );

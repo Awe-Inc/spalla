@@ -7,7 +7,7 @@ import { useSettings } from "@/app/settings";
 import { useListen, type Listen } from "@/audio/useListen";
 import { RecordingAudio, recordingDate } from "@/areas/ferramentas/RecordingPlayer";
 import { AddToRoutine } from "@/areas/musicas/AddToRoutine";
-import { HistoricoExercicio } from "@/areas/praticar/HistoricoExercicio";
+import { HistoricoExercicio } from "@/areas/estudar/HistoricoExercicio";
 import { BPM_STEP, clampBpm, type TempoLimits } from "@/areas/tocar/tempo";
 import { useSession } from "@/areas/tocar/useSession";
 import { db, type StoredSection } from "@/data/db";
