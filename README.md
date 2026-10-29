@@ -1,6 +1,6 @@
 # Spalla
 
-*(repository and internal name: Fretless)*
+*(internal name: Fretless)*
 
 A C++20 practice tool for the violin. It listens to you play, reads the score,
 and judges every note on intonation and timing — and it comes with a syllabus,
@@ -10,7 +10,7 @@ so the answer to "what should I practise today" is on the first screen.
 scales; a drone and a metronome; sight reading that deals a new page every
 time; and a library of public-domain repertoire.
 
-Live at https://pataxo-inc.github.io/fretless/ — repository at https://github.com/Pataxo-Inc/fretless.
+Live at https://pataxo-inc.github.io/spalla/ — repository at https://github.com/Pataxo-Inc/spalla.
 
 Since October 2026 the app is web-first: the C++ core is compiled to
 WebAssembly and the interface is React, installable as a PWA. The native
@@ -19,14 +19,14 @@ build still works and runs the same test suite.
 The web app is called **Spalla** (the orchestra's first violin). Its look — dark fir and
 ebony with a honey accent, Instrument Serif and Instrument Sans, Geist Mono for numbers — is
 written down in `DESIGN.md`; every colour, font and radius lives in `apps/web/src/design/tokens.css`.
-Package names, storage keys and the `/fretless/` base path keep the old name on purpose, so
-nobody's saved progress or links break.
+Package names and storage keys keep the old name on purpose, so
+nobody's saved progress breaks.
 
 ```bash
 pnpm install && pnpm build:core  # Emscripten build of the core (needs emsdk)
 pnpm dev                         # the web app on http://localhost:5180
 pnpm test                        # C++ cases in WASM + vitest (core and web)
-pnpm --filter @fretless/web build  # PWA in apps/web/dist (BASE_PATH=/fretless/ for GitHub Pages; CI does this)
+pnpm --filter @fretless/web build  # PWA in apps/web/dist (BASE_PATH=/spalla/ for GitHub Pages; CI does this)
 
 build.bat                        # native configure + build (CMake/Ninja from VS Build Tools)
 build\bin\Fretless.exe          # the native practice hub

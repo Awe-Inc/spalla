@@ -34,7 +34,7 @@ services:
       - key: FILES_STORE
         value: database
       - key: CORS_ORIGINS
-        value: https://henriquerl55.github.io
+        value: https://pataxo-inc.github.io
       - key: DATABASE_URL
         fromDatabase:
           name: fretless-db

@@ -24,8 +24,8 @@ pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGA
                                    # player (~55 s); first run needs
                                    # `pnpm --filter @fretless/web exec playwright install chromium`
 pnpm --filter @fretless/web build  # tsc -b + vite build → apps/web/dist (PWA, service worker, 404.html = SPA fallback)
-BASE_PATH=/fretless/ pnpm --filter @fretless/web build   # sub-path build (GitHub Pages); from PowerShell on Windows,
-                                   # Git Bash rewrites "/fretless/" into a Windows path
+BASE_PATH=/spalla/ pnpm --filter @fretless/web build   # sub-path build (GitHub Pages); from PowerShell on Windows,
+                                   # Git Bash rewrites "/spalla/" into a Windows path
 pnpm dev                           # vite on http://localhost:5180 (preview: 4180)
 pnpm --filter @fretless/api dev    # Fastify on 3400 (PGlite em apps/api/.data; lê apps/api/.env se existir)
 pnpm --filter @fretless/api test   # vitest da API, cada arquivo com um PGlite em memória
@@ -52,7 +52,7 @@ apps/web/src/design/fonts.css    Fontsource imports (Instrument Serif 400 + itá
                                  self-hosted woff2 (and the woff fallbacks) land in the precache, no Google Fonts
 .github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
-                                 variable DEPLOY_PAGES is "true" (set; repo public since 29/10, transferred to Pataxo-Inc/fretless on 29/10, site at pataxo-inc.github.io/fretless)
+                                 variable DEPLOY_PAGES is "true" (set; repo public since 29/10, transferred to Pataxo-Inc and renamed spalla on 29/10, site at pataxo-inc.github.io/spalla)
 apps/web/src/design/components.tsx  Card (plain | inset | hero), StringChip, Stars, GoalDots (pontos da série de
                                  repetições), AccuracyBars, ProgressRing, HeadphoneNotice, EmptyState, InlineError;
                                  re-exporta actions e layout
@@ -245,8 +245,13 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 - **Nomes internos legados não se renomeiam.** A marca virou Spalla em 29/10, mas trocar o nome interno apaga dados
   ou quebra deploy: o Dexie `"fretless"` (outro nome = banco novo e vazio), as chaves `fretless-settings`,
   `fretless-conta`, `fretless-dispositivo` e `fretless-sync-*`, o worklet `fretless-pitch`, `%APPDATA%\Fretless`
-  do app nativo, os pacotes `@fretless/*`, `BASE_PATH=/fretless/`, o `render.yaml`, os plugins `fretless:*` do
+  do app nativo, os pacotes `@fretless/*`, o `render.yaml`, os plugins `fretless:*` do
   vite e o valor `"sepia"` do `accent` (na tela, "Ébano"). Texto visível usa `PLATFORM_NAME`; nome interno fica.
+
+- **O endereço do site segue o nome do repo.** O CI monta `BASE_PATH=/${{ github.event.repository.name }}/`; renomear o
+  repo (fretless → spalla em 29/10) muda o caminho do Pages e o escopo do PWA, e o endereço antigo deixa de abrir
+  (o GitHub redireciona o repo, não o Pages). Os dados ficam, porque o IndexedDB é por origem, não por caminho.
+  Mudar a origem (outra conta ou org) apaga o progresso local; o `CORS_ORIGINS` da API (`render.yaml`) acompanha.
 
 - **Rota antiga continua valendo.** `/praticar`, `/musicas/*`, `/estante/:id`, `/progresso`, `/configuracoes`,
   `/conta` e `/ferramentas/latencia` redirecionam pelo `LegacyRedirect` do router; o `itemPath` salvo nas rotinas
@@ -354,10 +359,10 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
   e `practiceDaysFromNative` agrupa por dia local. Todo timestamp de teste que vira dia local fica ao meio-dia UTC
   (`Date.UTC(ano, mês, dia, 12) / 1000`), que cai no mesmo dia em qualquer fuso entre −11 e +11. Para reproduzir o
   CI: `TZ=UTC pnpm --filter @fretless/web exec vitest run <arquivo>` no Git Bash.
-- **`BASE_PATH=/fretless/` no Git Bash vira `C:/Program Files/Git/fretless/`.** O MSYS converte variável de
+- **`BASE_PATH=/spalla/` no Git Bash vira `C:/Program Files/Git/spalla/`.** O MSYS converte variável de
   ambiente que começa com `/` em caminho do Windows antes de entregar ao Node, e o build sai com `src="/Program
-  Files/Git/fretless/assets/..."` e `scope` absoluto do disco. Para gerar o site do Pages localmente:
-  `MSYS2_ENV_CONV_EXCL=BASE_PATH BASE_PATH=/fretless/ pnpm --filter @fretless/web run build` (`MSYS_NO_PATHCONV`
+  Files/Git/spalla/assets/..."` e `scope` absoluto do disco. Para gerar o site do Pages localmente:
+  `MSYS2_ENV_CONV_EXCL=BASE_PATH BASE_PATH=/spalla/ pnpm --filter @fretless/web run build` (`MSYS_NO_PATHCONV`
   não basta para variáveis). No CI (Linux) não existe conversão.
 - **Coluna `date` do Postgres volta como `Date` à meia-noite UTC.** `dueOn` de uma tarefa saía como
   `2026-11-04T03:00` no Brasil e a data mostrada recuava um dia. Toda coluna `date` sai da query como texto:
