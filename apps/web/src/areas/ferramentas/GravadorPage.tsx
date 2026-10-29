@@ -19,12 +19,12 @@ import {
   type RecordingPiece,
 } from "@/data/recordings";
 import { Button, Card, InlineError } from "@/design/components";
+import { FIELD_CLASS } from "@/design/fields";
 
 import { CompareRecordings, RecordingRow, useObjectUrl } from "./RecordingPlayer";
 
 import { ToolLayout } from "./ToolLayout";
 
-const FIELD_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 text-body text-ink";
 const NO_PIECE = "";
 const ALL_RECORDINGS = "todas";
 const UNLINKED_RECORDINGS = "sem-peca";
@@ -54,7 +54,7 @@ function TakeForm({ take, piece, onSaved, onDiscard }: TakeFormProps) {
       {url ? <audio controls src={url} className="w-full" aria-label="Ouvir a gravação nova" /> : null}
       <label className="grid gap-1 text-caption text-ink-subtle">
         Nome
-        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={NAME_MAX_LENGTH} className={FIELD_CLASS} />
+        <input value={name} onChange={(event) => setName(event.target.value)} name="nome-gravacao" autoComplete="off" maxLength={NAME_MAX_LENGTH} className={FIELD_CLASS} />
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" variant="primary">
@@ -145,7 +145,7 @@ export function GravadorPage() {
         <Card className="grid gap-4">
           <label className="grid max-w-md gap-1 text-caption text-ink-subtle">
             Ligar à peça
-            <select className={FIELD_CLASS} value={pieceKey} onChange={(event) => setPieceKey(event.target.value)} disabled={recorder.status === "recording"}>
+            <select className={`${FIELD_CLASS} cursor-pointer pr-8`} value={pieceKey} onChange={(event) => setPieceKey(event.target.value)} disabled={recorder.status === "recording"}>
               <option value={NO_PIECE}>Nenhuma</option>
               <PieceOptions pieces={pieces} />
             </select>
@@ -166,7 +166,7 @@ export function GravadorPage() {
         <Card title="Gravações" className="grid gap-2">
           <label className="grid max-w-md gap-1 text-caption text-ink-subtle">
             Mostrar
-            <select className={FIELD_CLASS} value={filter} onChange={(event) => setFilter(event.target.value)}>
+            <select className={`${FIELD_CLASS} cursor-pointer pr-8`} value={filter} onChange={(event) => setFilter(event.target.value)}>
               <option value={ALL_RECORDINGS}>Todas</option>
               <PieceOptions pieces={pieces} />
               <option value={UNLINKED_RECORDINGS}>Sem peça</option>

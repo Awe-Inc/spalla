@@ -8,11 +8,12 @@ import { addLessonTask, nextLessonSentence, removeLessonTask, splitTasks, toggle
 import { BLOCK_KINDS, BLOCK_LABELS, ROUTINE_ORDER } from "@/data/routines";
 import { weekSummary, weekWindow } from "@/data/weekSummary";
 import { Button, Card } from "@/design/components";
+import { COMPACT_FIELD_CLASS, FIELD_CLASS } from "@/design/fields";
 
 import { ResumoDaSemana } from "./ResumoDaSemana";
 
 const TASK_BLOCKS: BlockKind[] = [...ROUTINE_ORDER, "livre"];
-const SELECT_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 text-body";
+const SELECT_CLASS = `${FIELD_CLASS} cursor-pointer pr-8`;
 
 function TaskRow({ task, exerciseTitle }: { task: LessonTask; exerciseTitle: string | null }) {
   const isDone = task.doneAt !== null;
@@ -65,7 +66,7 @@ export function CadernoDaAula() {
         <p className="text-ink-muted">{nextLessonSentence(lessonWeekday, new Date()) ?? "Anote o que a professora pediu; vira bloco da sessão."}</p>
         <label className="flex items-center gap-2 text-caption text-ink-subtle">
           Dia da aula
-          <select className="h-9 rounded-md border border-hairline bg-surface px-2 text-body" value={lessonWeekday ?? ""} onChange={(event) => setLessonWeekday(event.target.value === "" ? null : Number(event.target.value))}>
+          <select className={`${COMPACT_FIELD_CLASS} cursor-pointer pr-8`} value={lessonWeekday ?? ""} onChange={(event) => setLessonWeekday(event.target.value === "" ? null : Number(event.target.value))}>
             <option value="">Sem dia fixo</option>
             {WEEKDAY_NAMES.map((name, index) => (
               <option key={name} value={index}>
@@ -85,7 +86,7 @@ export function CadernoDaAula() {
         <p className="text-caption text-ink-subtle">Nenhuma tarefa aberta.</p>
       )}
       <form className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]" onSubmit={(event) => void submit(event)}>
-        <input className="h-10 rounded-md border border-hairline bg-surface px-3 text-body" placeholder="O que praticar até a próxima aula" value={text} onChange={(event) => setText(event.target.value)} aria-label="Tarefa" />
+        <input name="tarefa" autoComplete="off" className={FIELD_CLASS} placeholder="O que praticar até a próxima aula…" value={text} onChange={(event) => setText(event.target.value)} aria-label="Tarefa" />
         <select className={SELECT_CLASS} value={blockType} aria-label="Bloco" onChange={(event) => { setBlockType(event.target.value as BlockKind); setItemId(""); }}>
           {TASK_BLOCKS.map((kind) => (
             <option key={kind} value={kind}>

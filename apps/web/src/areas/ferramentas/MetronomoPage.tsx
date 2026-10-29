@@ -4,6 +4,7 @@ import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
 import { clampBpm, TEMPO_MAX_BPM, TEMPO_MIN_BPM, TempoClock, type ProgressivePlan, type TempoClockSettings } from "@/audio/tempoClock";
 import { Button, Card } from "@/design/components";
+import { FIELD_CLASS } from "@/design/fields";
 
 import { ToolLayout } from "./ToolLayout";
 
@@ -15,7 +16,7 @@ const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
   { value: 4, label: "Semicolcheias" },
 ];
 const DEFAULT_PLAN: ProgressivePlan = { fromBpm: 60, toBpm: 90, stepBpm: 4, everyMeasures: 8 };
-const FIELD_CLASS = "h-10 rounded-md border border-hairline bg-surface px-3 text-body";
+const SELECT_CLASS = `${FIELD_CLASS} cursor-pointer pr-8`;
 
 const MAX_EVERY_MEASURES = 64;
 
@@ -109,7 +110,7 @@ export function MetronomoPage() {
               <input type="checkbox" className="size-5 accent-primary" checked={settings.accentFirstBeat} onChange={(event) => patch({ accentFirstBeat: event.target.checked })} />
               Acentuar o primeiro tempo
             </label>
-            <select className={FIELD_CLASS} value={settings.sound} aria-label="Som" onChange={(event) => patch({ sound: event.target.value as ClickSound })}>
+            <select className={SELECT_CLASS} value={settings.sound} aria-label="Som" onChange={(event) => patch({ sound: event.target.value as ClickSound })}>
               {(Object.keys(CLICK_SOUNDS) as ClickSound[]).map((sound) => (
                 <option key={sound} value={sound}>
                   {CLICK_SOUNDS[sound].label}

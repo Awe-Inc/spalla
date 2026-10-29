@@ -55,7 +55,7 @@ function UserList() {
       <div className="grid gap-3 md:grid-cols-4">
         <label className="grid gap-1 text-caption font-medium text-ink md:col-span-4 lg:col-span-1">
           Buscar
-          <input type="search" placeholder="Nome ou e-mail" className={FIELD_CLASS} value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input type="search" name="busca" autoComplete="off" placeholder="Nome ou e-mail…" className={FIELD_CLASS} value={query} onChange={(event) => setQuery(event.target.value)} />
         </label>
         <SelectField label="Papel" value={role} onChange={(event) => setFilter("role", event.target.value)}>
           <option value="">Todos</option>

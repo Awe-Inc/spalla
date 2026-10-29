@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import type { StoredRecording } from "@/data/db";
 import { readRecordingBlob, formatClock, renameRecording } from "@/data/recordings";
 import { Button } from "@/design/components";
+import { FIELD_CLASS } from "@/design/fields";
 
-const FIELD_CLASS = "h-10 min-w-0 flex-1 rounded-md border border-hairline bg-surface px-3 text-body";
+const NAME_FIELD_CLASS = `${FIELD_CLASS} min-w-0 flex-1`;
 const NAME_MAX_LENGTH = 80;
 
 export function recordingDate(createdAt: number): string {
@@ -56,7 +57,7 @@ function RenameForm({ recording, onDone }: { recording: StoredRecording; onDone:
         if (recording.id !== undefined) void renameRecording(recording.id, name).then(onDone);
       }}
     >
-      <input value={name} onChange={(event) => setName(event.target.value)} maxLength={NAME_MAX_LENGTH} className={FIELD_CLASS} aria-label="Nome da gravação" />
+      <input value={name} onChange={(event) => setName(event.target.value)} maxLength={NAME_MAX_LENGTH} name="nome-gravacao" autoComplete="off" className={NAME_FIELD_CLASS} aria-label="Nome da gravação" />
       <Button type="submit" variant="primary">
         Guardar nome
       </Button>

@@ -1,9 +1,11 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { useId } from "react";
 
-export const FIELD_CLASS =
-  "h-11 w-full rounded-sm bg-surface-sunken px-3 text-body text-ink ring-1 ring-inset ring-hairline transition-[box-shadow,background-color] duration-fast ease-spalla placeholder:text-ink-subtle hover:ring-hairline-strong focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus aria-invalid:ring-off";
-export const AREA_CLASS = `${FIELD_CLASS} h-auto min-h-28 py-2.5`;
+const FIELD_SURFACE =
+  "rounded-sm bg-surface-sunken text-body text-ink ring-1 ring-inset ring-hairline transition-[box-shadow,background-color] duration-fast ease-spalla placeholder:text-ink-subtle hover:ring-hairline-strong focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus aria-invalid:ring-off";
+export const FIELD_CLASS = `h-11 w-full px-3 ${FIELD_SURFACE}`;
+export const COMPACT_FIELD_CLASS = `h-9 px-2 ${FIELD_SURFACE}`;
+export const AREA_CLASS = `min-h-28 w-full px-3 py-2.5 ${FIELD_SURFACE}`;
 
 interface FieldShellProps {
   label: string;

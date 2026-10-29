@@ -5,6 +5,7 @@ import type { Exercise } from "@fretless/core";
 import { accuracyTrend } from "@/data/calendar";
 import type { ExerciseResult } from "@/data/db";
 import { AccuracyBars, Card } from "@/design/components";
+import { FIELD_CLASS } from "@/design/fields";
 
 const HISTORY_POINTS = 12;
 
@@ -40,7 +41,7 @@ export function HistoricoPrecisao({ results, exercises }: HistoricoPrecisaoProps
 
   return (
     <Card title="Evolução por música" className="grid gap-4">
-      <select className="h-10 rounded-md border border-hairline bg-surface px-3 text-body" value={exerciseId} onChange={(event) => setSelected(event.target.value)} aria-label="Música">
+      <select className={`${FIELD_CLASS} cursor-pointer pr-8`} value={exerciseId} onChange={(event) => setSelected(event.target.value)} aria-label="Música">
         {repeated.map((id) => (
           <option key={id} value={id}>
             {titleFor(id, exercises)}

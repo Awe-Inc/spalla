@@ -24,6 +24,7 @@ import {
   type RoutineGoal,
 } from "@/data/routines";
 import { Button, Card } from "@/design/components";
+import { COMPACT_FIELD_CLASS, FIELD_CLASS } from "@/design/fields";
 
 interface RoutinePickerProps {
   routines: Routine[];
@@ -34,7 +35,6 @@ interface RoutineEditorProps {
   onClose: () => void;
 }
 
-const FIELD_CLASS = "h-9 rounded-sm border border-hairline bg-surface px-2 text-body text-ink";
 const SMALL_BUTTON_CLASS = "rounded-sm px-2 py-1 text-caption text-ink-subtle transition-colors duration-fast ease-spalla hover:bg-surface-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
 const ADDABLE_TYPES: readonly BlockKind[] = [...ROUTINE_ORDER, "estudo", "livre"];
 
@@ -92,7 +92,7 @@ function BlockRow({ block, index, count, dragging, onMove, onMinutes, onGoal, on
       </span>
       <span className="flex flex-wrap items-center gap-2 text-caption text-ink-subtle">
         <label className="flex items-center gap-1">
-          <input type="number" min={1} max={MAX_BLOCK_MINUTES} value={block.durationMinutes} aria-label={`Minutos de ${label}`} onChange={(event) => onMinutes(Number(event.target.value))} className={`${FIELD_CLASS} w-16 text-right font-mono tabular`} />
+          <input type="number" min={1} max={MAX_BLOCK_MINUTES} value={block.durationMinutes} aria-label={`Minutos de ${label}`} onChange={(event) => onMinutes(Number(event.target.value))} className={`${COMPACT_FIELD_CLASS} w-16 text-right font-mono tabular`} />
           min
         </label>
         <select className={FIELD_CLASS} value={block.goal} aria-label={`Meta de ${label}`} onChange={(event) => onGoal(event.target.value as RoutineGoal)}>
@@ -167,7 +167,7 @@ export function RoutineEditor({ routine, onClose }: RoutineEditorProps) {
     >
       <label className="grid gap-1 text-caption text-ink-subtle">
         Nome
-        <input value={name} onChange={(event) => setName(event.target.value)} className="h-10 rounded-sm bg-surface-soft px-3 text-body text-ink" maxLength={40} />
+        <input value={name} onChange={(event) => setName(event.target.value)} name="nome-rotina" autoComplete="off" className={FIELD_CLASS} maxLength={40} />
       </label>
       <p className="text-caption text-ink-subtle">Arraste os blocos para mudar a ordem, ou use Subir e Descer. Cada bloco tem seus minutos e a meta que fecha o bloco.</p>
       <ol className="grid gap-2" aria-label="Blocos da rotina">
