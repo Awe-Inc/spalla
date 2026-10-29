@@ -27,7 +27,7 @@ function streakSentence(streak: number, frozenToday: boolean): string {
 }
 
 function BlockRow({ planned, runsToday, isNext }: { planned: PlannedBlock; runsToday: RunsByExercise; isNext: boolean }) {
-  const exercise = planned.exercise;
+  const item = planned.item;
   const progress = blockProgress(planned, runsToday);
   const done = progress?.complete ?? false;
   const goal = progress ? goalSentence(planned.block, progress) : null;
@@ -40,15 +40,15 @@ function BlockRow({ planned, runsToday, isNext }: { planned: PlannedBlock; runsT
         </span>
         {planned.fromLesson ? <span className="rounded-pill bg-info-soft px-2 text-caption text-info">Da aula</span> : null}
       </div>
-      {exercise ? (
-        <Link to={`/tocar/${exercise.id}`} className={`font-medium hover:text-primary ${toneClass}`}>
-          {exercise.title}
+      {item ? (
+        <Link to={item.playPath} className={`font-medium hover:text-primary ${toneClass}`}>
+          {item.title}
           {planned.targetBpm ? <span className="ml-2 font-mono text-caption text-primary tabular">→ {planned.targetBpm} bpm</span> : null}
         </Link>
       ) : (
         <span className="text-ink-subtle">{planned.reason}</span>
       )}
-      {exercise ? (
+      {item ? (
         <span className="text-caption text-ink-subtle">
           {planned.reason}
           {planned.variation ? ` · Hoje: ${planned.variation}.` : ""}
@@ -94,7 +94,7 @@ export function HojePage() {
       <PageTitle eyebrow={greeting(new Date().getHours())} title="Sua prática de hoje">
         {today.next ? (
           <Link
-            to={`/tocar/${today.next.exercise?.id ?? ""}`}
+            to={today.next.item?.playPath ?? "/praticar"}
             className="hidden h-10 items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:inline-flex"
           >
             {today.progress.done === 0 ? "Começar" : "Continuar"}
@@ -147,12 +147,12 @@ export function HojePage() {
                   />
                 ))}
               </ol>
-              {today.next?.exercise ? (
+              {today.next?.item ? (
                 <Link
-                  to={`/tocar/${today.next.exercise.id}`}
+                  to={today.next.item.playPath}
                   className="inline-flex h-11 w-fit items-center rounded-pill bg-primary px-5 font-semibold text-on-primary transition-colors hover:bg-primary-hover md:h-10"
                 >
-                  Tocar {today.next.exercise.title}
+                  Tocar {today.next.item.title}
                 </Link>
               ) : null}
             </div>

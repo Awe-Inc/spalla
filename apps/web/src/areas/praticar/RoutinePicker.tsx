@@ -14,11 +14,13 @@ import {
   hasRepeatedNeighbours,
   MAX_BLOCK_MINUTES,
   moveBlock,
+  pinnedItem,
   removeBlock,
   ROUTINE_ORDER,
   setBlockGoal,
   setBlockMinutes,
   totalMinutes,
+  unpinBlock,
   type RoutineGoal,
 } from "@/data/routines";
 import { Button, Card } from "@/design/components";
@@ -49,13 +51,15 @@ interface BlockRowProps {
   onMinutes: (minutes: number) => void;
   onGoal: (goal: RoutineGoal, goalValue?: number) => void;
   onRemove: () => void;
+  onUnpin: () => void;
   onDragStart: () => void;
   onDrop: () => void;
   onDragEnd: () => void;
 }
 
-function BlockRow({ block, index, count, dragging, onMove, onMinutes, onGoal, onRemove, onDragStart, onDrop, onDragEnd }: BlockRowProps) {
-  const label = BLOCK_LABELS[block.type];
+function BlockRow({ block, index, count, dragging, onMove, onMinutes, onGoal, onRemove, onUnpin, onDragStart, onDrop, onDragEnd }: BlockRowProps) {
+  const pinned = pinnedItem(block);
+  const label = pinned ? `${BLOCK_LABELS[block.type]}: ${pinned.title}` : BLOCK_LABELS[block.type];
   const valueRange = GOAL_VALUE_RANGE[block.goal];
   function allowDrop(event: DragEvent<HTMLLIElement>) {
     event.preventDefault();
@@ -115,6 +119,11 @@ function BlockRow({ block, index, count, dragging, onMove, onMinutes, onGoal, on
         <button type="button" className={SMALL_BUTTON_CLASS} aria-label={`Descer ${label}`} disabled={index === count - 1} onClick={() => onMove(index + 1)}>
           Descer
         </button>
+        {pinned ? (
+          <button type="button" className={SMALL_BUTTON_CLASS} aria-label={`Soltar ${pinned.title}: o app volta a escolher`} onClick={onUnpin}>
+            Soltar peça
+          </button>
+        ) : null}
         <button type="button" className={`${SMALL_BUTTON_CLASS} hover:text-off`} aria-label={`Tirar ${label}`} onClick={onRemove}>
           Tirar
         </button>
@@ -173,6 +182,7 @@ export function RoutineEditor({ routine, onClose }: RoutineEditorProps) {
             onMinutes={(minutes) => setBlocks((current) => setBlockMinutes(current, index, minutes))}
             onGoal={(goal, goalValue) => setBlocks((current) => setBlockGoal(current, index, goal, goalValue))}
             onRemove={() => setBlocks((current) => removeBlock(current, index))}
+            onUnpin={() => setBlocks((current) => unpinBlock(current, index))}
             onDragStart={() => setDragIndex(index)}
             onDrop={() => drop(index)}
             onDragEnd={() => setDragIndex(null)}

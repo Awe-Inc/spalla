@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router";
 
 import { useSettings } from "@/app/settings";
 import { RecordingAudio, recordingDate } from "@/areas/ferramentas/RecordingPlayer";
+import { AddToRoutine } from "@/areas/musicas/AddToRoutine";
 import { HistoricoExercicio } from "@/areas/praticar/HistoricoExercicio";
 import { BPM_STEP, clampBpm, type TempoLimits } from "@/areas/tocar/tempo";
 import { useSession } from "@/areas/tocar/useSession";
@@ -219,6 +220,8 @@ export function PecaPage() {
         <Card title="Histórico">
           <HistoricoExercicio exercise={{ id: resultId, title, defaultBpm: limits.writtenBpm }} results={results} />
         </Card>
+
+        <AddToRoutine item={{ id: resultId, title, playPath: playTo }} />
 
         <PieceRecordings pieceKey={resultId} title={title} />
 

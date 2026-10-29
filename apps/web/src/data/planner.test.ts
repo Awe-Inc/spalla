@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ExerciseResult } from "./db";
 import { nextOpenBlock, planSession, sessionProgress, studentLevel } from "./planner";
 import { runsByExercise } from "./repetitions";
-import { defaultRoutines, hasRepeatedNeighbours } from "./routines";
+import { defaultRoutines, hasRepeatedNeighbours, withPinnedItem } from "./routines";
 
 const DAY_MS = 86_400_000;
 const now = Date.parse("2026-10-28T12:00:00");
@@ -117,5 +117,33 @@ describe("session progress", () => {
     const closed = today(result(id, 3, 96, 0), result(id, 3, 97, 0), result(id, 3, 98, 0));
     expect(sessionProgress(planned, closed).done).toBe(1);
     expect(nextOpenBlock(planned, closed)?.exercise?.id).not.toBe(id);
+  });
+});
+
+describe("pinned pieces", () => {
+  const piece = { id: "biblioteca:minueto", title: "Minueto", playPath: "/tocar/biblioteca/minueto" };
+  const pinnedRoutine = { ...routine, blocks: withPinnedItem(routine.blocks, piece, "peca-nova") };
+
+  function planPinned(results: ExerciseResult[] = []) {
+    const best = new Map(results.map((item) => [item.exerciseId, item]));
+    return planSession({ routine: pinnedRoutine, exercises, best, latest: best, lessonTasks: [], playedToday: new Set(), now, day: "2026-10-28" });
+  }
+
+  it("keeps the chosen piece in its block and links to where it plays", () => {
+    const block = planPinned().find((item) => item.block.type === "peca-nova")!;
+    expect(block.item).toEqual(piece);
+    expect(block.exercise).toBeNull();
+    expect(block.reason).toBe("Escolhida por você.");
+  });
+
+  it("counts the piece's runs toward the session", () => {
+    const planned = planPinned();
+    const before = sessionProgress(planned, today()).done;
+    expect(sessionProgress(planned, today(result(piece.id, 1, 70, 0))).done).toBe(before + 1);
+  });
+
+  it("gives every other block an exercise with its play path", () => {
+    const others = planPinned().filter((item) => item.block.type !== "peca-nova" && item.exercise);
+    expect(others.every((item) => item.item?.playPath === `/tocar/${item.exercise!.id}`)).toBe(true);
   });
 });

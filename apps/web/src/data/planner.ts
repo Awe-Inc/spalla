@@ -2,7 +2,7 @@ import type { Exercise } from "@fretless/core";
 
 import type { BlockKind, ExerciseResult, LessonTask, Routine, RoutineBlock } from "./db";
 import { goalProgress, type GoalProgress } from "./repetitions";
-import { BLOCK_KINDS, BLOCK_VARIATIONS } from "./routines";
+import { BLOCK_KINDS, BLOCK_VARIATIONS, pinnedItem, type RoutineItem } from "./routines";
 import { daySeed, pickSeeded, rankBySpacing } from "./spaced";
 
 export const DELIBERATE_BPM_STEP = 5;
@@ -12,6 +12,7 @@ export const LEVEL_LOOKAHEAD = 1;
 export interface PlannedBlock {
   block: RoutineBlock;
   exercise: Exercise | null;
+  item: RoutineItem | null;
   reason: string;
   variation: string | null;
   targetBpm: number | null;
@@ -75,6 +76,10 @@ function targetBpmFor(exercise: Exercise, best: ExerciseResult | undefined): num
   return next > best.bpm ? next : null;
 }
 
+function exerciseItem(exercise: Exercise): RoutineItem {
+  return { id: exercise.id, title: exercise.title, playPath: `/tocar/${exercise.id}` };
+}
+
 const PICK_ORDER: readonly BlockKind[] = ["revisao", "peca-nova"];
 
 function pickingOrder(blocks: readonly RoutineBlock[]): number[] {
@@ -91,8 +96,25 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
   const openTasks = input.lessonTasks.filter((task) => task.doneAt === null);
   const planned: PlannedBlock[] = [];
 
+  input.routine.blocks.forEach((block, index) => {
+    const pinned = pinnedItem(block);
+    if (!pinned) return;
+    used.add(pinned.id);
+    const exercise = input.exercises.find((candidate) => candidate.id === pinned.id) ?? null;
+    planned[index] = {
+      block,
+      exercise,
+      item: pinned,
+      reason: "Escolhida por você.",
+      variation: null,
+      targetBpm: exercise ? targetBpmFor(exercise, input.best.get(exercise.id)) : null,
+      fromLesson: false,
+    };
+  });
+
   for (const index of pickingOrder(input.routine.blocks)) {
     const block = input.routine.blocks[index]!;
+    if (planned[index]) continue;
     const lessonTask = openTasks.find((task) => task.blockType === block.type && task.itemId && !used.has(task.itemId));
     const lessonExercise = lessonTask ? input.exercises.find((exercise) => exercise.id === lessonTask.itemId) : undefined;
     const candidates = input.exercises.filter((exercise) => BLOCK_KINDS[block.type].includes(exercise.kind) && withinReach(exercise, level));
@@ -115,6 +137,7 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
     planned[index] = {
       block: { ...block, itemId: pick?.exercise.id ?? block.itemId, variation: variation ?? undefined },
       exercise: pick?.exercise ?? null,
+      item: pick ? exerciseItem(pick.exercise) : null,
       reason: pick?.reason ?? "Nada disponível neste nível ainda.",
       variation,
       targetBpm: pick ? targetBpmFor(pick.exercise, bestResult) : null,
@@ -127,14 +150,14 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
 export type RunsByExercise = ReadonlyMap<string, readonly ExerciseResult[]>;
 
 export function blockProgress(planned: PlannedBlock, runsToday: RunsByExercise): GoalProgress | null {
-  return planned.exercise ? goalProgress(planned.block, runsToday.get(planned.exercise.id) ?? []) : null;
+  return planned.item ? goalProgress(planned.block, runsToday.get(planned.item.id) ?? []) : null;
 }
 
 export function nextOpenBlock(plan: readonly PlannedBlock[], runsToday: RunsByExercise): PlannedBlock | null {
-  return plan.find((planned) => planned.exercise && !blockProgress(planned, runsToday)?.complete) ?? null;
+  return plan.find((planned) => planned.item && !blockProgress(planned, runsToday)?.complete) ?? null;
 }
 
 export function sessionProgress(plan: readonly PlannedBlock[], runsToday: RunsByExercise): { done: number; total: number } {
-  const playable = plan.filter((planned) => planned.exercise);
+  const playable = plan.filter((planned) => planned.item);
   return { done: playable.filter((planned) => blockProgress(planned, runsToday)?.complete).length, total: playable.length };
 }

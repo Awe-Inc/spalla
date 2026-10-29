@@ -14,7 +14,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (234)
+pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (243)
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
@@ -88,14 +88,19 @@ apps/web/src/data/               db.ts (Dexie v8: results, routines, practiceDay
                                  blocos ↔ ExerciseKind, variações, `goalFor`: escalas/tecnica/estudo nascem com
                                  meta de 3 repetições limpas, o resto "uma-vez"; moveBlock/addBlock/removeBlock/
                                  setBlockMinutes/setBlockGoal/goalSummary: helpers puros do editor de rotina,
-                                 testados em routines.test.ts), history.ts (`exerciseHistory`: runs, dias, melhor, última,
+                                 testados em routines.test.ts; peça fixada no bloco: itemId = resultId (conta o
+                                 progresso), itemTitle, itemPath = rota do Tocar (peça importada toca por id do
+                                 Dexie mas grava por nome de arquivo); pinnedItem/withPinnedItem/unpinBlock/
+                                 addItemToRoutine, que copia rotina padrão para "propria"), history.ts (`exerciseHistory`: runs, dias, melhor, última,
                                  andamento com ≥ 80%, deriva média, tendência, séries fechadas; frases PT-BR e
                                  `driftSentence`, usada também no ResultScreen), repetitions.ts (limpa = ≥ 90%;
                                  `cleanStreak` conta do fim e um erro zera; `goalProgress` por tipo de meta;
                                  `closedSeriesDays`/`shouldRaiseTempo`: 3 séries fechadas em dias diferentes pedem
                                  andamento novo), planner.ts (planSession: monta a sessão do dia;
                                  `blockProgress`/`nextOpenBlock`/`sessionProgress` recebem os runs de hoje por
-                                 exercício, não um Set de ids: um bloco só fecha quando a meta fecha), progress.ts (saveRun: resultado + XP + conquistas + medalhas novas; bônus de sessão,
+                                 exercício, não um Set de ids: um bloco só fecha quando a meta fecha; cada
+                                 PlannedBlock tem `item` {id,title,playPath}, que a Hoje e o progresso usam no
+                                 lugar de `exercise`, nulo para peça fora do core; blocos fixados entram primeiro), progress.ts (saveRun: resultado + XP + conquistas + medalhas novas; bônus de sessão,
                                  setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
                                  de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
                                  nativeProgress.ts (progress.txt do app nativo → Dexie: parser puro, melhor

@@ -81,7 +81,7 @@ export interface BlockGoal {
 export function useBlockGoal(exerciseId: string | null): BlockGoal | null {
   const today = useTodayPlan();
   const allRuns = useLiveQuery(() => (exerciseId ? db.results.where("exerciseId").equals(exerciseId).toArray() : Promise.resolve<ExerciseResult[]>([])), [exerciseId]) ?? [];
-  const planned = today.plan.find((item) => item.exercise?.id === exerciseId);
+  const planned = today.plan.find((item) => item.item?.id === exerciseId);
   if (!planned || !exerciseId) return null;
   const progress = blockProgress(planned, today.runsToday);
   if (!progress || planned.block.goal === "uma-vez") return null;

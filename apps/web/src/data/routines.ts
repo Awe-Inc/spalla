@@ -1,6 +1,6 @@
 import type { ExerciseKind } from "@fretless/core";
 
-import type { BlockKind, Routine, RoutineBlock } from "./db";
+import { db, type BlockKind, type Routine, type RoutineBlock } from "./db";
 import { DEFAULT_CLEAN_REPETITIONS } from "./repetitions";
 
 export const BLOCK_LABELS: Record<BlockKind, string> = {
@@ -144,6 +144,51 @@ export function setBlockGoal(blocks: readonly RoutineBlock[], index: number, goa
   const sameGoal = current?.goal === goal;
   const value = goalValue ?? (sameGoal ? current.goalValue : defaultGoalValue(goal));
   return updateBlock(blocks, index, { goal, goalValue: clampGoalValue(goal, value) });
+}
+
+export interface RoutineItem {
+  id: string;
+  title: string;
+  playPath: string;
+}
+
+export const PINNABLE_TYPES: readonly BlockKind[] = ["peca-nova", "revisao"];
+export const PINNED_BLOCK_MINUTES = 5;
+
+export function pinnedItem(block: RoutineBlock): RoutineItem | null {
+  if (!block.itemId || !block.itemPath) return null;
+  return { id: block.itemId, title: block.itemTitle ?? block.itemId, playPath: block.itemPath };
+}
+
+export function routineHasItem(routine: Routine, itemId: string): boolean {
+  return routine.blocks.some((block) => pinnedItem(block)?.id === itemId);
+}
+
+export function withPinnedItem(blocks: readonly RoutineBlock[], item: RoutineItem, type: BlockKind): RoutineBlock[] {
+  if (blocks.some((block) => pinnedItem(block)?.id === item.id)) return [...blocks];
+  const pin = { itemId: item.id, itemTitle: item.title, itemPath: item.playPath };
+  const open = blocks.findIndex((block) => block.type === type && !pinnedItem(block));
+  if (open !== -1) return updateBlock(blocks, open, pin);
+  return [...blocks, { type, ...pin, ...goalFor(type), durationMinutes: PINNED_BLOCK_MINUTES }];
+}
+
+export function unpinBlock(blocks: readonly RoutineBlock[], index: number): RoutineBlock[] {
+  return blocks.map((block, position) => (position === index ? { type: block.type, itemId: "", goal: block.goal, goalValue: block.goalValue, durationMinutes: block.durationMinutes } : block));
+}
+
+export function ownCopyName(routine: Routine): string {
+  if (routine.origin !== "padrao") return routine.name;
+  return `Minha ${routine.name.charAt(0).toLowerCase()}${routine.name.slice(1)}`;
+}
+
+export async function addItemToRoutine(routine: Routine, item: RoutineItem, type: BlockKind, now = Date.now()): Promise<number> {
+  const blocks = withPinnedItem(routine.blocks, item, type);
+  const record = { name: ownCopyName(routine), durationMinutes: totalMinutes(blocks), blocks };
+  if (routine.origin !== "padrao" && routine.id !== undefined) {
+    await db.routines.update(routine.id, record);
+    return routine.id;
+  }
+  return (await db.routines.add({ ...record, origin: "propria", createdAt: now })) as number;
 }
 
 export function goalSummary(block: RoutineBlock): string {

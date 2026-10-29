@@ -26,6 +26,8 @@ export interface BlockType {
 
 export interface RoutineBlock extends BlockType {
   itemId: string;
+  itemTitle?: string;
+  itemPath?: string;
   goal: "tempo" | "repeticoes-limpas" | "estrelas" | "uma-vez";
   goalValue: number;
   variation?: string;

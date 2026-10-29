@@ -66,7 +66,7 @@ export function TocarPage() {
   const [slowdown, setSlowdown] = useState<Slowdown | null>(null);
   const slowedRunRef = useRef(false);
   const [outcome, setOutcome] = useState<RunOutcome | null>(null);
-  const goal = useBlockGoal(exercise?.id ?? null);
+  const goal = useBlockGoal(resultId ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [droneOn, setDroneOn] = useState(false);
   const startedAtRef = useRef<number | null>(null);
