@@ -1,4 +1,6 @@
-# Fretless
+# Spalla
+
+*(repository and internal name: Fretless)*
 
 A C++20 practice tool for the violin. It listens to you play, reads the score,
 and judges every note on intonation and timing — and it comes with a syllabus,
@@ -8,11 +10,17 @@ so the answer to "what should I practise today" is on the first screen.
 scales; a drone and a metronome; sight reading that deals a new page every
 time; and a library of public-domain repertoire.
 
-Live at https://henriquerl55.github.io/fretless/.
+Live at https://pataxo-inc.github.io/fretless/ — repository at https://github.com/Pataxo-Inc/fretless.
 
 Since October 2026 the app is web-first: the C++ core is compiled to
 WebAssembly and the interface is React, installable as a PWA. The native
 build still works and runs the same test suite.
+
+The web app is called **Spalla** (the orchestra's first violin). Its look — dark fir and
+ebony with a honey accent, Instrument Serif and Instrument Sans, Geist Mono for numbers — is
+written down in `DESIGN.md`; every colour, font and radius lives in `apps/web/src/design/tokens.css`.
+Package names, storage keys and the `/fretless/` base path keep the old name on purpose, so
+nobody's saved progress or links break.
 
 ```bash
 pnpm install && pnpm build:core  # Emscripten build of the core (needs emsdk)

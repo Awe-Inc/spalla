@@ -1,4 +1,11 @@
-# Fretless: o projeto inteiro em um documento
+# Spalla (repo Fretless): o projeto inteiro em um documento
+
+**Redesign de 29/10.** A plataforma passou a se chamar **Spalla**, com o design system "Madeira e verniz" (escuro
+por padrão, abeto e ébano, acento mel, Instrument Serif/Sans e Geist Mono), descrito em `DESIGN.md`. As áreas
+viraram cinco: **Hoje** (`/`), **Estudar** (`/estudar`: Rotina, Método, Caderno), **Repertório** (`/repertorio`:
+Catálogo, Suzuki, Estante), **Ferramentas** e **Você** (`/voce`: Progresso, Ajustes, Conta). As rotas antigas da
+tabela da seção 5 redirecionam para as novas (`apps/web/src/app/legacyRoutes.ts`). Repo em
+https://github.com/Pataxo-Inc/fretless desde 29/10. Nomes internos (Dexie, chaves, pacotes, `/fretless/`) ficaram.
 
 Atualizado em 29/10/2026. Serve de base para o planejamento: o que é, o que já roda, como é
 construído, o que falta e o que precisa ser decidido. Os detalhes de cada área estão nas skills do repo e em
@@ -33,7 +40,7 @@ O que roda agora, verificado nesta data:
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
 | `apps/web` | 290 testes vitest em 53 arquivos, typecheck limpo, `vite build` gera a PWA (213 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática; 6 testes e2e Playwright (`pnpm --filter @fretless/web test:e2e`): um toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado, com a vista "As duas" ligada; outro abre uma canção da biblioteca CC0 por Músicas e toca até o Resultado; o terceiro marca uma peça Suzuki como aprendida e confere que ela continua em revisão depois de recarregar; o quarto marca um trecho no detalhe de uma canção, recarrega e confere que "Praticar em loop" abre o Tocar com o trecho repetindo e o andamento escolhido; o quinto grava duas passadas da mesma peça com o microfone falso do Chromium, recarrega, compara as duas lado a lado e confere que o detalhe da peça lista as gravações; o sexto põe uma canção da biblioteca no bloco de Revisão da rotina de 25 minutos, confere que a Hoje usa a cópia nova com a peça ligada ao Tocar e que "Soltar peça" devolve o bloco ao app |
 | `apps/api` (plataforma) | 44 testes vitest em 4 arquivos (PGlite em memória), typecheck limpo; contas, papéis e permissões, turmas, tarefas, materiais com PDF, planos, prática enviada ao professor, admin com auditoria. Ainda não hospedada |
-| CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`, e publica o site no GitHub Pages (https://henriquerl55.github.io/fretless/) |
+| CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`, e publica o site no GitHub Pages (https://pataxo-inc.github.io/fretless/) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
 | Afinador no AudioWorklet | WASM carrega dentro do worklet e detecta 440,02 Hz de um oscilador com confiança 0,99999 (testado sem microfone) |
 | Microfone real no Chrome | **ainda não medido**: o bug de hoje (InvalidStateError) impedia; corrigido em `26e05f1`, falta rodar `/ferramentas/latencia` numa máquina com microfone |
@@ -125,6 +132,10 @@ docs/plataforma/arquitetura.md  papéis, fluxos, rotas, como rodar
 
 ## 5. As telas, como estão
 
+Tabela anterior ao redesign de 29/10: as funções continuam, mas os nomes e rotas mudaram (ver o topo deste
+arquivo). Progresso e Configurações agora são abas de Você; Praticar virou Estudar; Músicas virou Repertório; o
+onboarding existe (Boas-vindas, 5 passos).
+
 | Área | Rota | O que faz hoje | O que a IA (`arquitetura-da-informacao.md`) ainda pede |
 |---|---|---|---|
 | **Hoje** | `/` | Saudação, minutos de hoje em anel ("de 20 min"), sequência de dias, "Próximo passo" (um exercício do plano) com estrelas e bpm, botão Começar | Sessão do dia inteira (blocos), revisão pendente, atalhos, caderno da aula |
@@ -186,7 +197,7 @@ escolha).
 | 6. Caderno da aula e Ferramentas | **feita (28/10)**: caderno na Hoje (tarefa → bloco "Da aula", dia da aula), afinador tela cheia com corda provável e referência, metrônomo progressivo, nota pedal, teste de latência; resumo da semana no caderno (28/10: desde a última aula, minutos, dias, execuções, tarefas, onde errou mais, tendência de afinação, botão de copiar para a professora) | — |
 | 8b. Estudo do aluno | **feita (29/10)**: tarefas da turma entram na sessão do Hoje antes do caderno (badge "Da turma", card "Tarefas da turma"), ficam guardadas no Dexie para o modo offline e se marcam como feitas sozinhas quando todos os itens tocáveis foram cumpridos (estrelas e bpm pedidos, depois da data da tarefa; item de texto exige marcar à mão); página por módulo em `/progresso/modulo/:id`; histórico em CSV | sincronização automática, avisos da turma no Hoje |
 | 8. Plataforma com professores | **feita (29/10)**: API (`apps/api`, Fastify + Postgres/PGlite) com contas, papéis e permissões editáveis, convites, auditoria; área do professor (turmas com código, avisos, tarefas com exercícios do app, materiais em PDF ou link, planos de estudo que viram rotina, progresso de cada aluno); área do aluno em `/aulas`; administração completa em `/admin`. Detalhe em `docs/plataforma/arquitetura.md` | hospedagem da API e do banco, bucket dos PDFs, primeiro admin de produção, textos legais, e-mail transacional (decisões do dono) |
-| 7. Publicação | **Feita (29/10)**: repo público, site em https://henriquerl55.github.io/fretless/ publicado pelo CI | Conta e sync (Supabase) e acesso da professora seguem pausados |
+| 7. Publicação | **Feita (29/10)**: repo público, site em https://pataxo-inc.github.io/fretless/ publicado pelo CI (repo em Pataxo-Inc/fretless desde 29/10) | Conta e sync (Supabase) e acesso da professora seguem pausados |
 
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 
@@ -227,7 +238,7 @@ tamanhos soltos do Tailwind viraram tokens (`text-note`, `max-w-page`, `grid-col
 5. ~~Conta e sincronização~~ **Decidido em 28/10: pausado.** Só local até a fundação offline estar impecável.
 6. ~~Publicação~~ **Feita em 29/10.** O plano gratuito não oferece Pages para repositório privado, então o repo
    ficou público. Pages no modo workflow, variável `DEPLOY_PAGES=true`; cada push na `main` publica
-   https://henriquerl55.github.io/fretless/. Loja (Capacitor) só se o teste de latência reprovar no Chrome Android.
+   https://pataxo-inc.github.io/fretless/. Loja (Capacitor) só se o teste de latência reprovar no Chrome Android.
 7. ~~Professora~~ **Pausado junto com a conta (28/10).** O Caderno da aula é só do aluno por enquanto.
 8. ~~Gravação de áudio~~ **Decidido em 29/10: entra na fase 5.** Gravador em Ferramentas, ligado à peça, com
    comparação antes/depois; as gravações ficam só no aparelho (IndexedDB) e fora do backup `.json`.

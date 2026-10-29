@@ -1,7 +1,7 @@
-# Fretless
+# Fretless (Spalla)
 
-Plataforma de estudo de violino. Core C++20 (partitura, currículo, julgamento, YIN) compilado nativo e em WebAssembly;
-interface web em React (`apps/web`), instalável como PWA. Design em `DESIGN.md`; plano em `docs/replanejamento/`; visão completa e estado em `docs/PROJETO.md`.
+Plataforma de estudo de violino, chamada **Spalla** na tela (o nome interno continua Fretless). Core C++20 (partitura, currículo, julgamento, YIN) compilado nativo e em WebAssembly;
+interface web em React (`apps/web`), instalável como PWA, publicada em https://pataxo-inc.github.io/fretless/ (repo `Pataxo-Inc/fretless`). Design em `DESIGN.md`; plano em `docs/replanejamento/`; visão completa e estado em `docs/PROJETO.md`.
 
 Carregar antes de escrever código:
 

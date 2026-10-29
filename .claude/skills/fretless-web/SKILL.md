@@ -3,7 +3,10 @@ name: fretless-web
 description: Working in the Fretless web app — the pnpm monorepo (packages/core = C++ core compiled to WebAssembly with embind; apps/web = React 19 + Vite 7 + Tailwind v4 + React Router 7 + Zustand + Dexie, installable PWA), the AudioWorklet pitch pipeline, the design tokens, the data layer and the build/test commands. Use when changing anything under apps/web or packages/core, before running pnpm, and when a change touches the WASM boundary.
 ---
 
-# The Fretless web app
+# The Fretless web app (Spalla)
+
+The product is called **Spalla** on screen; the repo, packages and storage keep the name Fretless (see Armadilhas,
+"nomes internos legados"). Visual rules live in `DESIGN.md` at the repo root.
 
 The C++20 core (`src/score`, `src/curriculum`, `src/game`, `src/audio/PitchDetector`) is unchanged and still builds
 natively (see `fretless-engine`). The web app consumes it through `@fretless/core`, an Emscripten build with embind
@@ -45,21 +48,33 @@ another project uses.
 packages/core/src/index.ts       loadCore(), typed wrappers: curriculum, exerciseScore, parseMusicXml,
                                  createSession, createPitchTracker, noteName, centsBetween
 apps/web/src/design/tokens.css   the only place a colour, font or radius is written (from DESIGN.md)
-apps/web/src/design/fonts.css    Fontsource imports (Fraunces Variable, Figtree Variable, JetBrains Mono 500);
+apps/web/src/design/fonts.css    Fontsource imports (Instrument Serif 400 + itálico, Instrument Sans Variable, Geist Mono Variable);
                                  self-hosted woff2 (and the woff fallbacks) land in the precache, no Google Fonts
 .github/workflows/ci.yml          CI on main/PRs: emsdk 6.0.13 (same as ~/emsdk), pnpm build:core, typecheck, tests,
                                  web build with BASE_PATH=/<repo>/; the Pages deploy job only runs when the repo
-                                 variable DEPLOY_PAGES is "true" (set; repo public since 29/10, site at henriquerl55.github.io/fretless)
-apps/web/src/design/components.tsx  Button, Card, StringChip, Stars, GoalDots (pontos da série de repetições),
-                                 AccuracyBars (barras de precisão por execução, cor por faixa),
-                                 ProgressRing, HeadphoneNotice, …
+                                 variable DEPLOY_PAGES is "true" (set; repo public since 29/10, transferred to Pataxo-Inc/fretless on 29/10, site at pataxo-inc.github.io/fretless)
+apps/web/src/design/components.tsx  Card (plain | inset | hero), StringChip, Stars, GoalDots (pontos da série de
+                                 repetições), AccuracyBars, ProgressRing, HeadphoneNotice, EmptyState, InlineError;
+                                 re-exporta actions e layout
+apps/web/src/design/actions.tsx  Button (primary|secondary|ghost|quiet, md|lg, loading), buttonClass, ButtonLink,
+                                 IconButton (aria-label obrigatório), ConfirmButton (confirmação inline, sem modal),
+                                 Menu (popover não-modal para ações secundárias)
+apps/web/src/design/layout.tsx   PageHeader (back, título, descrição, ações), Tabs (abas ligadas à URL; `active`
+                                 manual para abas por query string), Section, List/ListRow, Stat/Stats, Skeleton
+apps/web/src/design/fields.tsx   FIELD_CLASS, TextField, SelectField, TextAreaField, ChoiceChips, Badge
+apps/web/src/design/brand.tsx    PLATFORM_NAME ("Spalla") e Wordmark; icons.tsx: Icon + ICON_NAMES (traço 1.75)
 apps/web/src/design/tokenCatalog.ts nomes e papéis de todos os tokens (cores por grupo, fontes, escala de texto,
                                  raios, sombras, durações, easing, layout, temas); o teste lê tokens.css e falha
                                  se um token do `@theme inline` ficar de fora do catálogo ou sobrar nele
-apps/web/src/app/                Shell (sidebar ≥ lg, bottom bar below), router, settings store
-apps/web/src/areas/<área>/       one folder per area: hoje, praticar, musicas, ferramentas, progresso,
-                                 configuracoes, tocar (fullscreen, forced dark), boas-vindas (fullscreen
-                                 onboarding em 5 passos; Shell redireciona para lá enquanto `onboardedAt` é null)
+apps/web/src/app/                Shell (sidebar sticky h-dvh ≥ lg com marca, 5 áreas, grupo Aulas por papel e
+                                 rodapé fixo; barra inferior de 5 itens abaixo), router (tela cheia por
+                                 `handle: { fullscreen: true }`, LegacyRedirect das rotas antigas, 404), settings store
+apps/web/src/areas/<área>/       one folder per area. As 5 áreas: hoje (`/`), estudar (`/estudar` Rotina ·
+                                 `/estudar/metodo` · `/estudar/caderno`), musicas = Repertório (`/repertorio`,
+                                 `/repertorio/suzuki`, `/repertorio/estante`), ferramentas, voce (`/voce` progresso,
+                                 `/voce/ajustes`, `/voce/conta`). Mais tocar (tela cheia, sempre escura), boas-vindas
+                                 (tela cheia, 5 passos; Shell redireciona para lá enquanto `onboardedAt` é null),
+                                 sistema (404 e erro), aulas, professor, admin, conta, componentes
 apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an AudioWorklet),
                                  PitchInput.ts (mic + context), usePitchInput.ts, latency.ts,
                                  devices.ts (isStoredDeviceMissing: resets a stored mic id the OS no longer lists),
@@ -137,12 +152,13 @@ apps/web/src/data/               db.ts (Dexie v9: results, routines, practiceDay
                                  desde a última aula, totais, exercício mais fraco, tendência ±5 cents, linhas PT-BR
                                  para a professora) — todos os .ts puros
                                  têm teste ao lado
-apps/web/src/areas/musicas/      PecaPage (`/musicas/peca/:exerciseId` | `musica/:pieceId` | `biblioteca/:slug`, lazy; usa useSession
-                                 só para ler a partitura), SuzukiPage (`/musicas/suzuki`, lazy), MusicasPage (catálogo + importadas com PieceFiltersBar); música importada toca em
-                                 `/tocar/musica/:pieceId` e grava resultado como `musica:<fileName>`; MusicasTabs
-                                 (Catálogo | Estante)
+apps/web/src/areas/musicas/      Repertório. PecaPage (`/repertorio/peca/:exerciseId` | `musica/:pieceId` |
+                                 `biblioteca/:slug`, lazy; usa useSession só para ler a partitura; PecaTrechos e
+                                 AddToRoutine), SuzukiPage (`/repertorio/suzuki`), MusicasPage (catálogo em ListRow
+                                 + PieceFilters); música importada toca em `/tocar/musica/:pieceId` e grava como
+                                 `musica:<fileName>`; RepertorioTabs (Catálogo | Suzuki | Estante)
 apps/web/src/areas/estante/      modo estante, sem nota nem XP: EstantePage (lista + Importar PDF), LeitorPage
-                                 (`/estante/:sheetId`, tela cheia, teclado e toque nas bordas, lembra `lastPage`),
+                                 (`/repertorio/estante/:sheetId`, tela cheia, teclado e toque nas bordas, lembra `lastPage`),
                                  PaginaPdf (canvas + ResizeObserver), PainelFerramentas (afinador, metrônomo e
                                  pedal compactos, cada um com seu áudio). Rotas carregadas com `lazy` para o
                                  pdf.js ficar fora do bundle principal
@@ -152,40 +168,36 @@ apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/
                                  `fretless:pdfjs-assets` do vite.config; testado)
 apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
-apps/web/src/areas/progresso/    ProgressoPage (nível, resumo + exportar CSV, estrelas por módulo com link) + Heatmap,
-                                 HistoricoPrecisao, Conquistas, Medalhas; ModuloPage em /progresso/modulo/:moduleId
+apps/web/src/areas/progresso/    ProgressoPage em `/voce` (hero com nível + Stats; abas `?ver=geral|conquistas|
+                                 gravacoes`) + Heatmap, HistoricoPrecisao, Conquistas, Medalhas, Gravacoes
 apps/web/src/areas/componentes/  ComponentesPage em /componentes (link em Configurações › Aparência): TokensSection
                                  (cores com swatch e papel, prévia dos 4 temas via `data-theme`/`data-accent` na
                                  subárvore, tipografia, raio/sombra/movimento/layout) + ComponentesSection (cada
                                  componente de components.tsx em todas as variantes, mais o campo de formulário)
-apps/web/src/areas/configuracoes/ ConfiguracoesPage (aparência, paleta sépia só se comprada, notas, tamanho da
-                                 partitura `staffScale`, meta diária) + MicrofoneCard (teste ao vivo, sensibilidade
-                                 → `PitchInput.setGain` → worklet "gain") + DadosCard (backup, cache, reset e
-                                 importar progress.txt)
+apps/web/src/areas/configuracoes/ ConfiguracoesPage em `/voce/ajustes` (duas colunas ≥ xl: Aparência com paleta
+                                 Abeto/Ébano, Leitura, Prática | Áudio, Dados) + MicrofoneCard (teste ao vivo,
+                                 sensibilidade → `PitchInput.setGain`) + DadosCard (backup, CSV do histórico, cache,
+                                 importar progress.txt, ConfirmButton "Zerar progresso")
 apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia; `runsToday` e
-                                 `useBlockGoal(exerciseId)` para o Tocar), HojePage (pontos + "n de 3 limpas
-                                 seguidas" em cada bloco com meta),
-                                 CadernoDaAula (tarefas da professora; aberta + bloco combinando vira "Da aula"),
-                                 ResumoDaSemana (dentro do caderno; copia o texto para a área de transferência)
-apps/web/src/areas/ferramentas/  FerramentasPage (hub) → AfinadorPage (tela cheia; corda provável = corda solta
+                                 `useBlockGoal(exerciseId)` para o Tocar), HojePage (só a sessão do dia: anel, blocos
+                                 numerados, CTA "Tocar {bloco}" e faixa de até três avisos)
+apps/web/src/areas/ferramentas/  FerramentasPage (hub, Afinador em destaque) → ToolLayout comum; AfinadorPage (dentro do Shell; corda provável = corda solta
                                  mais aguda ≤ nota; referência por corda com Drone próprio), MetronomoPage
                                  (TempoClock; três sons livres), PedalPage (Drone próprio, nota/oitava/timbre),
-                                 LatenciaPage, GravadorPage (gravar, guardar com nome e peça, filtro, comparar),
+                                 LatenciaPage (`/voce/ajustes/atraso`), GravadorPage (gravar, guardar com nome e peça, filtro, comparar),
                                  RecordingPlayer (RecordingAudio, RecordingRow, CompareRecordings, useObjectUrl;
                                  também usado no detalhe da peça)
-apps/web/src/areas/progresso/Gravacoes.tsx  gravações por peça (quantas, última data, link para o Gravador)
-apps/web/src/areas/praticar/     PraticarPage (módulos e exercícios; botão "Histórico" em cada exercício já tocado),
-                                 HistoricoExercicio (painel: vezes/dias, última vez, melhor resultado, barras das
-                                 últimas 12 execuções, tendência, andamento, deriva, séries fechadas),
-                                 RoutinePicker (escolher/criar/editar/apagar rotina; rotinas padrão têm id
-                                 negativo e não se editam), RoutineEditor (lista ordenada de blocos: arrastar
-                                 com HTML5 drag-and-drop ou Subir/Descer no teclado, minutos e meta por bloco,
-                                 adicionar/tirar bloco, aviso de vizinhos iguais; testado em RoutinePicker.test.tsx)
+apps/web/src/areas/estudar/      RotinaPage (`/estudar`: RoutinePicker + RoutineEditor na mesma tela; rotinas padrão
+                                 têm id negativo e não se editam; testado em RoutinePicker.test.tsx), MetodoPage
+                                 (módulos com barra de estrelas) → ModuloPage (`/estudar/modulo/:id`, histórico
+                                 inline com HistoricoExercicio), CadernoPage (TarefasDaTurma, CadernoDaAula,
+                                 ResumoDaSemana), EstudarTabs
 apps/api/src/                    Fastify 5 + Zod 4 + SQL puro; routes/{auth,teacher,student,admin,files,access}.ts,
                                  auth/permissions.ts (catálogo de permissões e papéis do sistema), db/migrations
 apps/web/src/api/                client.ts (api.get/post/…, queryString, errorMessage), useApiData + LoadState, types
 apps/web/src/account/            classAssignments.ts (tarefas da turma: guarda no Dexie, progresso por item, conclui
-                                 sozinha após o saveRun no Tocar e no refresh; card TarefasDaTurma na Hoje), store da sessão, ui.tsx (TextField, SelectField, Badge, RequireAccount, SubNav…),
+                                 sozinha após o saveRun no Tocar e no refresh; TarefasDaTurma em Estudar › Caderno), store da sessão, ui.tsx (só
+                                 FormError, Notice, LoadState, RequireAccount e datas; campos e Badge vêm de design/fields),
                                  links.ts (signupLink), practiceSync, files (PDF autenticado)
 apps/web/src/areas/conta/        entrar, criar conta (convite e código de turma pela URL), minha conta
 apps/web/src/areas/professor/    turmas, alunos e progresso, tarefas, materiais (PDF/link), planos de estudo
@@ -229,6 +241,16 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 - No comments in TypeScript. What needs explaining goes in this file.
 
 ## Armadilhas
+
+- **Nomes internos legados não se renomeiam.** A marca virou Spalla em 29/10, mas trocar o nome interno apaga dados
+  ou quebra deploy: o Dexie `"fretless"` (outro nome = banco novo e vazio), as chaves `fretless-settings`,
+  `fretless-conta`, `fretless-dispositivo` e `fretless-sync-*`, o worklet `fretless-pitch`, `%APPDATA%\Fretless`
+  do app nativo, os pacotes `@fretless/*`, `BASE_PATH=/fretless/`, o `render.yaml`, os plugins `fretless:*` do
+  vite e o valor `"sepia"` do `accent` (na tela, "Ébano"). Texto visível usa `PLATFORM_NAME`; nome interno fica.
+
+- **Rota antiga continua valendo.** `/praticar`, `/musicas/*`, `/estante/:id`, `/progresso`, `/configuracoes`,
+  `/conta` e `/ferramentas/latencia` redirecionam pelo `LegacyRedirect` do router; o `itemPath` salvo nas rotinas
+  aponta para `/tocar/*`, que não mudou. Mudar uma rota exige redirecionamento novo, não só trocar o link.
 
 - **The binding is the contract, not `toString()`.** `NoteJudgement.grade` crashed the staff (`toneColor` returned
   `undefined`) because `Bindings.cpp` serialised the grade with the native screen label (`"PERFEITO"`) while
