@@ -31,7 +31,8 @@ O que roda agora, verificado nesta data:
 | Core C++ nativo (`build.bat`, `test.bat`) | 100 testes, 0 falhas |
 | Core em WASM (`pnpm build:core`) | os mesmos 100 casos passam no Node (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
-| `apps/web` | 243 testes vitest em 45 arquivos, typecheck limpo, `vite build` gera a PWA (213 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática; 6 testes e2e Playwright (`pnpm --filter @fretless/web test:e2e`): um toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado, com a vista "As duas" ligada; outro abre uma canção da biblioteca CC0 por Músicas e toca até o Resultado; o terceiro marca uma peça Suzuki como aprendida e confere que ela continua em revisão depois de recarregar; o quarto marca um trecho no detalhe de uma canção, recarrega e confere que "Praticar em loop" abre o Tocar com o trecho repetindo e o andamento escolhido; o quinto grava duas passadas da mesma peça com o microfone falso do Chromium, recarrega, compara as duas lado a lado e confere que o detalhe da peça lista as gravações; o sexto põe uma canção da biblioteca no bloco de Revisão da rotina de 25 minutos, confere que a Hoje usa a cópia nova com a peça ligada ao Tocar e que "Soltar peça" devolve o bloco ao app |
+| `apps/web` | 255 testes vitest em 47 arquivos, typecheck limpo, `vite build` gera a PWA (213 entradas no precache, com fontes e assets do pdf.js) e o `404.html` para hospedagem estática; 6 testes e2e Playwright (`pnpm --filter @fretless/web test:e2e`): um toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado, com a vista "As duas" ligada; outro abre uma canção da biblioteca CC0 por Músicas e toca até o Resultado; o terceiro marca uma peça Suzuki como aprendida e confere que ela continua em revisão depois de recarregar; o quarto marca um trecho no detalhe de uma canção, recarrega e confere que "Praticar em loop" abre o Tocar com o trecho repetindo e o andamento escolhido; o quinto grava duas passadas da mesma peça com o microfone falso do Chromium, recarrega, compara as duas lado a lado e confere que o detalhe da peça lista as gravações; o sexto põe uma canção da biblioteca no bloco de Revisão da rotina de 25 minutos, confere que a Hoje usa a cópia nova com a peça ligada ao Tocar e que "Soltar peça" devolve o bloco ao app |
+| `apps/api` (plataforma) | 44 testes vitest em 4 arquivos (PGlite em memória), typecheck limpo; contas, papéis e permissões, turmas, tarefas, materiais com PDF, planos, prática enviada ao professor, admin com auditoria. Ainda não hospedada |
 | CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`, e publica o site no GitHub Pages (https://henriquerl55.github.io/fretless/) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
 | Afinador no AudioWorklet | WASM carrega dentro do worklet e detecta 440,02 Hz de um oscilador com confiança 0,99999 (testado sem microfone) |
@@ -112,6 +113,14 @@ apps/web/src/
   data/       db.ts (Dexie), library.ts (músicas importadas, em memória)
   core/       useCore (carrega o WASM uma vez no main thread)
   music/      nomes Dó Ré Mi e formatação de cents
+  api/        cliente HTTP tipado (Bearer), useApiData, tipos do contrato
+  account/    sessão (Zustand), can(), RequireAccount, campos de formulário, links de convite
+apps/api/src/
+  routes/     auth · me · teacher · student · admin (Zod nas fronteiras, SQL puro)
+  auth/       senhas (scrypt), sessões com hash, permissões e papéis
+  db/         migrações numeradas, Postgres (pg) ou PGlite, seed das configurações
+  files/      FileStore em disco (PDFs); bucket em produção é decisão do dono
+docs/plataforma/arquitetura.md  papéis, fluxos, rotas, como rodar
 ```
 
 ## 5. As telas, como estão
@@ -175,11 +184,24 @@ escolha).
 | 4. Hoje, onboarding, Progresso | **feita (28/10)**: onboarding em 5 passos, sessão do dia na Hoje, nível e XP, heatmap de 12 semanas, histórico de precisão, conquistas, medalhas de constância em bronze/prata/ouro (só lembrança, sem desbloquear nada; a loja de resinas saiu em 28/10 e sons e paleta sépia ficaram livres); configurações com teste de microfone, sensibilidade, tamanho da partitura, backup `.json`, limpar cache, resetar, importar o `progress.txt` do app nativo (28/10: melhor resultado de cada exercício vira um resultado, a linha `days` vira dias de prática; o que já existe fica) | — |
 | 5. Músicas | **feita (28/10)**: catálogo do core + importações persistidas no Dexie (8 MB), filtros por nível, compositor, gênero e status (não iniciada, em estudo, dominada), tocar em `/tocar/musica/:id`; **estante de PDF (28/10)**: métodos e partituras em PDF lidos dentro do app (pdf.js), com afinador, metrônomo e pedal ao lado, sem julgamento nem XP; **biblioteca CC0 (29/10)**: 110 canções do OpenScore Lieder (domínio público) no catálogo, offline, tocadas em `/tocar/biblioteca/:slug`; **trilha Suzuki (29/10)**: livros como escada, "aprendi na aula" com revisão espaçada de no máximo 30 dias no Dexie, lembrete na Hoje; **detalhe da peça (29/10)**: frases e trechos próprios com loop e andamento de estudo, histórico; **gravador com comparação (29/10)**: gravar, ouvir, nomear, ligar à peça, comparar duas gravações da mesma peça lado a lado | — |
 | 6. Caderno da aula e Ferramentas | **feita (28/10)**: caderno na Hoje (tarefa → bloco "Da aula", dia da aula), afinador tela cheia com corda provável e referência, metrônomo progressivo, nota pedal, teste de latência; resumo da semana no caderno (28/10: desde a última aula, minutos, dias, execuções, tarefas, onde errou mais, tendência de afinação, botão de copiar para a professora) | — |
+| 8. Plataforma com professores | **feita (29/10)**: API (`apps/api`, Fastify + Postgres/PGlite) com contas, papéis e permissões editáveis, convites, auditoria; área do professor (turmas com código, avisos, tarefas com exercícios do app, materiais em PDF ou link, planos de estudo que viram rotina, progresso de cada aluno); área do aluno em `/aulas`; administração completa em `/admin`. Detalhe em `docs/plataforma/arquitetura.md` | hospedagem da API e do banco, bucket dos PDFs, primeiro admin de produção, textos legais, e-mail transacional (decisões do dono) |
 | 7. Publicação | **Feita (29/10)**: repo público, site em https://henriquerl55.github.io/fretless/ publicado pelo CI | Conta e sync (Supabase) e acesso da professora seguem pausados |
 
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 
-Nenhuma aberta em 28/10. O highway, que era o modo opcional da fase 2, foi feito em 29/10.
+Abertas em 29/10, da revisão de segurança da plataforma (as de nível médio já foram corrigidas):
+
+- **`TRUST_PROXY` no deploy.** Atrás de proxy (Render, Fly, nginx) sem `TRUST_PROXY=true` o limite de tentativas
+  conta todo mundo como o IP do proxy. Ligar junto com a hospedagem; um limite por e-mail no login seria a segunda
+  camada.
+- **Corrida no "último admin".** A contagem de admins ativos e a mudança não estão na mesma transação com
+  `FOR UPDATE`; dois admins se rebaixando ao mesmo tempo podem zerar o papel. Improvável com poucos admins.
+- **Sessão em `localStorage`.** O token fica acessível a qualquer script da página; a defesa é não ter XSS e pôr uma
+  CSP no host do site quando ele sair do GitHub Pages.
+- **Upload de PDF em memória.** O arquivo inteiro (até `MAX_PDF_MB`) passa pela memória da API; com muitos
+  professores, mover para upload direto ao bucket.
+
+O highway, que era o modo opcional da fase 2, foi feito em 29/10.
 
 Fechadas em 28/10: músicas importadas agora ficam no Dexie (`pieces`); o select de microfone zera um id que não
 existe mais (`audio/devices.ts`); foco visível nos radios `sr-only` e nos botões de importar (`has-focus-visible:`);
@@ -220,6 +242,8 @@ pnpm build:core                    # Emscripten (precisa de C:\Users\Usuario\ems
 pnpm test
 pnpm typecheck
 pnpm dev                           # http://localhost:5180
+pnpm --filter @fretless/api dev    # API em http://127.0.0.1:3400 (copie apps/api/.env.example para .env)
+pnpm --filter @fretless/api test   # 42 testes de integração da API (PGlite em memória)
 pnpm --filter @fretless/web build  # apps/web/dist
 MSYS2_ENV_CONV_EXCL=BASE_PATH BASE_PATH=/fretless/ pnpm --filter @fretless/web build  # site para o sub-caminho do Pages; o prefixo MSYS2_ evita a conversão de caminho do Git Bash
 ```

@@ -51,3 +51,8 @@ apps/web/dev-dist/
 apps/web/test-results/
 apps/web/playwright-report/
 apps/api/.data/
+
+.env
+.env.local
+apps/*/.env
+apps/*/.env.local

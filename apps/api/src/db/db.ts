@@ -1,3 +1,5 @@
+import { mkdir } from "node:fs/promises";
+
 import { PGlite } from "@electric-sql/pglite";
 import pg from "pg";
 
@@ -35,6 +37,7 @@ export function postgresDb(connectionString: string): Db {
 }
 
 export async function pgliteDb(dataDir?: string): Promise<Db> {
+  if (dataDir && !dataDir.includes("://")) await mkdir(dataDir, { recursive: true });
   const lite = await PGlite.create(dataDir);
   return {
     async query<Row>(text: string, params: unknown[] = []) {

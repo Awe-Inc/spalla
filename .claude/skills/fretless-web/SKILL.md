@@ -14,7 +14,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (243)
+pnpm test                          # WASM harness (100 cases) + vitest core (14) + vitest web (255); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
@@ -24,7 +24,13 @@ pnpm --filter @fretless/web build  # tsc -b + vite build → apps/web/dist (PWA,
 BASE_PATH=/fretless/ pnpm --filter @fretless/web build   # sub-path build (GitHub Pages); from PowerShell on Windows,
                                    # Git Bash rewrites "/fretless/" into a Windows path
 pnpm dev                           # vite on http://localhost:5180 (preview: 4180)
+pnpm --filter @fretless/api dev    # Fastify on 3400 (PGlite em apps/api/.data; lê apps/api/.env se existir)
+pnpm --filter @fretless/api test   # vitest da API, cada arquivo com um PGlite em memória
+pnpm --filter @fretless/api admin:create   # ADMIN_EMAIL/ADMIN_NAME/ADMIN_PASSWORD no ambiente
 ```
+
+A web fala com a API em `VITE_API_URL` (`apps/web/.env.example`); sem ela, as áreas de conta, professor, aluno e
+admin mostram que a plataforma está fora do ar e o resto do app segue local.
 
 `packages/core/scripts/build.mjs` finds `emcmake` in `%USERPROFILE%\emsdk` and Ninja through `vswhere`. The native
 test binary is compiled to `dist/fretless_core_tests.cjs` too, so the same 101 cases run in both worlds (the
@@ -162,6 +168,16 @@ apps/web/src/areas/praticar/     PraticarPage (módulos e exercícios; botão "H
                                  negativo e não se editam), RoutineEditor (lista ordenada de blocos: arrastar
                                  com HTML5 drag-and-drop ou Subir/Descer no teclado, minutos e meta por bloco,
                                  adicionar/tirar bloco, aviso de vizinhos iguais; testado em RoutinePicker.test.tsx)
+apps/api/src/                    Fastify 5 + Zod 4 + SQL puro; routes/{auth,teacher,student,admin,files,access}.ts,
+                                 auth/permissions.ts (catálogo de permissões e papéis do sistema), db/migrations
+apps/web/src/api/                client.ts (api.get/post/…, queryString, errorMessage), useApiData + LoadState, types
+apps/web/src/account/            store da sessão, ui.tsx (TextField, SelectField, Badge, RequireAccount, SubNav…),
+                                 links.ts (signupLink), practiceSync, files (PDF autenticado)
+apps/web/src/areas/conta/        entrar, criar conta (convite e código de turma pela URL), minha conta
+apps/web/src/areas/professor/    turmas, alunos e progresso, tarefas, materiais (PDF/link), planos de estudo
+apps/web/src/areas/aulas/        visão do aluno: tarefas, materiais, planos adotados
+apps/web/src/areas/admin/        /admin: visão geral, usuários (filtros na URL), professores, papéis, convites,
+                                 auditoria, configurações; cada página exige a permissão da rota na API
 apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the screen
 apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window), tested
 apps/web/src/notation/highwayLayout.ts  pure lane geometry; reuses the staff TimeAxis so both views line up, tested
@@ -304,3 +320,13 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
   Files/Git/fretless/assets/..."` e `scope` absoluto do disco. Para gerar o site do Pages localmente:
   `MSYS2_ENV_CONV_EXCL=BASE_PATH BASE_PATH=/fretless/ pnpm --filter @fretless/web run build` (`MSYS_NO_PATHCONV`
   não basta para variáveis). No CI (Linux) não existe conversão.
+- **Coluna `date` do Postgres volta como `Date` à meia-noite UTC.** `dueOn` de uma tarefa saía como
+  `2026-11-04T03:00` no Brasil e a data mostrada recuava um dia. Toda coluna `date` sai da query como texto:
+  `to_char(due_on, 'YYYY-MM-DD') AS "dueOn"` (`teacher.ts`, `student.ts`; `lessons.test.ts` confere a data igual).
+- **PGlite não cria a pasta-mãe do banco.** Num checkout limpo `pnpm --filter @fretless/api dev` morria com ENOENT ao
+  abrir `.data/pglite`; `pgliteDb` faz `mkdir(dataDir, { recursive: true })` antes (`test/db.test.ts`).
+- **Ação sobre outra conta também é concessão de permissão.** Quem tinha só `users.manage` podia gerar código de
+  senha ou trocar o e-mail de uma conta de suporte e entrar nela; um suporte aprovava o próprio pedido de professor.
+  Toda rota que age sobre outra conta chama `assertCanManage` (as permissões de plataforma do alvo têm de estar nas
+  minhas; ensino e aluno não contam, senão só o admin atenderia aluno), e `decide()` recusa a própria conta e exige
+  pedido `pending` (`admin.test.ts`, "não toma a conta" e "só vale para pedido pendente").

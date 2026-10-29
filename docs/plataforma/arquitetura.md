@@ -79,7 +79,9 @@ permissões numa matriz. Um usuário pode ter vários papéis (professor que tam
   tamanho de corpo limitado, auditoria das ações administrativas.
 - Arquivos: interface `FileStore`; em dev e testes grava em disco (`FILES_DIR`). Em produção, um bucket S3 compatível
   — **decisão do dono** (ver abaixo).
-- Web: `src/api/` (cliente tipado), `src/conta/` (sessão em Zustand), áreas `aulas/` (aluno), `professor/`, `admin/`.
+- Web: `src/api/` (cliente tipado, `useApiData`), `src/account/` (sessão em Zustand, `can()`, componentes de
+  formulário e `RequireAccount`), áreas `conta/` (entrar, criar conta, termos, minha conta), `aulas/` (aluno),
+  `professor/`, `admin/`.
   Sem `VITE_API_URL` (build do Pages de hoje), as áreas de conta mostram que as contas ainda não estão no ar e o
   resto do app segue igual.
 
@@ -88,6 +90,21 @@ permissões numa matriz. Um usuário pode ter vários papéis (professor que tam
 5180 web dev · 4180 web e2e · **3400 API dev** · **3410 API e2e** · **5460 Postgres local** (se usar Docker).
 
 ## Fases
+
+Estado em 29/10: as cinco fases estão feitas (API com 42 testes de integração; web com 255 testes, typecheck e build
+limpos). O e2e do fluxo inteiro com a API ainda não existe: os testes de integração cobrem as rotas e o escopo
+professor/aluno, e as telas foram conferidas por tipo e build, sem abrir o navegador.
+
+| Área | Rota web | Permissão de entrada |
+|---|---|---|
+| Minha conta | `/conta` | estar logado |
+| Minhas aulas (aluno) | `/aulas`, `/aulas/planos`, `/aulas/materiais`, `/aulas/turmas` | `lessons.read` |
+| Professor | `/professor` (turmas), `tarefas`, `planos`, `materiais`, `alunos` | `classes.manage` e afins |
+| Administração | `/admin`, `usuarios`, `professores`, `papeis`, `convites`, `auditoria`, `configuracoes` | qualquer permissão de admin; cada aba pede a sua |
+
+Rodar local: `cp apps/api/.env.example apps/api/.env`, `pnpm --filter @fretless/api dev` (3400, PGlite em
+`apps/api/.data`), `ADMIN_EMAIL=… ADMIN_NAME=… ADMIN_PASSWORD=… pnpm --filter @fretless/api admin:create`, e o web com
+`VITE_API_URL=http://127.0.0.1:3400` em `apps/web/.env.local` (`pnpm dev`).
 
 1. API: banco, migrações, auth, sessões, RBAC, auditoria, admin de usuários/papéis/convites/configurações.
 2. Professor: turmas, códigos, avisos, tarefas, materiais com PDF, planos de estudo, progresso dos alunos.
