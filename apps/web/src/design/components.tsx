@@ -45,11 +45,25 @@ export function StringChip({ index }: { index: number }) {
   );
 }
 
-export function Stars({ count, label }: { count: 0 | 1 | 2 | 3; label?: string }) {
+const STAR_REVEAL_DELAY = ["", "[animation-delay:120ms]", "[animation-delay:240ms]"] as const;
+
+interface StarsProps {
+  count: 0 | 1 | 2 | 3;
+  label?: string;
+  size?: "md" | "lg";
+  isRevealed?: boolean;
+}
+
+export function Stars({ count, label, size = "md", isRevealed = false }: StarsProps) {
   return (
-    <span className="inline-flex items-center gap-1" role="img" aria-label={label ?? `${count} de 3 estrelas`}>
+    <span className={`inline-flex items-center ${size === "lg" ? "gap-2" : "gap-1"}`} role="img" aria-label={label ?? `${count} de 3 estrelas`}>
       {[0, 1, 2].map((i) => (
-        <svg key={i} viewBox="0 0 20 20" className={`size-5 ${i < count ? "fill-close" : "fill-hairline-strong"}`} aria-hidden>
+        <svg
+          key={i}
+          viewBox="0 0 20 20"
+          className={`${size === "lg" ? "size-10" : "size-5"} ${i < count ? "fill-close" : "fill-hairline-strong"} ${isRevealed && i < count ? `animate-pop motion-reduce:animate-none ${STAR_REVEAL_DELAY[i]}` : ""}`}
+          aria-hidden
+        >
           <path d="M10 1.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L10 14.9l-5.3 2.8 1.1-5.9L1.5 7.7l5.9-.8z" />
         </svg>
       ))}

@@ -5,7 +5,8 @@ import { driftSentence } from "@/data/history";
 import { earnedMedalTitle } from "@/data/medals";
 import type { RunOutcome } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
-import { Button, ButtonLink, GoalDots, Stars } from "@/design/components";
+import { Button, ButtonLink, Card, GoalDots, Stars } from "@/design/components";
+import { Stat, Stats } from "@/design/layout";
 
 import type { TocarOrigin } from "./origin";
 
@@ -49,9 +50,9 @@ const toneClass: Record<ReturnType<typeof measureTone>, string> = {
 };
 
 function headline(stats: GameStats, outcome: RunOutcome | null): string {
-  if (outcome && outcome.mastery > outcome.masteryBefore) return "Subiu de nível!";
+  if (outcome && outcome.mastery > outcome.masteryBefore) return "Subiu de nível.";
   if (stats.accuracyPct >= 95) return "Impecável.";
-  if (stats.accuracyPct >= 80) return "Muito bem!";
+  if (stats.accuracyPct >= 80) return "Muito bem.";
   if (stats.accuracyPct >= 60) return "Está chegando lá.";
   return "Cada tentativa conta.";
 }
@@ -74,132 +75,129 @@ function seriesSentence(goal: BlockGoal): string {
   return hadStreak ? "A série zerou. Mais devagar e de novo." : "Essa não contou: a série pede 90% ou mais.";
 }
 
+function TempoAdviceNote({ slowdown, advice, onKeepTempo, onChangeTempo }: { slowdown: Slowdown | null; advice: TempoAdvice; onKeepTempo: (bpm: number) => void; onChangeTempo: (bpm: number) => void }) {
+  if (slowdown) {
+    return (
+      <Card tone="inset" className="flex flex-wrap items-center justify-between gap-3 text-left" as="div">
+        <p className="min-w-0 flex-1 text-small text-ink-muted" aria-label="Andamento reduzido">
+          {slowdownSentence(slowdown)}
+        </p>
+        <Button variant="quiet" onClick={() => onKeepTempo(slowdown.fromBpm)}>
+          Manter {slowdown.fromBpm} bpm
+        </Button>
+      </Card>
+    );
+  }
+  if (advice.kind === "keep") return null;
+  const isSlowDown = advice.kind === "slow-down";
+  return (
+    <Card tone="inset" className="flex flex-wrap items-center justify-between gap-3 text-left" as="div">
+      <p className="min-w-0 flex-1 text-small text-ink-muted">
+        {isSlowDown ? `Ficou corrido. Tente a ${advice.bpm} bpm.` : `Saiu limpo. Dá para subir para ${advice.bpm} bpm.`}
+      </p>
+      <Button variant="quiet" onClick={() => onChangeTempo(advice.bpm)}>
+        {isSlowDown ? "Diminuir o andamento" : "Acelerar"}
+      </Button>
+    </Card>
+  );
+}
+
+function MeasureMap({ perMeasure }: { perMeasure: readonly MeasureStat[] }) {
+  return (
+    <div className="grid w-full gap-2 text-left">
+      <h3 className="text-small font-semibold text-ink-muted">Por compasso</h3>
+      <ol className="flex flex-wrap gap-1.5" aria-label="Precisão por compasso">
+        {perMeasure.map((stat) => (
+          <li key={stat.measureIndex} title={measureTitle(stat)} className={`grid size-9 place-items-center rounded-sm font-mono text-caption tabular ${toneClass[measureTone(stat)]}`}>
+            {stat.measureNumber}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function Rewards({ outcome }: { outcome: RunOutcome }) {
+  const items = [
+    ...outcome.newAchievements.map((id) => {
+      const achievement = ACHIEVEMENTS.find((item) => item.id === id);
+      return { key: `a-${id}`, title: `Conquista: ${achievement?.name ?? id}`, description: achievement?.description ?? "" };
+    }),
+    ...outcome.newMedals.map((medal) => ({ key: `m-${medal.id}`, title: `Medalha: ${earnedMedalTitle(medal)}`, description: "Fica no seu Progresso, sem mudar nada no app." })),
+  ];
+  if (items.length === 0) return null;
+  return (
+    <ul className="grid w-full gap-2 text-left" aria-label="Conquistas e medalhas novas">
+      {items.map((item) => (
+        <li key={item.key} className="grid animate-rise gap-0.5 rounded-md bg-primary-soft px-4 py-3 motion-reduce:animate-none">
+          <span className="font-semibold text-ink">{item.title}</span>
+          {item.description ? <span className="text-small text-ink-muted">{item.description}</span> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, slowdown, saveError, completedTasks, back, next, onPlayAgain, onRepeatHardest, onChangeTempo, onKeepTempo }: ResultScreenProps) {
   const perMeasure = measureStats(score, judgements);
   const hardest = loop ? null : hardestRange(perMeasure);
   const advice = slowdown ? KEEP_TEMPO : adviseTempo(stats.accuracyPct, bpm, limits);
   const goalLabel = goal ? goalSentence(goal.block, goal.progress) : null;
+  const mastery = outcome ? (Math.max(outcome.mastery, outcome.masteryBefore) as MasteryLevel) : null;
 
   return (
-    <section className="grid justify-items-center gap-5 text-center" aria-label="Resultado">
-      <p className="text-caption font-semibold text-primary">{headline(stats, outcome)}</p>
-      <Stars count={outcome?.stars ?? 0} />
-      <p className="font-display text-display">{Math.round(stats.accuracyPct)}% de precisão</p>
-      {saveError ? <p className="text-caption text-off">{saveError}</p> : null}
-      {completedTasks.map((sentence) => (
-        <p key={sentence} className="rounded-pill bg-in-tune-soft px-3 py-1 text-caption font-semibold text-in-tune">
-          {sentence}
-        </p>
-      ))}
-      <p className="text-ink-muted">{driftSentence(stats.meanSignedCents)}</p>
+    <section className="mx-auto grid w-full max-w-2xl gap-5 text-center" aria-label="Resultado">
+      <Card tone="hero" as="div" className="grid justify-items-center gap-4">
+        <p className="text-small font-semibold text-primary">{headline(stats, outcome)}</p>
+        <Stars count={outcome?.stars ?? 0} size="lg" isRevealed />
+        <p className="font-display text-display text-balance">{Math.round(stats.accuracyPct)}% de precisão</p>
+        <p className="max-w-prose text-ink-muted">{driftSentence(stats.meanSignedCents)}</p>
+        {saveError ? <p className="text-small text-off">{saveError}</p> : null}
+        {completedTasks.map((sentence) => (
+          <p key={sentence} className="rounded-sm bg-in-tune-soft px-3 py-1 text-small font-semibold text-in-tune">
+            {sentence}
+          </p>
+        ))}
+        {outcome && mastery ? (
+          <Stats label="Desta passada" className="w-full justify-center border-t border-hairline pt-4">
+            <Stat label="XP ganho" value={`+${outcome.xp}`} tone="primary" />
+            <Stat label="Maior sequência" value={stats.maxCombo} />
+            <Stat label={`Maestria: ${masteryName(mastery)}`} value={`${mastery}/5`} />
+          </Stats>
+        ) : null}
+      </Card>
 
       {goal && goalLabel && outcome ? (
-        <div className="grid justify-items-center gap-2 rounded-md bg-surface-soft px-5 py-3" aria-label="Meta do bloco">
-          <GoalDots recentClean={goal.progress.recentClean} total={goal.progress.total} label={goalLabel} />
-          <p className="font-medium" aria-hidden>
-            {goalLabel}
-          </p>
-          <p className="text-caption text-ink-muted">{seriesSentence(goal)}</p>
-        </div>
-      ) : null}
-
-      {outcome ? (
-        <dl className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-center">
-          <div>
-            <dt className="text-caption text-ink-subtle">XP ganho</dt>
-            <dd className="font-mono text-numeric tabular text-primary">+{outcome.xp}</dd>
+        <Card tone="inset" as="div" className="grid justify-items-center gap-2">
+          <div className="grid justify-items-center gap-2" aria-label="Meta do bloco" role="group">
+            <GoalDots recentClean={goal.progress.recentClean} total={goal.progress.total} label={goalLabel} />
+            <p className="font-medium" aria-hidden>
+              {goalLabel}
+            </p>
+            <p className="text-small text-ink-muted">{seriesSentence(goal)}</p>
           </div>
-          <div>
-            <dt className="text-caption text-ink-subtle">Maior sequência</dt>
-            <dd className="font-mono text-numeric tabular">{stats.maxCombo}</dd>
-          </div>
-          <div>
-            <dt className="text-caption text-ink-subtle">Maestria</dt>
-            <dd className="font-mono text-numeric tabular">
-              {Math.max(outcome.mastery, outcome.masteryBefore)}/5 · {masteryName(Math.max(outcome.mastery, outcome.masteryBefore) as MasteryLevel)}
-            </dd>
-          </div>
-        </dl>
+        </Card>
       ) : null}
 
-      {outcome && outcome.newAchievements.length > 0 ? (
-        <ul className="grid gap-2" aria-label="Conquistas desbloqueadas">
-          {outcome.newAchievements.map((id) => {
-            const achievement = ACHIEVEMENTS.find((item) => item.id === id);
-            return (
-              <li key={id} className="rounded-md bg-primary-soft px-4 py-2 text-body">
-                <span className="font-semibold">Conquista: {achievement?.name ?? id}</span>
-                {achievement ? <span className="text-ink-muted"> · {achievement.description}</span> : null}
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+      {outcome ? <Rewards outcome={outcome} /> : null}
+      <TempoAdviceNote slowdown={slowdown} advice={advice} onKeepTempo={onKeepTempo} onChangeTempo={onChangeTempo} />
+      {perMeasure.length > 1 ? <MeasureMap perMeasure={perMeasure} /> : null}
 
-      {outcome && outcome.newMedals.length > 0 ? (
-        <ul className="grid gap-2" aria-label="Medalhas novas">
-          {outcome.newMedals.map((medal) => (
-            <li key={medal.id} className="rounded-md bg-primary-soft px-4 py-2 text-body">
-              <span className="font-semibold">Medalha: {earnedMedalTitle(medal)}</span>
-              <span className="text-ink-muted"> · Fica no seu Progresso, sem mudar nada no app.</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {perMeasure.length > 1 ? (
-        <div className="grid w-full max-w-xl gap-2">
-          <span className="text-caption text-ink-subtle">Por compasso</span>
-          <ol className="flex flex-wrap justify-center gap-1.5" aria-label="Precisão por compasso">
-            {perMeasure.map((stat) => (
-              <li key={stat.measureIndex} title={measureTitle(stat)} className={`grid h-9 w-9 place-items-center rounded-sm font-mono text-caption tabular ${toneClass[measureTone(stat)]}`}>
-                {stat.measureNumber}
-              </li>
-            ))}
-          </ol>
-        </div>
-      ) : null}
-
-      {slowdown ? (
-        <p className="max-w-prose text-ink-muted" aria-label="Andamento reduzido">
-          {slowdownSentence(slowdown)}{" "}
-          <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => onKeepTempo(slowdown.fromBpm)}>
-            Manter {slowdown.fromBpm} bpm
-          </button>
-        </p>
-      ) : null}
-      {advice.kind === "slow-down" ? (
-        <p className="max-w-prose text-ink-muted">
-          Ficou corrido. Que tal tentar a {advice.bpm} bpm?{" "}
-          <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => onChangeTempo(advice.bpm)}>
-            Diminuir o andamento
-          </button>
-        </p>
-      ) : null}
-      {advice.kind === "speed-up" ? (
-        <p className="max-w-prose text-ink-muted">
-          Limpo! Dá para subir para {advice.bpm} bpm.{" "}
-          <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => onChangeTempo(advice.bpm)}>
-            Acelerar
-          </button>
-        </p>
-      ) : null}
-
-      <div className="flex flex-wrap justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
         {next ? (
-          <ButtonLink variant="primary" to={next.to} state={next.state} icon="play">
+          <ButtonLink variant="primary" size="lg" to={next.to} state={next.state} icon="play">
             Próximo bloco: {next.title}
           </ButtonLink>
         ) : null}
-        <Button variant={next ? "secondary" : "primary"} onClick={onPlayAgain}>
+        <Button variant={next ? "secondary" : "primary"} size={next ? "md" : "lg"} icon="play" onClick={onPlayAgain}>
           Tocar de novo
         </Button>
         {hardest ? (
-          <Button onClick={() => onRepeatHardest(hardest)}>
+          <Button icon="trecho" onClick={() => onRepeatHardest(hardest)}>
             Repetir compassos {hardest.firstIndex + 1}–{hardest.lastIndex + 1}
           </Button>
         ) : null}
-        <ButtonLink variant="ghost" to={back.to} icon="voltar">
+        <ButtonLink variant="quiet" to={back.to} icon="voltar">
           Voltar para {back.label}
         </ButtonLink>
       </div>
