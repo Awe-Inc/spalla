@@ -92,7 +92,9 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
                                  scorePlayback.ts (playableNotes: rests out, ties joined, excerpt kept in score time;
                                  playbackWindow, eventIndexAt), useListen.ts ("Ouvir": own AudioContext created on
                                  the click, 1.5 s look-ahead from a 200 ms interval, metronome per the prefs, cursor
-                                 via songTime/currentNoteIndex)
+                                 via songTime/currentNoteIndex), listenSounds.ts (settings.listenSound: violino
+                                 gravado | sintetizado | suave | puro; só "violino" baixa amostras; escolhido no
+                                 ListenSoundPicker da Peça e do Tocar e em Ajustes › Prática)
 apps/web/public/amostras/violino/ <midi>.m4a (6 s, mono AAC) + LICENSE.txt, made by tools/fetch_violin_samples.py;
                                  outside the precache, cached on first use by the workbox rule "amostras" (CacheFirst)
 apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),

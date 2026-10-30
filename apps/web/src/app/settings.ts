@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { Subdivision } from "@/audio/clickTrack";
+import type { ListenSound } from "@/audio/listenSounds";
 import type { ClickSound } from "@/audio/metronome";
 
 export type ThemePreference = "system" | "light" | "dark";
@@ -23,6 +24,7 @@ export interface PracticeAudioPrefs {
   metronomeSound: ClickSound;
   droneVolume: number;
   listenVolume: number;
+  listenSound: ListenSound;
   autoSlowdown: boolean;
 }
 
@@ -87,6 +89,7 @@ export const useSettings = create<SettingsState>()(
       metronomeSound: "madeira",
       droneVolume: 0.35,
       listenVolume: 0.6,
+      listenSound: "violino",
       autoSlowdown: true,
       setTheme: (theme) => set({ theme }),
       setNoteNaming: (noteNaming) => set({ noteNaming }),
@@ -96,7 +99,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, autoSlowdown }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, listenSound, autoSlowdown }) => ({
         theme,
         lessonWeekday,
         noteNaming,
@@ -115,6 +118,7 @@ export const useSettings = create<SettingsState>()(
         metronomeSound,
         droneVolume,
         listenVolume,
+        listenSound,
         autoSlowdown,
       }),
     },

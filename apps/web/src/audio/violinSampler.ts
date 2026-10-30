@@ -1,4 +1,5 @@
 import { midiToHz } from "./drone";
+import { type ListenSound, synthVoice, usesRecordedViolin } from "./listenSounds";
 
 export const SAMPLE_MIDIS = [55, 57, 60, 64, 67, 69, 72, 76, 79, 81, 84, 88, 91, 93, 96] as const;
 
@@ -70,6 +71,7 @@ export class ViolinSampler {
   readonly #output: GainNode;
   readonly #voices = new Set<Voice>();
   #buffers: ReadonlyMap<number, AudioBuffer> | null = null;
+  #sound: ListenSound = "violino";
 
   constructor(context: AudioContext, volume = 0.6) {
     this.#context = context;
@@ -90,6 +92,10 @@ export class ViolinSampler {
     return this.#buffers !== null;
   }
 
+  setSound(sound: ListenSound): void {
+    this.#sound = sound;
+  }
+
   setVolume(volume: number): void {
     this.#output.gain.setTargetAtTime(Math.max(0, Math.min(1, volume)), this.#context.currentTime, 0.02);
   }
@@ -102,8 +108,9 @@ export class ViolinSampler {
     gain.gain.setValueAtTime(1, atSec + envelope.releaseStartSec);
     gain.gain.linearRampToValueAtTime(0, atSec + envelope.stopSec);
     gain.connect(this.#output);
-    const source = this.#buffers ? this.#sampleSource(midi, durationSec) : this.#synthSource(midi, gain);
-    if (this.#buffers) source.connect(gain);
+    const isRecorded = this.#buffers !== null && usesRecordedViolin(this.#sound);
+    const source = isRecorded ? this.#sampleSource(midi, durationSec) : this.#synthSource(midi, gain);
+    if (isRecorded) source.connect(gain);
     const voice = { source, gain };
     this.#voices.add(voice);
     source.onended = () => {
@@ -144,9 +151,10 @@ export class ViolinSampler {
   }
 
   #synthSource(midi: number, gain: GainNode): OscillatorNode {
-    const oscillator = new OscillatorNode(this.#context, { type: "sawtooth", frequency: midiToHz(midi) });
-    const filter = new BiquadFilterNode(this.#context, { type: "lowpass", frequency: 1800, Q: 0.7 });
-    const level = new GainNode(this.#context, { gain: 0.35 });
+    const voice = synthVoice(this.#sound);
+    const oscillator = new OscillatorNode(this.#context, { type: voice.type, frequency: midiToHz(midi) });
+    const filter = new BiquadFilterNode(this.#context, { type: "lowpass", frequency: voice.filterHz, Q: 0.7 });
+    const level = new GainNode(this.#context, { gain: voice.level });
     oscillator.connect(filter).connect(level).connect(gain);
     return oscillator;
   }

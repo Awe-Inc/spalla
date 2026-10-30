@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useSettings } from "@/app/settings";
 
 import { buildClickTrack } from "./clickTrack";
+import { type ListenSound, usesRecordedViolin } from "./listenSounds";
 import { Metronome } from "./metronome";
 import { eventIndexAt, notesBetween, playableNotes, playbackWindow, type PlayableNote, type PlaybackWindow } from "./scorePlayback";
 import { ViolinSampler } from "./violinSampler";
@@ -46,6 +47,7 @@ export function useListen(score: Score | null): Listen {
   const prefs = useSettings(
     useShallow((state) => ({
       listenVolume: state.listenVolume,
+      listenSound: state.listenSound,
       metronomeOn: state.metronomeOn,
       metronomeSubdivision: state.metronomeSubdivision,
       metronomeVolume: state.metronomeVolume,
@@ -88,7 +90,8 @@ export function useListen(score: Score | null): Listen {
         voices = voicesRef.current ?? createVoices(prefsRef.current.listenVolume, prefsRef.current.metronomeVolume);
         voicesRef.current = voices;
         await voices.context.resume();
-        hasSamples = voices.sampler.hasSamples || (await voices.sampler.load(import.meta.env.BASE_URL));
+        voices.sampler.setSound(prefsRef.current.listenSound);
+        hasSamples = await ensureSamples(voices.sampler, prefsRef.current.listenSound);
       } catch {
         if (token === tokenRef.current) stop();
         return;
@@ -147,6 +150,19 @@ export function useListen(score: Score | null): Listen {
   }, [prefs.listenVolume]);
 
   useEffect(() => {
+    const sampler = voicesRef.current?.sampler;
+    if (!sampler) return;
+    sampler.setSound(prefs.listenSound);
+    let isCurrent = true;
+    void ensureSamples(sampler, prefs.listenSound).then((hasSamples) => {
+      if (isCurrent) setUsesSamples(hasSamples);
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [prefs.listenSound]);
+
+  useEffect(() => {
     voicesRef.current?.metronome.setVolume(prefs.metronomeVolume);
   }, [prefs.metronomeVolume]);
 
@@ -166,6 +182,11 @@ export function useListen(score: Score | null): Listen {
 
   const currentNoteIndex = score ? eventIndexAt(score.events, songTime) : 0;
   return { status, songTime, currentNoteIndex, progress, usesSamples, play, stop };
+}
+
+async function ensureSamples(sampler: ViolinSampler, sound: ListenSound): Promise<boolean> {
+  if (!usesRecordedViolin(sound) || sampler.hasSamples) return true;
+  return sampler.load(import.meta.env.BASE_URL);
 }
 
 function createVoices(listenVolume: number, metronomeVolume: number): Voices {

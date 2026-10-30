@@ -8,6 +8,7 @@ import { useListen } from "@/audio/useListen";
 import { RecordingAudio, recordingDate } from "@/areas/ferramentas/RecordingPlayer";
 import { AddToRoutine } from "@/areas/musicas/AddToRoutine";
 import { HistoricoExercicio } from "@/areas/estudar/HistoricoExercicio";
+import { ListenSoundPicker } from "@/areas/tocar/ListenSoundPicker";
 import { clampBpm } from "@/areas/tocar/tempo";
 import { useSession } from "@/areas/tocar/useSession";
 import { db } from "@/data/db";
@@ -153,6 +154,7 @@ export function PecaPage() {
         description={composer}
         actions={
           <>
+            <ListenSoundPicker />
             <ListenButton listen={listen} isActive={isListeningTo(null)} label="a peça inteira" onListen={() => listenTo(null, bpm)} />
             <ButtonLink to={practicePath(playTo, bpm)} variant="primary" icon="play">
               Tocar inteira

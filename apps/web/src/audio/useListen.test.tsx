@@ -2,16 +2,19 @@ import type { Score } from "@fretless/core";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useSettings } from "@/app/settings";
+
 import { LISTEN_LEAD_SEC, useListen } from "./useListen";
 
 const played: { midi: number; atSec: number; durSec: number }[] = [];
-const sampler = { stopped: 0 };
+const sampler = { stopped: 0, loads: 0, sounds: [] as string[] };
 const clock = { now: 10 };
 
 vi.mock("./violinSampler", () => ({
   ViolinSampler: class {
     hasSamples = false;
     async load(): Promise<boolean> {
+      sampler.loads += 1;
       this.hasSamples = true;
       return true;
     }
@@ -22,6 +25,9 @@ vi.mock("./violinSampler", () => ({
       sampler.stopped += 1;
     }
     setVolume(): void {}
+    setSound(sound: string): void {
+      sampler.sounds.push(sound);
+    }
     dispose(): void {}
   },
 }));
@@ -31,7 +37,9 @@ vi.mock("./metronome", () => ({
     setTrack(): void {}
     setEnabled(): void {}
     setVolume(): void {}
-    setSound(): void {}
+    setSound(sound: string): void {
+      sampler.sounds.push(sound);
+    }
     sync(): void {}
     rewind(): void {}
     dispose(): void {}
@@ -58,6 +66,9 @@ describe("useListen", () => {
   beforeEach(() => {
     played.length = 0;
     sampler.stopped = 0;
+    sampler.loads = 0;
+    sampler.sounds = [];
+    useSettings.setState({ listenSound: "violino" });
     clock.now = 10;
     vi.stubGlobal("AudioContext", FakeAudioContext);
     vi.stubGlobal("requestAnimationFrame", () => 1);
@@ -113,5 +124,25 @@ describe("useListen", () => {
     expect(result.current.status).toBe("parado");
     expect(sampler.stopped).toBeGreaterThan(0);
     expect(result.current.songTime).toBe(-LISTEN_LEAD_SEC);
+  });
+
+  it("plays a synthesized sound without downloading the violin samples", async () => {
+    useSettings.setState({ listenSound: "puro" });
+    const { result } = renderHook(() => useListen(score));
+
+    await act(() => result.current.play());
+
+    expect(sampler.sounds).toContain("puro");
+    expect(sampler.loads).toBe(0);
+    expect(result.current.usesSamples).toBe(true);
+  });
+
+  it("downloads the samples when the violin is chosen", async () => {
+    const { result } = renderHook(() => useListen(score));
+
+    await act(() => result.current.play());
+
+    expect(sampler.sounds).toContain("violino");
+    expect(sampler.loads).toBe(1);
   });
 });

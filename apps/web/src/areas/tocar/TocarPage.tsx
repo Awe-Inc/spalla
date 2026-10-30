@@ -16,6 +16,7 @@ import { displayNoteName } from "@/music/noteNames";
 
 import { fromState, tocarOrigin } from "./origin";
 import { autoSlowdown, slowdownSentence, type Slowdown } from "./autoSlowdown";
+import { ListenSoundPicker } from "./ListenSoundPicker";
 import { ComboBar } from "./ComboBar";
 import { ResultScreen } from "./ResultScreen";
 import { ScoreView } from "./ScoreView";
@@ -343,8 +344,9 @@ export function TocarPage() {
               {score.noteCount} notas · {bpm} bpm
             </p>
             <div className="flex flex-wrap justify-center gap-3">
+              <ListenSoundPicker />
               <Button variant="secondary" onClick={() => (isHearing ? listen.stop() : void listen.play())} disabled={listen.status === "carregando"} aria-pressed={listen.status === "tocando"}>
-                {listen.status === "carregando" ? "Carregando o violino…" : listen.status === "tocando" ? "Parar" : "Ouvir"}
+                {listen.status === "carregando" ? "Carregando…" : listen.status === "tocando" ? "Parar" : "Ouvir"}
               </Button>
               <Button variant="primary" onClick={() => void begin()} disabled={needsHeadphones || mic.status.status === "starting"}>
                 {mic.status.status === "starting" ? "Abrindo microfone…" : "Começar"}
