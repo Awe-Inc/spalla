@@ -179,7 +179,7 @@ apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afina
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage em `/voce` (hero com nível + Stats; abas `?ver=geral|conquistas|
                                  gravacoes`) + Heatmap, HistoricoPrecisao, Conquistas, Medalhas, Gravacoes
-apps/web/src/areas/componentes/  ComponentesPage em /componentes (link em Configurações › Aparência): TokensSection
+apps/web/src/areas/componentes/  ComponentesPage em /componentes, só no `pnpm dev` (`app/devRoutes.ts`; sem link na interface): TokensSection
                                  (cores com swatch e papel, prévia dos 4 temas via `data-theme`/`data-accent` na
                                  subárvore, tipografia, raio/sombra/movimento/layout) + ComponentesSection (cada
                                  componente de components.tsx em todas as variantes, mais o campo de formulário)
@@ -423,3 +423,8 @@ send never post the same results twice. The session planner (`planSession`) assi
   e a vista Página escrevia o número de compasso que o MusicXML dá ao compasso de anacruse (0). A forma da pausa vem
   de `restShape(quarters, measureQuarters)` (pausa que ocupa o compasso inteiro é sempre semibreve; pontuada ganha
   ponto), testada em `staffLayout.test.ts`; número de compasso ≤ 0 não se escreve.
+- **Design system à vista do aluno.** A página `/componentes` (tokens e componentes) tinha link em Ajustes ("Sobre o
+  design") e rota no build de produção, então qualquer usuário abria. É ferramenta de quem desenvolve: a rota vem de
+  `devOnlyRoutes(import.meta.env.DEV)` (`app/devRoutes.ts`, testada), que no build devolve `[]` e tira a página do
+  bundle; em produção `/componentes` cai na 404. Regra: nada de catálogo, debug ou ferramenta interna com link na
+  interface nem rota fora do `devOnlyRoutes`.

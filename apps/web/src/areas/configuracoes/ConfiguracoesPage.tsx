@@ -1,6 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ReactNode } from "react";
-import { Link } from "react-router";
 
 import { STAFF_SCALES, useSettings, type Accent, type NoteNaming, type StaffScale, type ThemePreference } from "@/app/settings";
 import { db, DEFAULT_USER_STATS } from "@/data/db";
@@ -70,11 +69,6 @@ export function ConfiguracoesPage() {
             </SettingRow>
             <SettingRow title="Paleta" hint="Abeto é verde e mel; Ébano é madeira escura.">
               <ChoiceChips name="accent" label="Paleta" value={settings.accent} options={ACCENT_OPTIONS} onChange={settings.setAccent} />
-            </SettingRow>
-            <SettingRow title="Sobre o design" hint="Cores, fontes e componentes do app.">
-              <Link to="/componentes" className="text-small font-semibold text-primary hover:text-primary-hover">
-                Abrir o design system
-              </Link>
             </SettingRow>
           </SettingGroup>
 

@@ -14,6 +14,7 @@ import { ProgressoPage } from "@/areas/progresso/ProgressoPage";
 import { ErroDeRotaPage, NaoEncontradaPage } from "@/areas/sistema/SistemaPages";
 import { TocarPage } from "@/areas/tocar/TocarPage";
 
+import { devOnlyRoutes } from "./devRoutes";
 import { LEGACY_REDIRECTS, legacyTarget } from "./legacyRoutes";
 import { Shell, type RouteHandle } from "./Shell";
 
@@ -62,7 +63,7 @@ export const router = createBrowserRouter(
         { path: "voce/ajustes/atraso", Component: LatenciaPage },
         { path: "voce/conta", lazy: async () => ({ Component: (await import("@/areas/conta/ContaPage")).ContaPage }) },
         ...legacyRoutes,
-        { path: "componentes", lazy: async () => ({ Component: (await import("@/areas/componentes/ComponentesPage")).ComponentesPage }) },
+        ...devOnlyRoutes(import.meta.env.DEV),
         { path: "tocar/musica/:pieceId", handle: FULLSCREEN, Component: TocarPage },
         { path: "tocar/biblioteca/:librarySlug", handle: FULLSCREEN, Component: TocarPage },
         { path: "tocar/:exerciseId", handle: FULLSCREEN, Component: TocarPage },
