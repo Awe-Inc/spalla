@@ -31,6 +31,8 @@ constexpr Note kCompass[] = {
     {"Mi6", 1318.51}, {"La6", 1760.00}, {"Mi7", 2637.02},
 };
 
+constexpr Note kAboveE7[] = {{"Sol7", 3135.96}, {"La7", 3520.00}, {"Do8", 4186.01}};
+
 using Signal = std::vector<float>;
 using Stage  = std::function<Signal(Signal)>;
 
@@ -202,6 +204,16 @@ TEST(pitch_robustness_hears_a_weak_fundamental) {
     }
 }
 
+TEST(pitch_robustness_keeps_a_weak_fundamental_in_noise) {
+    for (const double snr : {10.0, 5.0}) {
+        for (const auto& note : kCompass) {
+            const auto reading = listen(noise(snr)(bowedTone(note.hz, {.fundamentalDb = -20.0})), note.hz);
+            const std::string what = std::to_string(static_cast<int>(snr)) + " dB weak " + note.name;
+            expectAtMost(what + " octave", reading.octaveOff, 0.05, __LINE__);
+        }
+    }
+}
+
 TEST(pitch_robustness_centres_vibrato_on_the_written_pitch) {
     for (const auto& note : kCompass) {
         const auto reading = listen(bowedTone(note.hz, {.vibratoCents = 25.0}), note.hz);
@@ -248,3 +260,19 @@ TEST(pitch_robustness_keeps_an_out_of_tune_player_out_of_tune) {
     expectAtLeast("flat A4 heard", reading.heard, 0.80, __LINE__);
 }
 
+TEST(pitch_robustness_reaches_the_harmonics_above_e7) {
+    const std::pair<const char*, Stage> rooms[] = {
+        {"clean", [](Signal x) { return x; }},
+        {"headset 7k", lowPass(7000.0)},
+        {"10 dB", noise(10.0)},
+    };
+    for (const auto& [label, stage] : rooms) {
+        for (const auto& note : kAboveE7) {
+            const auto reading = listen(stage(bowedTone(note.hz, {.vibratoCents = 15.0})), note.hz);
+            const std::string what = std::string(label) + " " + note.name;
+            expectAtLeast(what + " heard", reading.heard, 0.95, __LINE__);
+            expectAtMost(what + " octave", reading.octaveOff, 0.02, __LINE__);
+            expectAtMost(what + " mean cents", std::fabs(reading.meanCents), 6.0, __LINE__);
+        }
+    }
+}

@@ -17,7 +17,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (111 cases) + vitest core (14) + vitest web (365); API: 44 em apps/api
+pnpm test                          # WASM harness (120 cases) + vitest core (14) + vitest web (378); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
@@ -180,8 +180,10 @@ apps/web/src/areas/componentes/  ComponentesPage em /componentes (link em Config
                                  subárvore, tipografia, raio/sombra/movimento/layout) + ComponentesSection (cada
                                  componente de components.tsx em todas as variantes, mais o campo de formulário)
 apps/web/src/areas/configuracoes/ ConfiguracoesPage em `/voce/ajustes` (duas colunas ≥ xl: Aparência com paleta
-                                 Abeto/Ébano, Leitura, Prática | Áudio, Dados) + MicrofoneCard (teste ao vivo,
-                                 sensibilidade → `PitchInput.setGain`) + DadosCard (backup, CSV do histórico, cache,
+                                 Abeto/Ébano, Leitura, Prática | Áudio, Dados) + MicrofoneCard (teste ao vivo:
+                                 pico, ruído, % de notas lidas e nota mais aguda por `audio/micCheck.ts`; aviso
+                                 quando o navegador deixa filtros ligados, `audio/micProcessing.ts` sobre
+                                 `info.browserProcessing`; sensibilidade → `PitchInput.setGain`) + DadosCard (backup, CSV do histórico, cache,
                                  importar progress.txt, ConfirmButton "Zerar progresso")
 apps/web/src/areas/hoje/         useTodayPlan (rotina escolhida + resultados → plano do dia; `runsToday` e
                                  `useBlockGoal(exerciseId)` para o Tocar), HojePage (só a sessão do dia: anel, blocos

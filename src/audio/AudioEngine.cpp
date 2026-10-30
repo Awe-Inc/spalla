@@ -345,7 +345,8 @@ void AudioEngine::processBlock(const float* input,
         flags |= kFlagClipped;
     }
 
-    if (frame.rmsLinear < silenceThreshold_.load(std::memory_order_relaxed)) {
+    noiseFloor_.setMinimumGate(silenceThreshold_.load(std::memory_order_relaxed));
+    if (frame.rmsLinear < noiseFloor_.gate()) {
         flags |= kFlagSilent;
     } else {
         const PitchEstimate estimate = detector_.process(analysisWindow_.data(), need);
@@ -357,6 +358,10 @@ void AudioEngine::processBlock(const float* input,
             flags |= kFlagLowConfidence;
         }
     }
+    noiseFloor_.observe(frame.rmsLinear, frame.frequencyHz > 0.0f,
+                        actualSampleRate_ > 0.0
+                            ? static_cast<float>(static_cast<double>(frameCount) / actualSampleRate_)
+                            : 0.0f);
 
     frame.flags = flags;
 

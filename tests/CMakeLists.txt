@@ -5,6 +5,7 @@ add_executable(fretless_tests
     test_ring_buffer.cpp
     test_pitch_detector.cpp
     test_pitch_robustness.cpp
+    test_noise_floor.cpp
     test_score.cpp
     test_mxl.cpp
     test_repeats.cpp

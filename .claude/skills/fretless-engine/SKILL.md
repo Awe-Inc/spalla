@@ -222,6 +222,24 @@ up to a bar.
   and in the perfect streak, and `creditedAccuracyPct` counts Unheard
   against the saved result once it is more than half the notes, so a dead
   microphone cannot earn stars from the two notes it caught.
+- **Dó8 read an octave low once the ceiling went past Mi7.** `maxFrequencyHz`
+  is 4400 so harmonics up to C8 with vibrato stay in range. At 4186 Hz the
+  period (≈ 11.47 samples) falls between integer lags while twice the period
+  lands almost on lag 23, so the sub-octave's raw d(tau) looked deeper and
+  `firstComparableDip` kept it. `dipDepth` (parabola vertex) is compared too,
+  but only for a dip that divides the chosen period (k ≥ 2, drift ≤ 0.5
+  sample) and within 1.6×: on every dip it extrapolates a clean tone to zero
+  and reads a weak fundamental an octave high.
+  `pitch_robustness_reaches_the_harmonics_above_e7` and
+  `pitch_robustness_keeps_a_weak_fundamental_in_noise` hold both sides.
+- **A fixed silence gate turns room noise into "não ouvida".** A fan above
+  the gate is "sound" with no readable pitch, so every rest became Unheard
+  frames and a quiet room's note fell under the gate. `NoiseFloorTracker`
+  (`audio/NoiseFloor.h`) learns the floor only from unvoiced blocks, rises in
+  ~3 s and falls in ~0.3 s; the gate is 2× the floor, clamped between the
+  user's sensitivity threshold and 0.05. Both `AudioEngine` and the WASM
+  `LivePitchTracker` use it, and the binding returns `gate` and `noiseFloor`
+  per frame for the web's microphone test. `tests/test_noise_floor.cpp`.
 
 ## House style
 

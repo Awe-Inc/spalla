@@ -134,6 +134,8 @@ export interface PitchFrame {
   silent: boolean;
   lowConfidence: boolean;
   clipped: boolean;
+  gate?: number;
+  noiseFloor?: number;
 }
 
 export type SessionState = "idle" | "countdown" | "playing" | "paused" | "finished";

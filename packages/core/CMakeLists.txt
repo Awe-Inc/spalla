@@ -48,6 +48,7 @@ target_include_directories(miniz PUBLIC
 
 set(FRETLESS_CORE_SOURCES
     ${FRETLESS_ROOT}/src/audio/PitchDetector.cpp
+    ${FRETLESS_ROOT}/src/audio/NoiseFloor.cpp
     ${FRETLESS_ROOT}/src/audio/NoteMath.cpp
     ${FRETLESS_ROOT}/src/score/Score.cpp
     ${FRETLESS_ROOT}/src/score/Beaming.cpp

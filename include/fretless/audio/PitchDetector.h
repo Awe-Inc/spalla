@@ -18,7 +18,9 @@ struct PitchDetectorConfig {
     /// Search range. Bounding tau to the violin's compass cuts the O(W·tau)
     /// difference function by ~4x versus scanning tau up to W/2.
     float       minFrequencyHz = 170.0f;  ///< just below open G3 (196 Hz)
-    float       maxFrequencyHz = 2800.0f; ///< above E7 (2637 Hz)
+    /// Harmonics and the top of the fingerboard reach C8 (4186 Hz); the margin
+    /// keeps a vibrato on it inside the range.
+    float       maxFrequencyHz = 4400.0f;
     float       yinThreshold   = 0.15f;   ///< absolute threshold, YIN step 4
 };
 
@@ -46,6 +48,7 @@ public:
 
 private:
     [[nodiscard]] std::size_t firstComparableDip(std::size_t best) const noexcept;
+    [[nodiscard]] float dipDepth(std::size_t tau) const noexcept;
     [[nodiscard]] float parabolicMinimum(std::size_t tau) const noexcept;
     [[nodiscard]] float refineOnAMultiple(float tau) const noexcept;
 

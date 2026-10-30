@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 
+#include "fretless/audio/NoiseFloor.h"
 #include "fretless/audio/PitchDetector.h"
 #include "fretless/core/SpscRingBuffer.h"
 
@@ -178,6 +179,7 @@ private:
 
     // ── Owned exclusively by [RT] after start(); no synchronization needed ─
     PitchDetector      detector_;
+    NoiseFloorTracker  noiseFloor_;      ///< audio thread only
     std::vector<float> analysisWindow_;   ///< sliding buffer, sized in initialize()
     std::uint64_t      blockIndex_ = 0;
 

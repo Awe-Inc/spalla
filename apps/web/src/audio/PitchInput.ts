@@ -1,6 +1,7 @@
 import { coreWasmUrl, DEFAULT_WINDOW_SIZE, type PitchFrame } from "@fretless/core";
 
 import type { WorkletOptions, WorkletOutbound } from "./messages";
+import { activeProcessing, type BrowserProcessing } from "./micProcessing";
 import workletUrl from "./pitch-worklet.ts?worker&url";
 
 export type FrameListener = (frame: PitchFrame) => void;
@@ -12,6 +13,7 @@ export interface PitchInputInfo {
   baseLatencySec: number;
   outputLatencySec: number;
   requiredSamples: number;
+  browserProcessing: BrowserProcessing[];
 }
 
 export class PitchInputCancelled extends Error {
@@ -108,6 +110,7 @@ export class PitchInput {
         baseLatencySec: context.baseLatency,
         outputLatencySec: context.outputLatency ?? 0,
         requiredSamples,
+        browserProcessing: activeProcessing(stream.getAudioTracks()[0]?.getSettings() ?? {}),
       };
     } catch (error: unknown) {
       await this.#release(context, stream, this.#node);

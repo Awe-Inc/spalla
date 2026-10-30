@@ -11,6 +11,7 @@
 #include <emscripten/val.h>
 
 #include "fretless/audio/AudioEngine.h"
+#include "fretless/audio/NoiseFloor.h"
 #include "fretless/audio/PitchDetector.h"
 #include "fretless/curriculum/Exercise.h"
 #include "fretless/curriculum/Generators.h"
@@ -296,7 +297,7 @@ val frameToVal(const audio::PitchFrame& f) {
 
 class LivePitchTracker {
 public:
-    LivePitchTracker(double sampleRate, int windowSize) {
+    LivePitchTracker(double sampleRate, int windowSize) : sampleRate_(sampleRate) {
         audio::PitchDetectorConfig config{};
         config.sampleRate = sampleRate;
         config.windowSize = static_cast<std::size_t>(std::max(windowSize, 256));
@@ -309,7 +310,7 @@ public:
         return reinterpret_cast<std::uintptr_t>(input_.data());
     }
 
-    void setSilenceThreshold(float rms) { silenceThreshold_ = rms; }
+    void setSilenceThreshold(float rms) { noiseFloor_.setMinimumGate(rms); }
     void setConfidenceThreshold(float c) { confidenceThreshold_ = c; }
     void setInputGain(float gain) { inputGain_ = gain; }
 
@@ -344,7 +345,8 @@ public:
         if (peak >= 0.999f) {
             flags |= audio::kFlagClipped;
         }
-        if (frame.rmsLinear < silenceThreshold_) {
+        const float gate = noiseFloor_.gate();
+        if (frame.rmsLinear < gate) {
             flags |= audio::kFlagSilent;
         } else {
             const audio::PitchEstimate estimate = detector_.process(window_.data(), need);
@@ -356,7 +358,12 @@ public:
             }
         }
         frame.flags = flags;
-        return frameToVal(frame);
+        noiseFloor_.observe(frame.rmsLinear, frame.frequencyHz > 0.0f,
+                            static_cast<float>(static_cast<double>(count) / sampleRate_));
+        val o = frameToVal(frame);
+        o.set("gate", gate);
+        o.set("noiseFloor", noiseFloor_.floor());
+        return o;
     }
 
     int requiredSamples() const { return static_cast<int>(window_.size()); }
@@ -366,7 +373,8 @@ private:
     std::vector<float>   window_;
     std::vector<float>   input_;
     std::uint64_t        blockIndex_          = 0;
-    float                silenceThreshold_    = 0.0025f;
+    audio::NoiseFloorTracker noiseFloor_;
+    double               sampleRate_;
     float                confidenceThreshold_ = 0.60f;
     float                inputGain_           = 1.0f;
 };

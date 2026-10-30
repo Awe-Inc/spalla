@@ -7,6 +7,7 @@ namespace fretless::audio {
 
 namespace {
 constexpr float kComparableDipRatio = 1.3f;
+constexpr float kSubMultipleDipRatio = 1.6f;
 constexpr float kMaxMultipleDriftSamples = 0.5f;
 }  // namespace
 
@@ -23,20 +24,53 @@ void PitchDetector::prepare(const PitchDetectorConfig& config) {
     cumulative_.assign(tauMax_ + 2, 0.0f);
 }
 
-// Under room noise no dip reaches the absolute threshold, and the cumulative
-// normalisation makes every multiple of the period look slightly better than
-// the period itself, so the global minimum lands an octave or more low. The
-// true period is the shortest dip that is about as deep as the best one.
+// The cumulative normalisation makes every multiple of the period look
+// slightly better than the period itself. Under room noise no dip reaches the
+// absolute threshold and the global minimum lands an octave or more low; on a
+// harmonic near C8 the period is ~11 samples, the first dip sits just above
+// the threshold and the threshold scan stops at the second one. The true
+// period is the shortest dip about as deep as the chosen one, measured on
+// d(tau), which the normalisation has not tilted.
 std::size_t PitchDetector::firstComparableDip(std::size_t best) const noexcept {
-    const float limit = cumulative_[best] * kComparableDipRatio;
+    const float rawLimit = difference_[best] * kComparableDipRatio;
+    const float vertexLimit = dipDepth(best) * kSubMultipleDipRatio;
+    const float bestTau = parabolicMinimum(best);
     for (std::size_t tau = tauMin_ + 1; tau < best; ++tau) {
         const bool isDip = cumulative_[tau] <= cumulative_[tau - 1] &&
                            cumulative_[tau] <= cumulative_[tau + 1];
-        if (isDip && cumulative_[tau] <= limit) {
+        if (!isDip) {
+            continue;
+        }
+        if (difference_[tau] <= rawLimit) {
+            return tau;
+        }
+        const float candidateTau = parabolicMinimum(tau);
+        const float multiple = std::round(bestTau / candidateTau);
+        const bool dividesBest = multiple >= 2.0f &&
+            std::fabs(candidateTau * multiple - bestTau) <= kMaxMultipleDriftSamples;
+        if (dividesBest && dipDepth(tau) <= vertexLimit) {
             return tau;
         }
     }
     return best;
+}
+
+// Near C8 the period is ~11.5 samples, so the dip at T falls between two lags
+// while the one at 2T can land right on a lag: read raw, the sub-octave looks
+// deeper. The vertex of the parabola through the three lags compares them on
+// equal terms. It is only trusted for a dip that divides the chosen period:
+// on a clean tone the vertex of any sharp dip extrapolates to zero, and
+// comparing every dip that way reads a weak fundamental an octave high.
+float PitchDetector::dipDepth(std::size_t tau) const noexcept {
+    const float s0 = difference_[tau - 1];
+    const float s1 = difference_[tau];
+    const float s2 = difference_[tau + 1];
+    const float curvature = s0 + s2 - 2.0f * s1;
+    if (curvature <= 1e-12f) {
+        return s1;
+    }
+    const float vertex = s1 - (s2 - s0) * (s2 - s0) / (8.0f * curvature);
+    return std::clamp(vertex, 0.0f, s1);
 }
 
 // On d(tau), not d'(tau): d' is multiplied by tau, which tilts the parabola
@@ -135,8 +169,9 @@ PitchEstimate PitchDetector::process(const float* x, std::size_t count) noexcept
         if (cumulative_[best] >= 1.0f) {
             return {};
         }
-        tauEst = firstComparableDip(best);
+        tauEst = best;
     }
+    tauEst = firstComparableDip(tauEst);
 
     // ── YIN step 5: parabolic interpolation around the minimum ────────────
     float refinedTau = parabolicMinimum(tauEst);
