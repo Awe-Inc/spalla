@@ -229,7 +229,7 @@ export function TocarPage() {
   const fullMeasureCount = session?.measureCount ?? 0;
 
   return (
-    <div data-theme="dark" className="grid min-h-dvh grid-rows-[auto_1fr_auto] bg-canvas px-4 py-4 text-ink md:px-8">
+    <div data-theme="dark" className="grid min-h-dvh grid-rows-[auto_1fr_auto] gap-4 bg-canvas px-4 py-4 text-ink md:px-8">
       <header className="flex items-center justify-between gap-4">
         <div className="grid gap-0.5">
           <h1 className="text-heading font-semibold">{exercise?.title ?? score?.title ?? "Carregando…"}</h1>

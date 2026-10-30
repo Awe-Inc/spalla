@@ -215,6 +215,10 @@
     scrollbar-gutter: stable;
   }
 
+  .font-mono {
+    word-spacing: -0.4ch;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--hairline-strong) transparent;

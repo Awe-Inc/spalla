@@ -125,13 +125,13 @@ export function BoasVindasPage() {
   }
 
   return (
-    <div className="grid min-h-dvh bg-canvas text-ink lg:grid-cols-[18rem_1fr]">
+    <div className="grid min-h-dvh grid-rows-[auto_1fr] bg-canvas text-ink lg:grid-cols-[18rem_1fr] lg:grid-rows-none">
       <aside className="flex flex-col gap-10 border-hairline bg-surface-sunken px-4 py-6 lg:sticky lg:top-0 lg:h-dvh lg:border-r lg:px-6 lg:py-10">
         <Wordmark />
         <StepList current={step} />
         <p className="mt-auto hidden max-w-[28ch] text-small text-ink-subtle lg:block">Tudo fica neste aparelho. Dá para mudar cada escolha depois.</p>
       </aside>
-      <main className="grid min-w-0 place-items-center px-4 py-8 md:px-10">
+      <main className="grid min-w-0 items-start justify-items-center px-4 py-8 md:px-10 lg:items-center">
         <section key={step} className="grid w-full max-w-xl animate-rise gap-8 rounded-xl bg-surface p-6 shadow-card ring-1 ring-hairline/60 md:p-10">
           <StepBar current={step} />
           {step === 0 ? (

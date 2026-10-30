@@ -177,7 +177,7 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
           </p>
         ))}
         {outcome && mastery ? (
-          <Stats label="Desta passada" className="w-full justify-center border-t border-hairline pt-4">
+          <Stats label="Desta passada" className="w-full grid-cols-3 justify-center border-t border-hairline pt-4">
             <Stat label="XP ganho" value={`+${outcome.xp}`} tone="primary" />
             <Stat label="Maior sequência" value={stats.maxCombo} />
             <Stat label={`Maestria: ${masteryName(mastery)}`} value={`${mastery}/5`} />

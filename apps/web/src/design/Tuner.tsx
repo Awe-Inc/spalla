@@ -23,7 +23,7 @@ export function Tuner({ noteLabel, cents, frequencyHz, compact = false }: TunerP
     <div className="grid gap-3" role="group" aria-label="Afinador">
       <div className="flex items-baseline justify-between gap-4">
         <span className={`font-display ${compact ? "text-title" : "text-display"}`}>{noteLabel ?? "—"}</span>
-        <span className="font-mono text-body text-ink-muted tabular">
+        <span className={`text-body text-ink-muted tabular ${cents === null ? "" : "font-mono"}`}>
           {cents === null ? "toque uma nota" : formatCents(cents)}
           {frequencyHz && cents !== null ? ` · ${frequencyHz.toFixed(1)} Hz` : ""}
         </span>

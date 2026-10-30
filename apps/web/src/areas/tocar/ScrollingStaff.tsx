@@ -1,10 +1,13 @@
 import type { NoteJudgement, Score } from "@fretless/core";
 import { type CSSProperties, useEffect, useRef } from "react";
 
+import { headerOffsets } from "@/notation/pageLayout";
 import { barlineTimes, buildGeometry, noteX, toneFor, visibleEventIndices, type StaffGeometry } from "@/notation/staffLayout";
 
 import { fitCanvas, useCanvasSize, type CanvasSize } from "./canvas";
 import { drawBeams, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
+
+const STAFF_LEFT = 8;
 
 interface ScrollingStaffProps {
   score: Score;
@@ -16,11 +19,13 @@ interface ScrollingStaffProps {
 }
 
 function drawKeySignature(ctx: CanvasRenderingContext2D, score: Score, geometry: StaffGeometry, palette: Palette): void {
-  drawKeyAccidentals(ctx, score.keyFifths, geometry, palette, 12);
-  ctx.font = `${Math.round(geometry.spacing * 0.9)}px ${palette.sans}`;
-  ctx.fillStyle = palette.inkSubtle;
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText("Clave de Sol", 8, geometry.spacing * 0.9 + 4);
+  const offsets = headerOffsets(score, geometry.spacing);
+  ctx.fillStyle = palette.inkMuted;
+  ctx.font = `${Math.round(geometry.spacing * 4.4)}px ${palette.music}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("𝄞", STAFF_LEFT + offsets.clef, geometry.staffTop + geometry.spacing * 2.3);
+  drawKeyAccidentals(ctx, score.keyFifths, geometry, palette, STAFF_LEFT + offsets.key);
 }
 
 function drawBarlines(ctx: CanvasRenderingContext2D, score: Score, geometry: StaffGeometry, palette: Palette): void {
