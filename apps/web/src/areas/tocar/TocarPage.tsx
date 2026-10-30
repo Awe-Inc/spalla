@@ -290,6 +290,11 @@ export function TocarPage() {
                 <dd className="font-mono text-numeric tabular text-off">{snapshot.stats.miss}</dd>
               </div>
             </dl>
+            {snapshot.stats.unheard > 0 ? (
+              <p className="text-small text-ink-muted">
+                {snapshot.stats.unheard === 1 ? "1 nota não ouvida pelo microfone" : `${snapshot.stats.unheard} notas não ouvidas pelo microfone`}
+              </p>
+            ) : null}
           </section>
         ) : null}
 

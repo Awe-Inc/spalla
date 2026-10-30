@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult } from "./db";
-import { countSentence, driftSentence, exerciseHistory, HISTORY_RUNS, lastPlayedSentence, seriesSentence, tempoSentence, trendSentence } from "./history";
+import { countSentence, driftSentence, exerciseHistory, HISTORY_RUNS, lastPlayedSentence, seriesSentence, tempoSentence, trendSentence, unheardSentence } from "./history";
 
 const DAY_MS = 86_400_000;
 const now = Date.parse("2026-10-28T12:00:00");
@@ -72,5 +72,16 @@ describe("sentences", () => {
     expect(driftSentence(8.4)).toBe("Tendência de 8 cents alto.");
     expect(driftSentence(-5)).toBe("Tendência de 5 cents baixo.");
     expect(driftSentence(2)).toBe("Afinação centrada.");
+  });
+});
+
+describe("unheardSentence", () => {
+  it("stays silent when every note was heard", () => {
+    expect(unheardSentence(0)).toBeNull();
+  });
+
+  it("tells the player unheard notes did not count against them", () => {
+    expect(unheardSentence(1)).toMatch(/^1 nota não foi ouvida pelo microfone e não contou contra você\./);
+    expect(unheardSentence(3)).toMatch(/^3 notas não foram ouvidas pelo microfone e não contaram/);
   });
 });

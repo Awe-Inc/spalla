@@ -187,6 +187,13 @@ TEST(pitch_robustness_survives_microphone_band_limits) {
     }
 }
 
+TEST(pitch_robustness_reads_a_clean_tone_without_bias) {
+    for (const auto& note : kCompass) {
+        const auto reading = listen(bowedTone(note.hz), note.hz);
+        expectAtMost(std::string(note.name) + " mean cents", std::fabs(reading.meanCents), 0.5, __LINE__);
+    }
+}
+
 TEST(pitch_robustness_hears_a_weak_fundamental) {
     for (const auto& note : kCompass) {
         const auto reading = listen(bowedTone(note.hz, {.fundamentalDb = -20.0}), note.hz);

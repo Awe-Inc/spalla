@@ -27,6 +27,11 @@ describe("measureStats", () => {
     expect(stats[1]).toMatchObject({ notes: 2, judged: 2, hits: 1, misses: 1, accuracyPct: 50, meanSignedCents: -6 });
   });
 
+  it("does not count a note the microphone did not hear", () => {
+    const stats = measureStats(scoreOf([2]), [judgement(0, "Perfect"), judgement(1, "Unheard")]);
+    expect(stats[0]).toMatchObject({ notes: 2, judged: 1, hits: 1, misses: 0, accuracyPct: 100 });
+  });
+
   it("leaves unplayed bars without an accuracy", () => {
     const stats = measureStats(scoreOf([1, 1]), [judgement(0, "Perfect")]);
     expect(stats[1]?.accuracyPct).toBeNull();

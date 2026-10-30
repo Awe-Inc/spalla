@@ -1,7 +1,7 @@
 import type { GameStats, MeasureRange, NoteJudgement, Score } from "@fretless/core";
 import type { BlockGoal } from "@/areas/hoje/useTodayPlan";
 import { ACHIEVEMENTS, MASTERY_LEVELS, type MasteryLevel } from "@/data/gamification";
-import { driftSentence } from "@/data/history";
+import { driftSentence, unheardSentence } from "@/data/history";
 import { earnedMedalTitle } from "@/data/medals";
 import type { RunOutcome } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
@@ -143,6 +143,7 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
   const hardest = loop ? null : hardestRange(perMeasure);
   const advice = slowdown ? KEEP_TEMPO : adviseTempo(stats.accuracyPct, bpm, limits);
   const goalLabel = goal ? goalSentence(goal.block, goal.progress) : null;
+  const unheardLabel = unheardSentence(stats.unheard);
   const mastery = outcome ? (Math.max(outcome.mastery, outcome.masteryBefore) as MasteryLevel) : null;
 
   return (
@@ -152,6 +153,7 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
         <Stars count={outcome?.stars ?? 0} size="lg" isRevealed />
         <p className="font-display text-display text-balance">{Math.round(stats.accuracyPct)}% de precisão</p>
         <p className="max-w-prose text-ink-muted">{driftSentence(stats.meanSignedCents)}</p>
+        {unheardLabel ? <p className="max-w-prose text-small text-ink-muted">{unheardLabel}</p> : null}
         {saveError ? <p className="text-small text-off">{saveError}</p> : null}
         {completedTasks.map((sentence) => (
           <p key={sentence} className="rounded-sm bg-in-tune-soft px-3 py-1 text-small font-semibold text-in-tune">

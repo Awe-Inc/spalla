@@ -304,6 +304,7 @@ int simulate(const char* path, float centsBias, float centsJitter, float missRat
     std::printf("  great       %d\n", stats.great);
     std::printf("  good        %d\n", stats.good);
     std::printf("  missed      %d\n", stats.miss);
+    std::printf("  unheard     %d\n", stats.unheard);
     std::printf("  max combo   %d\n", stats.maxCombo);
     std::printf("  accuracy    %.1f%%\n", static_cast<double>(stats.accuracyPct));
     std::printf("  intonation  %+.2f c mean, %.2f c mean absolute\n",

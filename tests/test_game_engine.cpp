@@ -1,4 +1,5 @@
 #include <cmath>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -65,8 +66,10 @@ score::Score loadFastRun() {
 
 /// Feeds the engine a stream that is `centsOffset` away from whatever note is
 /// written at that moment, at a realistic block rate.
-void playAlong(game::GameEngine& engine, const score::Score& sheet,
-               float centsOffset, double untilSeconds, bool silent = false) {
+enum class Sound { Pitched, Silent, Unreadable };
+
+void playAlongWith(game::GameEngine& engine, const score::Score& sheet, float centsOffset,
+                   double untilSeconds, const std::function<Sound(std::size_t)>& soundOf) {
     constexpr double kStep  = 1.0 / 240.0;
     constexpr double kBlock = 256.0 / 48000.0;
 
@@ -79,9 +82,16 @@ void playAlong(game::GameEngine& engine, const score::Score& sheet,
             audio::PitchFrame frame{};
             frame.streamTimeSec = nextBlock;
             const score::ScoreEvent* note = sheet.noteAt(nextBlock);
-            if (note == nullptr || silent) {
+            const Sound sound = note == nullptr
+                ? Sound::Silent
+                : soundOf(static_cast<std::size_t>(note - sheet.events.data()));
+            if (sound == Sound::Silent) {
                 frame.flags     = audio::kFlagSilent;
                 frame.rmsLinear = 0.0001f;
+            } else if (sound == Sound::Unreadable) {
+                frame.flags      = audio::kFlagLowConfidence;
+                frame.confidence = 0.3f;
+                frame.rmsLinear  = 0.05f;
             } else {
                 frame.frequencyHz = note->frequencyHz *
                                     std::pow(2.0f, centsOffset / 1200.0f);
@@ -93,6 +103,12 @@ void playAlong(game::GameEngine& engine, const score::Score& sheet,
         }
         engine.update(kStep, frames.data(), frames.size());
     }
+}
+
+void playAlong(game::GameEngine& engine, const score::Score& sheet,
+               float centsOffset, double untilSeconds, bool silent = false) {
+    const Sound sound = silent ? Sound::Silent : Sound::Pitched;
+    playAlongWith(engine, sheet, centsOffset, untilSeconds, [sound](std::size_t) { return sound; });
 }
 
 }  // namespace
@@ -181,6 +197,54 @@ TEST(silence_is_a_miss_and_breaks_the_combo) {
     CHECK_EQ(engine.stats().miss, 4);
     CHECK_EQ(engine.stats().maxCombo, 0);
     CHECK_NEAR(engine.stats().accuracyPct, 0.0, 0.01);
+}
+
+TEST(sound_the_detector_cannot_read_is_unheard_not_missed) {
+    const auto sheet = loadFourNotes();
+
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    playAlongWith(engine, sheet, 0.0f, 6.0, [](std::size_t) { return Sound::Unreadable; });
+
+    CHECK_EQ(engine.stats().unheard, 4);
+    CHECK_EQ(engine.stats().miss, 0);
+    CHECK_EQ(engine.stats().judgedNotes, 4);
+    CHECK(engine.allJudgements()[0].grade == game::HitGrade::Unheard);
+}
+
+TEST(an_unheard_note_keeps_the_combo_and_the_accuracy) {
+    const auto sheet = loadFourNotes();
+
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    playAlongWith(engine, sheet, 0.0f, 6.0, [](std::size_t index) {
+        return index == 2 ? Sound::Unreadable : Sound::Pitched;
+    });
+
+    CHECK_EQ(engine.stats().perfect, 3);
+    CHECK_EQ(engine.stats().unheard, 1);
+    CHECK_EQ(engine.stats().combo, 3);
+    CHECK_NEAR(engine.stats().accuracyPct, 100.0, 0.01);
+}
+
+TEST(a_wrong_note_with_unreadable_patches_is_still_a_miss) {
+    const auto sheet = loadFourNotes();
+
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    int frame = 0;
+    playAlongWith(engine, sheet, 100.0f, 6.0, [&frame](std::size_t) {
+        return (++frame % 3 == 0) ? Sound::Unreadable : Sound::Pitched;
+    });
+
+    CHECK_EQ(engine.stats().miss, 4);
+    CHECK_EQ(engine.stats().unheard, 0);
 }
 
 TEST(intonation_drift_is_reported_with_its_sign) {

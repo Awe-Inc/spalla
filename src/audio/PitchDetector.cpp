@@ -7,6 +7,7 @@ namespace fretless::audio {
 
 namespace {
 constexpr float kComparableDipRatio = 1.3f;
+constexpr float kMaxMultipleDriftSamples = 0.5f;
 }  // namespace
 
 void PitchDetector::prepare(const PitchDetectorConfig& config) {
@@ -36,6 +37,44 @@ std::size_t PitchDetector::firstComparableDip(std::size_t best) const noexcept {
         }
     }
     return best;
+}
+
+// On d(tau), not d'(tau): d' is multiplied by tau, which tilts the parabola
+// towards shorter lags, and on a high note tau is only ~18 samples.
+float PitchDetector::parabolicMinimum(std::size_t tau) const noexcept {
+    float refined = static_cast<float>(tau);
+    if (tau > 1 && tau + 1 <= tauMax_) {
+        const float s0 = difference_[tau - 1];
+        const float s1 = difference_[tau];
+        const float s2 = difference_[tau + 1];
+        const float denom = 2.0f * s1 - s2 - s0;
+        if (std::fabs(denom) > 1e-12f) {
+            refined += (s2 - s0) / (2.0f * denom);
+        }
+    }
+    return refined;
+}
+
+// A parabola through three samples misses the true minimum by a fraction of
+// a sample, which is five cents when the period is 18 samples. The same dip
+// recurs at every multiple of the period, and d(tau) is already computed up
+// to tauMax_, so interpolating the k-th dip and dividing by k shrinks that
+// error k times for free. A dip that wandered off the expected multiple is
+// noise, and the single-period estimate stands.
+float PitchDetector::refineOnAMultiple(float tau) const noexcept {
+    const auto multiple = static_cast<std::size_t>(static_cast<float>(tauMax_ - 1) / tau);
+    if (multiple < 2) {
+        return tau;
+    }
+    const auto expected = static_cast<std::size_t>(std::lround(tau * static_cast<float>(multiple)));
+    std::size_t dip = expected;
+    for (std::size_t candidate = expected - 1; candidate <= expected + 1 && candidate < tauMax_; ++candidate) {
+        if (difference_[candidate] < difference_[dip]) {
+            dip = candidate;
+        }
+    }
+    const float refined = parabolicMinimum(dip) / static_cast<float>(multiple);
+    return std::fabs(refined - tau) <= kMaxMultipleDriftSamples ? refined : tau;
 }
 
 PitchEstimate PitchDetector::process(const float* x, std::size_t count) noexcept {
@@ -100,16 +139,11 @@ PitchEstimate PitchDetector::process(const float* x, std::size_t count) noexcept
     }
 
     // ── YIN step 5: parabolic interpolation around the minimum ────────────
-    float refinedTau = static_cast<float>(tauEst);
-    if (tauEst > 1 && tauEst + 1 <= tauMax_) {
-        const float s0 = cumulative_[tauEst - 1];
-        const float s1 = cumulative_[tauEst];
-        const float s2 = cumulative_[tauEst + 1];
-        const float denom = 2.0f * s1 - s2 - s0;
-        if (std::fabs(denom) > 1e-12f) {
-            refinedTau += (s2 - s0) / (2.0f * denom);
-        }
+    float refinedTau = parabolicMinimum(tauEst);
+    if (refinedTau <= 0.0f) {
+        return {};
     }
+    refinedTau = refineOnAMultiple(refinedTau);
 
     if (refinedTau <= 0.0f) {
         return {};

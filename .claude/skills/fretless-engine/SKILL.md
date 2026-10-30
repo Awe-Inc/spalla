@@ -148,6 +148,9 @@ window and graded when it closes. The properties worth preserving:
   what separates a real note from a scoop or a squeak.
 - Notes under 120 ms are graded on onset alone — there is not enough signal to
   average intonation.
+- Sound the detector cannot read is **not ouvida** (`Unheard`), not a miss:
+  it is the microphone's failure, not the player's, so it keeps the combo and
+  leaves accuracy alone. Silence is still a miss.
 - Onset error is tracked separately from pitch, so timing and intonation can
   be practised independently.
 - The window reaches `onsetToleranceSec` past the written end only for a late
@@ -198,6 +201,27 @@ up to a bar.
   band limits, weak fundamental, vibrato, 10/5/3 dB noise, an out-of-tune
   player) holds it; any change to the detector keeps that bank green, and a
   bank fed only clean sines proves nothing about a real microphone.
+- **High notes read sharp.** A clean Mi7 came out +5.4 cents (Lá6 +3.4,
+  Mi6 +1.8), enough to push a well-tuned note out of Perfect. The parabola
+  was fitted on d', which is multiplied by tau and so tilts towards shorter
+  lags, and at tau ≈ 18 samples a fraction of a sample is several cents.
+  `parabolicMinimum` fits on d(tau), and `refineOnAMultiple` re-fits the dip
+  at the k-th multiple of the period and divides by k, keeping the
+  single-period estimate if the multiple drifts more than half a sample.
+  `pitch_robustness_reads_a_clean_tone_without_bias` (|mean| ≤ 0.5 cent across
+  the compass) holds it.
+- **A weak microphone turned a right note into a Miss.** Sound was there
+  (rms above the gate) but no frame reached the confidence threshold, so the
+  note had no in-tune frames and was graded wrong, broke the combo and cost
+  accuracy. Now a frame flagged `kFlagLowConfidence` counts as unreadable, and
+  a note with no heard verdict whose unreadable frames outnumber the
+  confidently off-tune ones (and reach the voiced-ratio floor) is
+  `HitGrade::Unheard`: 0 points, combo kept, out of the accuracy denominator.
+  A confidently read wrong pitch still wins and stays a Miss. Three tests in
+  `test_game_engine.cpp` hold it; the web skips Unheard in the measure map
+  and in the perfect streak, and `creditedAccuracyPct` counts Unheard
+  against the saved result once it is more than half the notes, so a dead
+  microphone cannot earn stars from the two notes it caught.
 
 ## House style
 

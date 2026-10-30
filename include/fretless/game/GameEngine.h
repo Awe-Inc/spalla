@@ -41,9 +41,14 @@ enum class HitGrade : std::uint8_t {
     Great,
     Good,
     Miss,
+    Unheard,
 };
 
 [[nodiscard]] const char* toString(HitGrade grade) noexcept;
+
+[[nodiscard]] constexpr bool isHit(HitGrade grade) noexcept {
+    return grade == HitGrade::Perfect || grade == HitGrade::Great || grade == HitGrade::Good;
+}
 
 struct JudgementConfig {
     /// Intonation bands, in cents from the expected pitch. 10 cents is about
@@ -94,8 +99,11 @@ struct GameStats {
     int   great        = 0;
     int   good         = 0;
     int   miss         = 0;
+    /// Sound was there but no pitch could be read from it: a microphone or a
+    /// room problem, not the player's. Left out of accuracy and of the combo.
+    int   unheard      = 0;
     int   judgedNotes  = 0;
-    float accuracyPct  = 0.0f;   ///< (perfect+great+good) / judged
+    float accuracyPct  = 0.0f;   ///< (perfect+great+good) / (judged - unheard)
     float meanAbsCents = 0.0f;   ///< intonation quality over the whole run
     /// Signed mean: a consistently negative value means the player plays flat,
     /// which is far more actionable feedback than a single accuracy number.
@@ -169,6 +177,8 @@ private:
     struct Accumulator {
         int    samples      = 0;
         int    voicedInTune = 0;
+        int    voicedOffTune = 0;
+        int    unreadable   = 0;
         double centsSum     = 0.0;
         float  worstCents   = 0.0f;
         double onsetTime    = -1.0;

@@ -46,6 +46,8 @@ public:
 
 private:
     [[nodiscard]] std::size_t firstComparableDip(std::size_t best) const noexcept;
+    [[nodiscard]] float parabolicMinimum(std::size_t tau) const noexcept;
+    [[nodiscard]] float refineOnAMultiple(float tau) const noexcept;
 
     PitchDetectorConfig config_{};
     std::vector<float>  difference_;   ///< d(tau),  YIN step 2

@@ -32,7 +32,7 @@ export function measureStats(score: Score, judgements: readonly NoteJudgement[])
   for (const judgement of judgements) {
     const event = score.events[judgement.eventIndex];
     const stat = event ? stats[event.measureIndex] : undefined;
-    if (!stat) continue;
+    if (!stat || judgement.grade === "Unheard") continue;
     stat.judged += 1;
     if (judgement.grade === "Miss") stat.misses += 1;
     else {

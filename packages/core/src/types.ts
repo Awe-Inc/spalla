@@ -138,7 +138,7 @@ export interface PitchFrame {
 
 export type SessionState = "idle" | "countdown" | "playing" | "paused" | "finished";
 
-export type Grade = "Perfect" | "Great" | "Good" | "Miss";
+export type Grade = "Perfect" | "Great" | "Good" | "Miss" | "Unheard";
 
 export interface GameStats {
   score: number;
@@ -148,6 +148,7 @@ export interface GameStats {
   great: number;
   good: number;
   miss: number;
+  unheard: number;
   judgedNotes: number;
   accuracyPct: number;
   meanAbsCents: number;

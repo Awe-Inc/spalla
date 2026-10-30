@@ -50,6 +50,12 @@ export function driftSentence(meanSignedCents: number): string {
   return "Afinação centrada.";
 }
 
+export function unheardSentence(unheard: number): string | null {
+  if (unheard <= 0) return null;
+  const notes = unheard === 1 ? "1 nota não foi ouvida pelo microfone e não contou" : `${unheard} notas não foram ouvidas pelo microfone e não contaram`;
+  return `${notes} contra você. Se o som saiu, aproxime o microfone ou confira o volume de entrada.`;
+}
+
 export function lastPlayedSentence(playedAt: number, now: number): string {
   const today = new Date(now);
   const played = new Date(playedAt);

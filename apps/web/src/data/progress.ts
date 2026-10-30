@@ -1,7 +1,7 @@
 import type { GameStats, NoteJudgement } from "@fretless/core";
 
 import { currentStreak, db, localDayKey, readUserStats, recordResult, starsFor, type ExerciseResult } from "./db";
-import { achievementsEarned, masteryOfExercise, masteryOfRun, SESSION_COMPLETE_XP, xpForRun, type MasteryLevel } from "./gamification";
+import { achievementsEarned, creditedAccuracyPct, masteryOfExercise, masteryOfRun, SESSION_COMPLETE_XP, xpForRun, type MasteryLevel } from "./gamification";
 import { medalProgress, newMedals, type EarnedMedal } from "./medals";
 
 export interface RunInput {
@@ -26,12 +26,13 @@ export interface RunOutcome {
 }
 
 export function buildResult(input: RunInput): ExerciseResult {
-  const stars = starsFor(input.stats.accuracyPct, input.bpm, input.writtenBpm);
-  const base = { accuracyPct: input.stats.accuracyPct, bpm: input.bpm, withDrone: input.withDrone, fromMemory: input.fromMemory };
+  const accuracyPct = creditedAccuracyPct(input.stats);
+  const stars = starsFor(accuracyPct, input.bpm, input.writtenBpm);
+  const base = { accuracyPct, bpm: input.bpm, withDrone: input.withDrone, fromMemory: input.fromMemory };
   return {
     exerciseId: input.exerciseId,
     playedAt: input.playedAt,
-    accuracyPct: input.stats.accuracyPct,
+    accuracyPct,
     meanSignedCents: input.stats.meanSignedCents,
     bpm: input.bpm,
     stars,

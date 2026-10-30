@@ -79,6 +79,7 @@ export function toneColor(tone: NoteTone, palette: Palette): { color: string; al
       return { color: palette.close, alpha: 0.9 };
     case "Miss":
       return { color: palette.off, alpha: 0.9 };
+    case "Unheard":
     case "unjudged":
     default:
       return { color: palette.ink, alpha: PAST_ALPHA };

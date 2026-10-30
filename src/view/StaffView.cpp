@@ -50,6 +50,7 @@ using namespace fretless::app::theme;
         case game::HitGrade::Great:   return kGreat;
         case game::HitGrade::Good:    return kGood;
         case game::HitGrade::Miss:    return kMiss;
+        case game::HitGrade::Unheard: return kTextMuted;
         case game::HitGrade::None:    break;
     }
     return kTextPrimary;

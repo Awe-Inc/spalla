@@ -62,6 +62,7 @@ function barFill(tone: NoteTone, stringColor: string, palette: Palette): { color
       return { color: palette.close, alpha: JUDGED_ALPHA };
     case "Miss":
       return { color: palette.off, alpha: JUDGED_ALPHA };
+    case "Unheard":
     case "unjudged":
     default:
       return { color: stringColor, alpha: PAST_ALPHA };

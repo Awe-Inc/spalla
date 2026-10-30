@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameStats, NoteJudgement } from "@fretless/core";
 
-import { achievementsEarned, levelForXp, longestPerfectStreak, masteryOfRun, xpForRun } from "./gamification";
+import { achievementsEarned, creditedAccuracyPct, levelForXp, longestPerfectStreak, masteryOfRun, xpForRun } from "./gamification";
 
 function judgements(grades: NoteJudgement["grade"][]): NoteJudgement[] {
   return grades.map((grade, eventIndex) => ({ eventIndex, grade }) as unknown as NoteJudgement);
@@ -20,6 +20,11 @@ describe("xpForRun", () => {
   it("resets the multiplier on a miss", () => {
     const run = judgements([...Array.from({ length: 21 }, () => "Perfect" as const), "Miss", "Perfect"]);
     expect(xpForRun(run)).toBe(20 * 3 + 6 + 3);
+  });
+
+  it("keeps the multiplier across a note the microphone did not hear", () => {
+    const run = judgements([...Array.from({ length: 21 }, () => "Perfect" as const), "Unheard", "Perfect"]);
+    expect(xpForRun(run)).toBe(20 * 3 + 6 + 6);
   });
 });
 
@@ -55,5 +60,21 @@ describe("levelForXp", () => {
     expect(levelForXp(0)).toEqual({ level: 1, intoLevel: 0, needed: 100 });
     expect(levelForXp(100)).toEqual({ level: 2, intoLevel: 0, needed: 125 });
     expect(levelForXp(260)).toEqual({ level: 3, intoLevel: 35, needed: 156 });
+  });
+});
+
+describe("creditedAccuracyPct", () => {
+  const stats = (perfect: number, unheard: number, miss = 0) => {
+    const judgedNotes = perfect + unheard + miss;
+    const heard = judgedNotes - unheard;
+    return { perfect, great: 0, good: 0, unheard, judgedNotes, accuracyPct: heard > 0 ? (perfect / heard) * 100 : 0 };
+  };
+
+  it("keeps the engine's accuracy while most notes were heard", () => {
+    expect(creditedAccuracyPct(stats(8, 2))).toBe(100);
+  });
+
+  it("counts unheard notes against a run where the microphone missed most of them", () => {
+    expect(creditedAccuracyPct(stats(2, 8))).toBe(20);
   });
 });

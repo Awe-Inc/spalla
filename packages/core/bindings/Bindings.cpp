@@ -234,6 +234,7 @@ val statsToVal(const game::GameStats& s) {
     o.set("great", s.great);
     o.set("good", s.good);
     o.set("miss", s.miss);
+    o.set("unheard", s.unheard);
     o.set("judgedNotes", s.judgedNotes);
     o.set("accuracyPct", s.accuracyPct);
     o.set("meanAbsCents", s.meanAbsCents);
@@ -248,6 +249,7 @@ const char* gradeId(game::HitGrade grade) {
         case game::HitGrade::Great:   return "Great";
         case game::HitGrade::Good:    return "Good";
         case game::HitGrade::Miss:    return "Miss";
+        case game::HitGrade::Unheard: return "Unheard";
         case game::HitGrade::None:    break;
     }
     return "Miss";

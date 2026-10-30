@@ -23,6 +23,7 @@ using namespace fretless::app::theme;
         case game::HitGrade::Great:   return kGreat;
         case game::HitGrade::Good:    return kGood;
         case game::HitGrade::Miss:    return kMiss;
+        case game::HitGrade::Unheard: return kTextMuted;
         case game::HitGrade::None:    break;
     }
     return kTextMuted;
@@ -53,7 +54,7 @@ void HighwayView::syncJudgements(const game::GameEngine& game, const score::Scor
         const int row = rowForString(score.events[judgement.eventIndex].suggestedString);
         flashes_.push_back({row, 1.0f, judgement.grade});
         popups_.push_back({1.0f, row, judgement.grade, judgement.comboAfter});
-        if (judgement.grade != game::HitGrade::Miss) {
+        if (game::isHit(judgement.grade)) {
             hitLinePulse_ = 1.0f;
         }
     }
@@ -224,7 +225,7 @@ void HighwayView::draw(render::Renderer2D& renderer,
         renderer.drawText(fontSmall, hitX + 40.0f,
                           laneTop(popup.lane) + lane * 0.5f - rise,
                           game::toString(popup.grade), color);
-        if (popup.combo >= 5 && popup.grade != game::HitGrade::Miss) {
+        if (popup.combo >= 5 && game::isHit(popup.grade)) {
             char combo[24];
             std::snprintf(combo, sizeof(combo), "x%d", popup.combo);
             renderer.drawText(fontSmall, hitX + 40.0f,

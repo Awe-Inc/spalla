@@ -17,7 +17,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (107 cases) + vitest core (14) + vitest web (359); API: 44 em apps/api
+pnpm test                          # WASM harness (111 cases) + vitest core (14) + vitest web (365); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
@@ -36,7 +36,7 @@ A web fala com a API em `VITE_API_URL` (`apps/web/.env.example`); sem ela, as á
 admin mostram que a plataforma está fora do ar e o resto do app segue local.
 
 `packages/core/scripts/build.mjs` finds `emcmake` in `%USERPROFILE%\emsdk` and Ninja through `vswhere`. The native
-test binary is compiled to `dist/fretless_core_tests.cjs` too, so the same 108 cases run in both worlds (the
+test binary is compiled to `dist/fretless_core_tests.cjs` too, so the same 112 cases run in both worlds (the
 threaded ring-buffer case is skipped without pthreads).
 
 Ports are fixed in `apps/web/vite.config.ts` (`strictPort`): 5180 dev, 4180 preview. Never change them to a port

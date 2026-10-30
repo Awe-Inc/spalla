@@ -8,10 +8,20 @@ export const COMBO_MULTIPLIER_AT = 20;
 export const COMBO_MULTIPLIER = 2;
 export const SESSION_COMPLETE_XP = 50;
 
+export function creditedAccuracyPct(stats: Pick<GameStats, "accuracyPct" | "unheard" | "judgedNotes" | "perfect" | "great" | "good">): number {
+  if (stats.judgedNotes === 0 || stats.unheard * 2 <= stats.judgedNotes) return stats.accuracyPct;
+  return ((stats.perfect + stats.great + stats.good) / stats.judgedNotes) * 100;
+}
+
+function nextPerfectStreak(streak: number, judgement: NoteJudgement): number {
+  if (judgement.grade === "Unheard") return streak;
+  return judgement.grade === "Perfect" ? streak + 1 : 0;
+}
+
 export function xpForRun(judgements: readonly NoteJudgement[]): number {
   let perfectStreak = 0;
   return judgements.reduce((xp, judgement) => {
-    perfectStreak = judgement.grade === "Perfect" ? perfectStreak + 1 : 0;
+    perfectStreak = nextPerfectStreak(perfectStreak, judgement);
     const multiplier = perfectStreak > COMBO_MULTIPLIER_AT ? COMBO_MULTIPLIER : 1;
     if (judgement.grade === "Perfect") return xp + XP_PERFECT * multiplier;
     if (judgement.grade === "Great") return xp + XP_GREAT;
@@ -21,7 +31,7 @@ export function xpForRun(judgements: readonly NoteJudgement[]): number {
 
 export function perfectStreakActive(judgements: readonly NoteJudgement[]): number {
   let streak = 0;
-  for (const judgement of judgements) streak = judgement.grade === "Perfect" ? streak + 1 : 0;
+  for (const judgement of judgements) streak = nextPerfectStreak(streak, judgement);
   return streak;
 }
 
@@ -91,7 +101,7 @@ export function longestPerfectStreak(judgements: readonly NoteJudgement[]): numb
   let longest = 0;
   let current = 0;
   for (const judgement of judgements) {
-    current = judgement.grade === "Perfect" ? current + 1 : 0;
+    current = nextPerfectStreak(current, judgement);
     longest = Math.max(longest, current);
   }
   return longest;

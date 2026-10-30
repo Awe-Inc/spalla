@@ -272,6 +272,7 @@ void HudView::drawResults(render::Renderer2D& renderer, const render::FontSet& f
         {stats.great,   kGreat,   "ótimas"},
         {stats.good,    kGood,    "boas"},
         {stats.miss,    kMiss,    "erradas"},
+        {stats.unheard, kTextMuted, "não ouvidas"},
     };
     for (const auto& segment : segments) {
         const float width = barW * static_cast<float>(segment.count) /

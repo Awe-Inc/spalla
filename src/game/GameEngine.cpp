@@ -26,6 +26,7 @@ const char* toString(HitGrade grade) noexcept {
         case HitGrade::Great:   return "ÓTIMO";
         case HitGrade::Good:    return "BOM";
         case HitGrade::Miss:    return "ERROU";
+        case HitGrade::Unheard: return "NÃO OUVIDA";
         case HitGrade::None:    break;
     }
     return "";
@@ -173,6 +174,9 @@ void GameEngine::accumulate(const audio::PitchFrame& frame) {
 
     ++acc_.samples;
     if (!voiced) {
+        if ((frame.flags & audio::kFlagLowConfidence) != 0u) {
+            ++acc_.unreadable;
+        }
         return;
     }
     acc_.lastCents = cents;
@@ -185,6 +189,8 @@ void GameEngine::accumulate(const audio::PitchFrame& frame) {
             acc_.onsetSeen = true;
             acc_.onsetTime = songTime_;
         }
+    } else {
+        ++acc_.voicedOffTune;
     }
 }
 
@@ -267,7 +273,22 @@ void GameEngine::judgeCurrentNote(double atTime) {
     const float requiredRatio = isShort ? 0.0f : config_.minVoicedRatio;
     const bool  heard = acc_.voicedInTune > 0 && judgement.voicedRatio >= requiredRatio;
 
-    if (!heard) {
+    // Sound with no readable pitch is what a weak microphone, a noise
+    // suppressor or a note above the detector's reach looks like. Calling it
+    // a miss would teach the player to distrust a note they played right; a
+    // pitch that was read and was wrong still outweighs it and stays a miss.
+    const float unreadableRatio = (acc_.samples > 0)
+        ? static_cast<float>(acc_.unreadable) / static_cast<float>(acc_.samples)
+        : 0.0f;
+    const bool unheard = !heard && acc_.unreadable > 0 &&
+                         acc_.unreadable > acc_.voicedOffTune &&
+                         unreadableRatio >= requiredRatio;
+
+    if (unheard) {
+        judgement.grade  = HitGrade::Unheard;
+        judgement.points = 0;
+        ++stats_.unheard;
+    } else if (!heard) {
         judgement.grade      = HitGrade::Miss;
         judgement.meanCents  = 0.0f;
         judgement.points     = 0;
@@ -312,9 +333,11 @@ void GameEngine::judgeCurrentNote(double atTime) {
     judgement.comboAfter = stats_.combo;
     stats_.score += judgement.points;
     ++stats_.judgedNotes;
-    stats_.accuracyPct =
-        100.0f * static_cast<float>(stats_.perfect + stats_.great + stats_.good) /
-        static_cast<float>(stats_.judgedNotes);
+    const int heardNotes = stats_.judgedNotes - stats_.unheard;
+    stats_.accuracyPct = (heardNotes > 0)
+        ? 100.0f * static_cast<float>(stats_.perfect + stats_.great + stats_.good) /
+              static_cast<float>(heardNotes)
+        : 0.0f;
 
     recent_.push_back(judgement);
     if (recent_.size() > kMaxRecentJudgements) {
