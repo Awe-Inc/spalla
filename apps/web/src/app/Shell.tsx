@@ -64,7 +64,7 @@ function navClass({ isActive }: { isActive: boolean }): string {
 }
 
 function bottomClass({ isActive }: { isActive: boolean }): string {
-  const base = "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md text-caption font-medium transition-colors duration-fast ease-spalla";
+  const base = "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md text-caption font-medium tracking-tight transition-colors duration-fast ease-spalla";
   return isActive ? `${base} text-primary` : `${base} text-ink-muted hover:text-ink`;
 }
 
@@ -218,7 +218,7 @@ export function Shell() {
 
       <nav
         aria-label="Áreas"
-        className="fixed inset-x-0 bottom-0 z-20 flex gap-1 border-t border-hairline bg-surface/95 px-2 pb-[max(env(safe-area-inset-bottom),6px)] pt-1.5 backdrop-blur-sm lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-hairline bg-surface/95 px-1 pb-[max(env(safe-area-inset-bottom),6px)] pt-1.5 backdrop-blur-sm lg:hidden"
       >
         {AREAS.map((area) => (
           <NavLink key={area.to} to={area.to} end={area.to === "/"} className={bottomClass}>

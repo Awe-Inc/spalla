@@ -150,8 +150,8 @@ export function ProgressRing({ value, max, caption, size = 112 }: ProgressRingPr
 export function HeadphoneNotice({ onConfirm }: { onConfirm: () => void }) {
   return (
     <aside className="flex flex-wrap items-center gap-4 rounded-md bg-info-soft p-4 text-ink" role="note">
-      <Icon name="fone" className="size-6 text-info" />
-      <p className="flex-1 text-body">Este exercício toca uma nota pedal. Use fone para o microfone ouvir só o violino.</p>
+      <Icon name="fone" className="size-6 shrink-0 text-info" />
+      <p className="min-w-0 flex-1 basis-56 text-body">Este exercício toca uma nota pedal. Use fone para o microfone ouvir só o violino.</p>
       <Button variant="secondary" onClick={onConfirm}>
         Estou de fone
       </Button>

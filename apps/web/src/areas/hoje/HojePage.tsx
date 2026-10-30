@@ -178,9 +178,14 @@ export function HojePage() {
               </p>
             </div>
             {today.coreReady && nextItem ? (
-              <ButtonLink variant="primary" size="lg" icon="play" to={nextItem.playPath} state={FROM_TODAY} className="w-full min-w-0">
-                <span className="truncate">Tocar {nextItem.title}</span>
-              </ButtonLink>
+              <div className="grid w-full gap-2">
+                <p className="text-small text-ink-muted md:text-center">
+                  Próximo: <span className="font-semibold text-ink">{nextItem.title}</span>
+                </p>
+                <ButtonLink variant="primary" size="lg" icon="play" to={nextItem.playPath} state={FROM_TODAY} className="w-full" aria-label={`Tocar agora: ${nextItem.title}`}>
+                  Tocar agora
+                </ButtonLink>
+              </div>
             ) : null}
           </div>
 

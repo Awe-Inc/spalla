@@ -428,3 +428,8 @@ send never post the same results twice. The session planner (`planSession`) assi
   `devOnlyRoutes(import.meta.env.DEV)` (`app/devRoutes.ts`, testada), que no build devolve `[]` e tira a página do
   bundle; em produção `/componentes` cai na 404. Regra: nada de catálogo, debug ou ferramenta interna com link na
   interface nem rota fora do `devOnlyRoutes`.
+- **Acento quebrado na tela ("VocÃª", "execuÃ§Ãµes").** O `ProgressoPage.tsx` foi regravado por um script que leu o
+  arquivo como Latin-1 e escreveu de volta em UTF-8, codificando cada acento duas vezes; tsc, testes e build passaram
+  e só o navegador mostrou. `app/encoding.test.ts` varre todo `.ts`/`.tsx` de `src` atrás de `Ã`/`Â` seguidos de byte
+  de continuação. Regra: script que regrava fonte lê e escreve com `utf8` explícito (Node `readFileSync(p, "utf8")`;
+  no PowerShell 5.1 `Get-Content -Encoding utf8`/`Set-Content -Encoding utf8`), nunca o padrão do sistema.
