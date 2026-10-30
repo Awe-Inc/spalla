@@ -188,6 +188,16 @@ up to a bar.
   as soon as a frame past its written end is something else, and
   `a_fast_run_played_in_tune_has_no_misses` holds it. Any change to the window:
   test a fast run, not only quarter notes.
+- **In room noise YIN reads high notes an octave (or more) low.** At 5 dB SNR
+  36–100% of the confident frames of Lá4…Mi7 came out as a sub-harmonic, so a
+  note played right was graded wrong. No dip crosses the 0.15 threshold under
+  noise, the fallback takes the global minimum of d', and the cumulative
+  normalisation makes every multiple of the period look slightly deeper than
+  the period itself. `PitchDetector::firstComparableDip` takes the shortest dip
+  within 1.3× of the best one. `tests/test_pitch_robustness.cpp` (microphone
+  band limits, weak fundamental, vibrato, 10/5/3 dB noise, an out-of-tune
+  player) holds it; any change to the detector keeps that bank green, and a
+  bank fed only clean sines proves nothing about a real microphone.
 
 ## House style
 

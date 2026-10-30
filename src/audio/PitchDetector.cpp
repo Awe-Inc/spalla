@@ -5,6 +5,10 @@
 
 namespace fretless::audio {
 
+namespace {
+constexpr float kComparableDipRatio = 1.3f;
+}  // namespace
+
 void PitchDetector::prepare(const PitchDetectorConfig& config) {
     config_ = config;
 
@@ -16,6 +20,22 @@ void PitchDetector::prepare(const PitchDetectorConfig& config) {
     // Allocate once, here. process() must never touch the allocator.
     difference_.assign(tauMax_ + 2, 0.0f);
     cumulative_.assign(tauMax_ + 2, 0.0f);
+}
+
+// Under room noise no dip reaches the absolute threshold, and the cumulative
+// normalisation makes every multiple of the period look slightly better than
+// the period itself, so the global minimum lands an octave or more low. The
+// true period is the shortest dip that is about as deep as the best one.
+std::size_t PitchDetector::firstComparableDip(std::size_t best) const noexcept {
+    const float limit = cumulative_[best] * kComparableDipRatio;
+    for (std::size_t tau = tauMin_ + 1; tau < best; ++tau) {
+        const bool isDip = cumulative_[tau] <= cumulative_[tau - 1] &&
+                           cumulative_[tau] <= cumulative_[tau + 1];
+        if (isDip && cumulative_[tau] <= limit) {
+            return tau;
+        }
+    }
+    return best;
 }
 
 PitchEstimate PitchDetector::process(const float* x, std::size_t count) noexcept {
@@ -76,7 +96,7 @@ PitchEstimate PitchDetector::process(const float* x, std::size_t count) noexcept
         if (cumulative_[best] >= 1.0f) {
             return {};
         }
-        tauEst = best;
+        tauEst = firstComparableDip(best);
     }
 
     // ── YIN step 5: parabolic interpolation around the minimum ────────────

@@ -45,6 +45,8 @@ public:
     [[nodiscard]] const PitchDetectorConfig& config() const noexcept { return config_; }
 
 private:
+    [[nodiscard]] std::size_t firstComparableDip(std::size_t best) const noexcept;
+
     PitchDetectorConfig config_{};
     std::vector<float>  difference_;   ///< d(tau),  YIN step 2
     std::vector<float>  cumulative_;   ///< d'(tau), YIN step 3
