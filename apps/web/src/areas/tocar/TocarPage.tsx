@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { completeAssignmentsAfterRun } from "@/account/classAssignments";
+import { syncPracticeInBackground } from "@/account/practiceSync";
 import { useSettings } from "@/app/settings";
 import { useTodayBlock } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
@@ -170,7 +171,8 @@ export function TocarPage() {
         setOutcome(saved);
         return completeAssignmentsAfterRun(resultId)
           .then((completed) => setCompletedTasks(completed.map((assignment) => `Tarefa de ${assignment.teacherName} concluída: ${assignment.title}`)))
-          .catch(() => undefined);
+          .catch(() => undefined)
+          .finally(() => void syncPracticeInBackground());
       })
       .catch(() => setSaveError("O resultado não foi salvo neste aparelho. As estrelas valem só por agora."));
     accompaniment.stopDrone();

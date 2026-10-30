@@ -5,7 +5,7 @@ import { api, apiBlob, errorMessage, isPlatformEnabled } from "@/api/client";
 import type { AccountSession, Me } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { MIN_PASSWORD_LENGTH } from "@/account/forms";
-import { syncPractice } from "@/account/practiceSync";
+import { syncPracticeOnce } from "@/account/practiceSync";
 import { can, isAdminUser, isStudentUser, isTeacherUser, logout, useAccount } from "@/account/store";
 import { FormError, formatDateTime, LoadState, Notice } from "@/account/ui";
 import { Badge, TextAreaField, TextField } from "@/design/fields";
@@ -80,7 +80,7 @@ function SyncCard({ user }: { user: Me }) {
     setError(null);
     setMessage(null);
     try {
-      const outcome = await syncPractice(user.id);
+      const outcome = await syncPracticeOnce(user.id);
       setMessage(outcome.sent === 0 ? "Nada novo para enviar." : `${outcome.inserted} sessões novas enviadas ao professor.`);
     } catch (cause) {
       setError(errorMessage(cause));

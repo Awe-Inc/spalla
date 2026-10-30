@@ -1,6 +1,8 @@
-import { api } from "@/api/client";
+import { api, isPlatformEnabled } from "@/api/client";
 import type { PracticeUpload, PracticeUploadResult } from "@/api/types";
 import { db, type ExerciseResult } from "@/data/db";
+
+import { isStudentUser, useAccount } from "./store";
 
 export const SYNC_BATCH_SIZE = 500;
 const DEVICE_KEY = "fretless-dispositivo";
@@ -71,4 +73,23 @@ export async function syncPractice(userId: string): Promise<SyncOutcome> {
     if (batch.length < SYNC_BATCH_SIZE) break;
   }
   return { sent, inserted };
+}
+
+let inFlight: Promise<SyncOutcome> | null = null;
+
+export function syncPracticeOnce(userId: string): Promise<SyncOutcome> {
+  inFlight ??= syncPractice(userId).finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+export async function syncPracticeInBackground(): Promise<SyncOutcome | null> {
+  const { token, user } = useAccount.getState();
+  if (!isPlatformEnabled() || token === null || !isStudentUser(user) || !user) return null;
+  try {
+    return await syncPracticeOnce(user.id);
+  } catch {
+    return null;
+  }
 }

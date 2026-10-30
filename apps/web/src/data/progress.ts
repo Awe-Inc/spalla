@@ -2,7 +2,7 @@ import type { GameStats, NoteJudgement } from "@fretless/core";
 
 import { currentStreak, db, localDayKey, readUserStats, recordResult, starsFor, type ExerciseResult } from "./db";
 import { achievementsEarned, creditedAccuracyPct, masteryOfExercise, masteryOfRun, SESSION_COMPLETE_XP, xpForRun, type MasteryLevel } from "./gamification";
-import { medalProgress, newMedals, type EarnedMedal } from "./medals";
+import { medalProgress, medalsEarnedCount, missingSentence, nearestMedals, newMedals, rankOf, type EarnedMedal, type Rank } from "./medals";
 
 export interface RunInput {
   exerciseId: string;
@@ -23,7 +23,11 @@ export interface RunOutcome {
   masteryBefore: MasteryLevel;
   newAchievements: string[];
   newMedals: EarnedMedal[];
+  closeMedals: string[];
+  rankUp: Rank | null;
 }
+
+const CLOSE_MEDALS_SHOWN = 2;
 
 export function buildResult(input: RunInput): ExerciseResult {
   const accuracyPct = creditedAccuracyPct(input.stats);
@@ -64,8 +68,20 @@ export async function saveRun(input: RunInput): Promise<RunOutcome> {
     await db.achievements.bulkAdd(newAchievements.map((id) => ({ id, unlockedAt: input.playedAt })));
   }
 
-  const earnedMedals = newMedals(medalsBefore, medalProgress({ results, days, frozenDays: stats.frozenDays }));
-  return { stars: result.stars, xp: result.xpEarned ?? 0, mastery: (result.masteryLevel ?? 0) as MasteryLevel, masteryBefore, newAchievements, newMedals: earnedMedals };
+  const medalsAfter = medalProgress({ results, days, frozenDays: stats.frozenDays });
+  const earnedMedals = newMedals(medalsBefore, medalsAfter);
+  const rankBefore = rankOf(medalsEarnedCount(medalsBefore)).current;
+  const rankAfter = rankOf(medalsEarnedCount(medalsAfter)).current;
+  return {
+    stars: result.stars,
+    xp: result.xpEarned ?? 0,
+    mastery: (result.masteryLevel ?? 0) as MasteryLevel,
+    masteryBefore,
+    newAchievements,
+    newMedals: earnedMedals,
+    closeMedals: nearestMedals(medalsAfter, CLOSE_MEDALS_SHOWN).map(missingSentence),
+    rankUp: rankAfter.minTiers > rankBefore.minTiers ? rankAfter : null,
+  };
 }
 
 export async function recordLoopCompleted(): Promise<void> {

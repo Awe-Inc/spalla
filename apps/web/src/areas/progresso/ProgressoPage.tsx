@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, localDayKey } from "@/data/db";
 import { levelForXp } from "@/data/gamification";
-import { medalProgress } from "@/data/medals";
+import { medalProgress, medalsEarnedCount, rankOf, rankSentence } from "@/data/medals";
 import { VoceTabs } from "@/areas/voce/VoceTabs";
 import { Card, EmptyState, PageHeader, ProgressRing } from "@/design/components";
 import { Skeleton, Stat, Stats, Tabs } from "@/design/layout";
@@ -18,9 +18,9 @@ import { Medalhas } from "./Medalhas";
 type View = "geral" | "conquistas" | "gravacoes";
 
 const VIEWS: { key: View; label: string }[] = [
-  { key: "geral", label: "Visão geral" },
+  { key: "geral", label: "VisÃ£o geral" },
   { key: "conquistas", label: "Conquistas e medalhas" },
-  { key: "gravacoes", label: "Gravações" },
+  { key: "gravacoes", label: "GravaÃ§Ãµes" },
 ];
 
 function viewOf(value: string | null): View {
@@ -42,46 +42,52 @@ export function ProgressoPage() {
   const level = levelForXp(stats.xp);
   const totalMinutes = Math.round(days.reduce((sum, day) => sum + day.minutes, 0));
   const medals = medalProgress({ results, days, frozenDays: stats.frozenDays });
+  const rank = rankOf(medalsEarnedCount(medals));
   const exercises = core.status === "ready" ? core.core.exercises : [];
 
   if (results.length === 0) {
     return (
       <>
-        <PageHeader title="Você" />
+        <PageHeader title="VocÃª" />
         <VoceTabs />
-        <EmptyState title="Ainda sem registros." description="Toque um exercício e o resultado aparece aqui: XP, sequência, calendário e estrelas por módulo." />
+        <EmptyState title="Ainda sem registros." description="Toque um exercÃ­cio e o resultado aparece aqui: XP, sequÃªncia, calendÃ¡rio e estrelas por mÃ³dulo." />
       </>
     );
   }
 
   return (
     <>
-      <PageHeader title="Você" />
+      <PageHeader title="VocÃª" />
       <VoceTabs />
       <Card tone="hero" className="mb-8 grid gap-6 md:grid-cols-[auto_1fr] md:items-center md:gap-10">
         <div className="flex items-center gap-5">
           <ProgressRing value={level.intoLevel} max={level.needed} caption={`de ${level.needed} XP`} size={112} />
           <div className="grid gap-1">
-            <span className="text-small text-ink-muted">Nível</span>
+            <span className="text-small text-ink-muted">NÃ­vel</span>
             <span className="font-display text-display leading-none">{level.level}</span>
             <span className="text-small text-ink-subtle tabular">{stats.xp} XP no total</span>
           </div>
         </div>
-        <Stats label="Resumo da prática" className="min-w-0">
+        <Stats label="Resumo da prÃ¡tica" className="min-w-0">
           <Stat value={streak} label={streak === 1 ? "dia seguido" : "dias seguidos"} tone="primary" />
           <Stat value={totalMinutes} label="minutos no total" />
-          <Stat value={results.length} label="execuções" />
+          <Stat value={results.length} label="execuÃ§Ãµes" />
         </Stats>
+        <Link to="/voce?ver=conquistas" className="grid gap-0.5 rounded-md bg-primary-soft px-4 py-3 transition-colors duration-fast ease-spalla hover:bg-surface-soft md:col-span-2" aria-label={`Patente ${rank.current.title}. ${rankSentence(rank)} Ver medalhas`}>
+          <span className="text-caption text-ink-muted">Patente na orquestra</span>
+          <span className="font-semibold text-ink">{rank.current.title}</span>
+          <span className="text-small text-primary">{rankSentence(rank)}</span>
+        </Link>
       </Card>
 
-      <Tabs label="Seções do progresso" items={VIEWS.map((item) => ({ to: item.key === "geral" ? "/voce" : `/voce?ver=${item.key}`, label: item.label, active: item.key === view, ...(item.key === "gravacoes" ? { count: recordings.length } : {}) }))} />
+      <Tabs label="SeÃ§Ãµes do progresso" items={VIEWS.map((item) => ({ to: item.key === "geral" ? "/voce" : `/voce?ver=${item.key}`, label: item.label, active: item.key === view, ...(item.key === "gravacoes" ? { count: recordings.length } : {}) }))} />
 
       {view === "geral" ? (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="min-w-0 lg:col-span-2">
             <Heatmap days={days} today={today} />
           </div>
-          <Card title="Estrelas por módulo" className="grid min-w-0 content-start gap-3 lg:row-span-2">
+          <Card title="Estrelas por mÃ³dulo" className="grid min-w-0 content-start gap-3 lg:row-span-2">
             {core.status === "ready" ? (
               <ul className="grid gap-3">
                 {core.core.curriculum.map((module) => {
@@ -106,7 +112,7 @@ export function ProgressoPage() {
                 })}
               </ul>
             ) : (
-              <div className="grid gap-3" aria-label="Carregando o método">
+              <div className="grid gap-3" aria-label="Carregando o mÃ©todo">
                 <Skeleton className="h-6 w-full" />
                 <Skeleton className="h-6 w-full" />
                 <Skeleton className="h-6 w-3/4" />
@@ -130,7 +136,7 @@ export function ProgressoPage() {
         recordings.length > 0 ? (
           <Gravacoes recordings={recordings} />
         ) : (
-          <EmptyState title="Nenhuma gravação ainda." description="Grave um trecho no Gravador para ouvir como você está tocando e comparar com o tempo." />
+          <EmptyState title="Nenhuma gravaÃ§Ã£o ainda." description="Grave um trecho no Gravador para ouvir como vocÃª estÃ¡ tocando e comparar com o tempo." />
         )
       ) : null}
     </>

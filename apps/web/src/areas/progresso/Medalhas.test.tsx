@@ -12,9 +12,19 @@ const days: PracticeDay[] = [{ day: "2026-10-28", minutes: 12, exercisesPlayed: 
 describe("Medalhas", () => {
   it("shows every medal with its tier and the distance to the next one", () => {
     render(<Medalhas medals={medalProgress({ results, days })} />);
-    expect(screen.getAllByRole("listitem")).toHaveLength(MEDALS.length);
+    expect(screen.getAllByRole("listitem").filter((item) => item.hasAttribute("aria-label"))).toHaveLength(MEDALS.length);
     expect(screen.getByRole("listitem", { name: "Arco em movimento: Bronze" })).toHaveTextContent("12 de 100 execuções para a prata.");
     expect(screen.getByRole("listitem", { name: "Presença: Ainda sem medalha" })).toHaveTextContent("1 de 7 dias para o bronze.");
-    expect(screen.getByText(`1 de ${MEDALS.length * 3} níveis de medalha`)).toBeInTheDocument();
+    expect(screen.getByText(`2 de ${MEDALS.length * 3} níveis de medalha`)).toBeInTheDocument();
+  });
+
+  it("groups the medals and shows the rank with the closest goals", () => {
+    render(<Medalhas medals={medalProgress({ results, days })} />);
+    expect(screen.getByRole("heading", { name: "Constância" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Técnica e afinação" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Repertório e coragem" })).toBeInTheDocument();
+    const rank = screen.getByRole("group", { name: "Sua patente" });
+    expect(rank).toHaveTextContent("Primeiro arco");
+    expect(rank).toHaveTextContent("Falta 1 medalha para Aprendiz de estante.");
   });
 });

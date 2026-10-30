@@ -119,22 +119,38 @@ function MeasureMap({ perMeasure }: { perMeasure: readonly MeasureStat[] }) {
 
 function Rewards({ outcome }: { outcome: RunOutcome }) {
   const items = [
+    ...(outcome.rankUp ? [{ key: "rank", title: `Nova patente: ${outcome.rankUp.title}`, description: outcome.rankUp.description }] : []),
+    ...outcome.newMedals.map((medal) => ({ key: `m-${medal.id}`, title: `Medalha: ${earnedMedalTitle(medal)}`, description: "Fica na sua galeria em Você › Progresso." })),
     ...outcome.newAchievements.map((id) => {
       const achievement = ACHIEVEMENTS.find((item) => item.id === id);
       return { key: `a-${id}`, title: `Conquista: ${achievement?.name ?? id}`, description: achievement?.description ?? "" };
     }),
-    ...outcome.newMedals.map((medal) => ({ key: `m-${medal.id}`, title: `Medalha: ${earnedMedalTitle(medal)}`, description: "Fica no seu Progresso, sem mudar nada no app." })),
   ];
-  if (items.length === 0) return null;
   return (
-    <ul className="grid w-full gap-2 text-left" aria-label="Conquistas e medalhas novas">
-      {items.map((item) => (
-        <li key={item.key} className="grid animate-rise gap-0.5 rounded-md bg-primary-soft px-4 py-3 motion-reduce:animate-none">
-          <span className="font-semibold text-ink">{item.title}</span>
-          {item.description ? <span className="text-small text-ink-muted">{item.description}</span> : null}
-        </li>
-      ))}
-    </ul>
+    <>
+      {items.length > 0 ? (
+        <ul className="grid w-full gap-2 text-left" aria-label="Conquistas e medalhas novas">
+          {items.map((item) => (
+            <li key={item.key} className="grid animate-rise gap-0.5 rounded-md bg-primary-soft px-4 py-3 motion-reduce:animate-none">
+              <span className="font-semibold text-ink">{item.title}</span>
+              {item.description ? <span className="text-small text-ink-muted">{item.description}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {outcome.closeMedals.length > 0 ? (
+        <section className="grid w-full gap-1 text-left" aria-label="Falta pouco">
+          <h3 className="text-small font-semibold text-ink-muted">Falta pouco</h3>
+          <ul className="grid gap-1">
+            {outcome.closeMedals.map((sentence) => (
+              <li key={sentence} className="text-small text-ink-muted">
+                {sentence}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isOverdue, pdfFileName, pendingCount, safeExternalUrl, safePlayPath } from "./lessons";
+import { completionMessage, doneToggleLabel, isOverdue, pdfFileName, pendingCount, safeExternalUrl, safePlayPath } from "./lessons";
 
 describe("safePlayPath", () => {
   it("accepts the paths the app builds for exercises and library pieces", () => {
@@ -45,5 +45,20 @@ describe("pdfFileName", () => {
     expect(pdfFileName("Escalas: Sol / Ré")).toBe("Escalas Sol Ré.pdf");
     expect(pdfFileName("apostila.PDF")).toBe("apostila.PDF");
     expect(pdfFileName("  ")).toBe("material.pdf");
+  });
+});
+
+describe("doneToggleLabel", () => {
+  it("tells how many finished tasks already have the teacher's feedback", () => {
+    expect(doneToggleLabel([{ feedback: "" }, { feedback: "Ótimo" }], false)).toBe("Ver as feitas (2, 1 com retorno)");
+    expect(doneToggleLabel([{ feedback: "" }], false)).toBe("Ver as feitas (1)");
+    expect(doneToggleLabel([{ feedback: "Ótimo" }], true)).toBe("Esconder as feitas");
+  });
+});
+
+describe("completionMessage", () => {
+  it("says where the task went after the click", () => {
+    expect(completionMessage("Escala de Lá", true)).toContain("marcada como feita");
+    expect(completionMessage("Escala de Lá", false)).toContain("voltou para as pendentes");
   });
 });

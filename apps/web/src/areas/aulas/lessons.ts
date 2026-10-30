@@ -29,3 +29,13 @@ export function pdfFileName(title: string): string {
   const base = title.replace(/[\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "material";
   return /\.pdf$/i.test(base) ? base : `${base}.pdf`;
 }
+
+export function doneToggleLabel(done: readonly Pick<StudentAssignment, "feedback">[], showing: boolean): string {
+  if (showing) return "Esconder as feitas";
+  const withFeedback = done.filter((assignment) => Boolean(assignment.feedback)).length;
+  return withFeedback === 0 ? `Ver as feitas (${done.length})` : `Ver as feitas (${done.length}, ${withFeedback} com retorno)`;
+}
+
+export function completionMessage(title: string, nextDone: boolean): string {
+  return nextDone ? `“${title}” marcada como feita. Seu professor já vê o recado.` : `“${title}” voltou para as pendentes.`;
+}

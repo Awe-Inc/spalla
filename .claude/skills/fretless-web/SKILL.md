@@ -19,6 +19,8 @@ pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
 pnpm test                          # WASM harness (120 cases) + vitest core (14) + vitest web (378); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
+pnpm --filter @fretless/web test:e2e:aulas   # professora + admin + aluno in three contexts against a throwaway API
+                                   # on 3410 (PGlite temp) and vite on 4180; muted; see docs/testes.md (~45 s)
 pnpm --filter @fretless/web test:e2e   # Playwright: vite on 4180 with VITE_JOGADOR_SINTETICO=1, Chromium plays
                                    # scales.1oct.69 and one CC0 song from Músicas with the synthetic
                                    # player (~55 s); first run needs
@@ -230,10 +232,18 @@ row, +50 when the day's session closes), five mastery levels per piece (`mastery
 `saveRun` after every saved result. The streak counts days whose XP met `dailyGoalXp`; a frozen day (legacy
 `userStats.frozenDays`) bridges the streak without counting. `currentStreak` keeps yesterday's streak alive while
 today is still open. Medals (`data/medals.ts`) are derived on read from `results` + `practiceDays`, never stored:
-seven of them, bronze/silver/gold thresholds, `longestStreak` is the best ever so a medal is never lost. They are
+fourteen of them in three groups (Constância, Técnica e afinação, Repertório e coragem), bronze/silver/gold thresholds,
+`longestStreak` is the best ever so a medal is never lost. Each tier earned counts toward an orchestra rank (`RANKS`:
+Primeiro arco → Solista, `rankOf`/`rankSentence`); `nearestMedals` + `missingSentence` give the "falta pouco" lines.
+"Cotovia" uses the local hour of `playedAt`; "Semana cheia" counts Monday-to-Sunday weeks; repertoire counts both
+`musica:` and `biblioteca:` results. They are
 cosmetic by design (the owner's rule, 28/10: reward without changing the experience) — nothing in the UI, sounds or
 palettes is gated by them; the resinas shop was removed and sépia and the three click sounds are free. `saveRun`
-compares `medalProgress` before and after the save and returns `newMedals` for the result screen. The session planner (`planSession`) assigns review blocks first (weak <70% → spaced), then new pieces
+compares `medalProgress` before and after the save and returns `newMedals`, `rankUp` and `closeMedals` for the result
+screen (rank-up first, then medals, then achievements, then "Falta pouco"). Progresso shows the rank in its hero, linking
+to the grouped gallery (`/voce?ver=conquistas`). After every saved run `TocarPage` calls `syncPracticeInBackground`
+(student logged in, platform on); `syncPracticeOnce` joins concurrent calls so the manual button and the automatic
+send never post the same results twice. The session planner (`planSession`) assigns review blocks first (weak <70% → spaced), then new pieces
 (<2★, lowest level), then the rest by spaced priority with the day's seed; lesson tasks win their block.
 
 ## Rules
@@ -251,6 +261,15 @@ compares `medalProgress` before and after the save and returns `newMedals` for t
 - No comments in TypeScript. What needs explaining goes in this file.
 
 ## Armadilhas
+
+- **Tarefa marcada como feita sumia sem aviso, e o retorno da professora ficava escondido** (30/10, achado pelo e2e de
+  aulas). Sintoma: o aluno clicava "Marcar como feita", a tarefa desaparecia da lista e o retorno só aparecia depois de
+  abrir "Ver as feitas", sem nenhum sinal de que havia retorno. Regra: toda ação que tira um item da tela confirma com
+  `Notice` (`completionMessage`), e o botão das feitas diz quantas têm retorno (`doneToggleLabel`).
+- **Prática só chegava à professora se o aluno lembrasse de apertar "Enviar prática agora"** (30/10). Regra: o envio é
+  automático depois de cada execução salva (`syncPracticeInBackground`), e qualquer chamada passa por
+  `syncPracticeOnce`, para o botão manual e o automático não mandarem a mesma prática duas vezes. O e2e de aulas prova:
+  o botão manual responde "Nada novo para enviar.".
 
 - **Subárvore clara dentro do Tocar escuro** (29/10, vista Página). Sintoma: `data-theme="light"` não fazia nada, porque
   os valores claros só existiam em `:root` e o Tocar força escuro. Regra: o bloco claro de `tokens.css` abre com

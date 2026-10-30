@@ -1,10 +1,32 @@
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult, PracticeDay } from "./db";
-import { earnedMedalTitle, longestStreak, medalProgress, medalSentence, newMedals, tierOf } from "./medals";
+import {
+  comebacks,
+  earlyDays,
+  earnedMedalTitle,
+  fullWeeks,
+  longestStreak,
+  MEDAL_GROUPS,
+  medalProgress,
+  MEDALS,
+  medalSentence,
+  medalShare,
+  missingSentence,
+  nearestMedals,
+  newMedals,
+  rankOf,
+  rankSentence,
+  RANKS,
+  tierOf,
+} from "./medals";
 
 function run(exerciseId: string, accuracyPct: number, stars: 0 | 1 | 2 | 3 = 1): ExerciseResult {
   return { exerciseId, accuracyPct, stars, playedAt: 0, meanSignedCents: 0, bpm: 60, durationSeconds: 60 };
+}
+
+function at(exerciseId: string, accuracyPct: number, stars: 0 | 1 | 2 | 3, playedAt: number, meanSignedCents = 0): ExerciseResult {
+  return { ...run(exerciseId, accuracyPct, stars), playedAt, meanSignedCents };
 }
 
 function day(key: string, minutes = 10): PracticeDay {
@@ -60,5 +82,76 @@ describe("medals", () => {
     expect(medalSentence(medals.get("dias")!)).toBe("7 de 30 dias para a prata.");
     const gold = medalProgress({ results: Array.from({ length: 500 }, () => run("x", 50)), days: [] }).find((medal) => medal.definition.id === "execucoes")!;
     expect(medalSentence(gold)).toBe("500 execuções. Ouro: não tem mais o que provar.");
+  });
+
+  it("gives every medal a group, so the gallery has no orphan", () => {
+    const groups = new Set(MEDAL_GROUPS.map((group) => group.id));
+    expect(MEDALS.every((medal) => groups.has(medal.group))).toBe(true);
+    expect(new Set(MEDALS.map((medal) => medal.id)).size).toBe(MEDALS.length);
+  });
+
+  it("counts library songs as repertoire too", () => {
+    const medals = progressById({ results: [run("biblioteca:ode", 80), run("musica:a.xml", 80), run("scales.1oct.69", 80)], days: [] });
+    expect(medals.get("musicas")?.count).toBe(2);
+  });
+
+  it("counts fine tuning only when both the drift and the accuracy are good", () => {
+    const results = [at("x", 85, 2, 1, 4), at("x", 85, 2, 2, -5), at("x", 70, 1, 3, 1), at("x", 95, 3, 4, 12)];
+    expect(progressById({ results, days: [] }).get("afinacao-fina")?.count).toBe(2);
+  });
+
+  it("counts distinct scales and distinct items explored", () => {
+    const results = [run("scales.1oct.69", 80), run("scales.1oct.69", 90), run("scales.2oct.62", 80), run("suzuki.twinkle.0", 80), run("musica:a.xml", 80)];
+    const medals = progressById({ results, days: [] });
+    expect(medals.get("escalas")?.count).toBe(2);
+    expect(medals.get("explorador")?.count).toBe(4);
+  });
+
+  it("counts a comeback only when the first try was weak and three stars came later", () => {
+    const results = [at("a", 50, 1, 1), at("a", 96, 3, 2), at("b", 90, 2, 1), at("b", 97, 3, 2), at("c", 40, 1, 1), at("c", 85, 2, 2)];
+    expect(comebacks(results)).toBe(1);
+    expect(comebacks([at("d", 97, 3, 5), at("d", 30, 1, 9)])).toBe(0);
+  });
+
+  it("counts long days and weeks with five practised days, Monday to Sunday", () => {
+    const week = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-25"].map((key) => day(key, 31));
+    const splitWeek = ["2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28"].map((key) => day(key));
+    expect(fullWeeks(week)).toBe(1);
+    expect(fullWeeks(splitWeek)).toBe(0);
+    expect(progressById({ results: [], days: week }).get("folego")?.count).toBe(5);
+  });
+
+  it("counts early mornings by local day, once per day", () => {
+    const morning = new Date(2026, 9, 20, 7, 30).getTime();
+    const sameMorning = new Date(2026, 9, 20, 8, 10).getTime();
+    const night = new Date(2026, 9, 21, 22, 0).getTime();
+    const dawn = new Date(2026, 9, 22, 3, 0).getTime();
+    expect(earlyDays([at("x", 80, 1, morning), at("x", 80, 1, sameMorning), at("x", 80, 1, night), at("x", 80, 1, dawn)])).toBe(1);
+  });
+
+  it("measures the share toward the next tier from the last threshold", () => {
+    const medals = progressById({ results: Array.from({ length: 55 }, () => run("x", 50)), days: [] });
+    expect(medalShare(medals.get("execucoes")!)).toBeCloseTo(0.5);
+    const gold = progressById({ results: Array.from({ length: 500 }, () => run("x", 50)), days: [] }).get("execucoes")!;
+    expect(medalShare(gold)).toBe(1);
+  });
+
+  it("puts the medals closest to the next tier first and skips the gold ones", () => {
+    const results = [...Array.from({ length: 8 }, (_, index) => run(`e${index}`, 50)), run("musica:a.xml", 50)];
+    const nearest = nearestMedals(medalProgress({ results, days: [] }), 2);
+    expect(nearest.map((medal) => medal.definition.id)).toEqual(["execucoes", "explorador"]);
+    expect(missingSentence(nearest[0]!)).toBe("Falta 1 execução para Arco em movimento de bronze.");
+  });
+
+  it("climbs the orchestra ranks with the medal tiers earned", () => {
+    expect(rankOf(0).current.title).toBe("Primeiro arco");
+    expect(rankOf(2)).toMatchObject({ next: { title: "Aprendiz de estante" }, missing: 1 });
+    expect(rankSentence(rankOf(2))).toBe("Falta 1 medalha para Aprendiz de estante.");
+    expect(rankOf(9).current.title).toBe("Músico de fila");
+    expect(rankSentence(rankOf(10))).toBe("Faltam 8 medalhas para Chefe de naipe.");
+    const top = rankOf(MEDALS.length * 3);
+    expect(top.current.title).toBe(RANKS[RANKS.length - 1]!.title);
+    expect(top.next).toBeNull();
+    expect(RANKS[RANKS.length - 1]!.minTiers).toBeLessThanOrEqual(MEDALS.length * 3);
   });
 });

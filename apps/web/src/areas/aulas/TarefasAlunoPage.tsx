@@ -6,13 +6,13 @@ import type { Lessons, StudentAssignment, StudentMaterial } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { assignmentProgress, refreshClassAssignments, setAssignmentDone } from "@/account/classAssignments";
 import { openPdf } from "@/account/files";
-import { formatDate, FormError, LoadState } from "@/account/ui";
+import { formatDate, FormError, LoadState, Notice } from "@/account/ui";
 import { Badge, TextAreaField } from "@/design/fields";
 import { db, type ExerciseResult } from "@/data/db";
 import { Button, ButtonLink, EmptyState, PageHeader } from "@/design/components";
 
 import { formatDueOn, ITEM_KIND_LABELS, todayIso } from "../professor/teaching";
-import { isOverdue, pendingCount, safeExternalUrl, safePlayPath } from "./lessons";
+import { completionMessage, doneToggleLabel, isOverdue, pendingCount, safeExternalUrl, safePlayPath } from "./lessons";
 
 const MAX_NOTE = 2000;
 
@@ -84,7 +84,7 @@ interface AssignmentCardProps {
   assignment: StudentAssignment;
   materials: StudentMaterial[];
   results: readonly ExerciseResult[];
-  onChanged: () => void;
+  onChanged: (message: string) => void;
 }
 
 function AssignmentCard({ assignment, materials, results, onChanged }: AssignmentCardProps) {
@@ -101,7 +101,7 @@ function AssignmentCard({ assignment, materials, results, onChanged }: Assignmen
     setError(null);
     try {
       await setAssignmentDone(assignment, nextDone, note.trim());
-      onChanged();
+      onChanged(nextDone === done ? "Recado salvo." : completionMessage(assignment.title, nextDone));
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {
@@ -171,6 +171,12 @@ export function TarefasAlunoPage() {
   const lessons = useApiData(loadLessons, []);
   const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
   const [showDone, setShowDone] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function changed(next: string) {
+    setMessage(next);
+    lessons.reload();
+  }
 
   return (
     <div className="grid gap-6">
@@ -194,21 +200,22 @@ export function TarefasAlunoPage() {
           const done = assignments.filter((assignment) => assignment.doneAt !== null);
           return (
             <div className="grid gap-4">
+              {message ? <Notice>{message}</Notice> : null}
               <p className="text-body text-ink-muted">{pendingCount(assignments) === 0 ? "Tudo em dia." : `${pendingCount(assignments)} para fazer.`}</p>
               <ul className="grid gap-4">
                 {open.map((assignment) => (
-                  <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} results={results} onChanged={lessons.reload} />
+                  <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} results={results} onChanged={changed} />
                 ))}
               </ul>
               {done.length > 0 ? (
                 <div className="grid gap-4">
                   <Button variant="ghost" className="justify-self-start" onClick={() => setShowDone((value) => !value)}>
-                    {showDone ? "Esconder as feitas" : `Ver as feitas (${done.length})`}
+                    {doneToggleLabel(done, showDone)}
                   </Button>
                   {showDone ? (
                     <ul className="grid gap-4">
                       {done.map((assignment) => (
-                        <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} results={results} onChanged={lessons.reload} />
+                        <AssignmentCard key={`${assignment.id}-${assignment.doneAt}`} assignment={assignment} materials={materials} results={results} onChanged={changed} />
                       ))}
                     </ul>
                   ) : null}

@@ -49,6 +49,7 @@ apps/web/dev-dist/
 
 # Playwright
 apps/web/test-results/
+apps/web/e2e-relatorio/
 apps/web/playwright-report/
 apps/api/.data/
 
