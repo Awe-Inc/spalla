@@ -1,7 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo } from "react";
 
-import { openClassTasks, refreshClassAssignments, useClassAssignments } from "@/account/classAssignments";
+import { openClassTasks, useClassAssignments } from "@/account/classAssignments";
 import { useSettings } from "@/app/settings";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, latestResultsByExercise, localDayKey, type ExerciseResult, type Routine, type RoutineBlock, type UserStats } from "@/data/db";
@@ -73,14 +73,6 @@ export function useTodayPlan(): TodayPlan {
     stats,
     coreReady: core.status === "ready",
   };
-}
-
-export function useClassAssignmentsRefresh(): void {
-  useEffect(() => {
-    const controller = new AbortController();
-    refreshClassAssignments(undefined, controller.signal).catch(() => undefined);
-    return () => controller.abort();
-  }, []);
 }
 
 export interface BlockGoal {

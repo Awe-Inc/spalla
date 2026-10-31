@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation, useMatches } from "react-router";
 
 import { isPlatformEnabled } from "@/api/client";
+import { useClassSync } from "@/account/classSync";
 import { isAdminUser, isStudentUser, isTeacherUser, refreshMe, useAccount } from "@/account/store";
 import type { Me } from "@/api/types";
 import { currentStreak, db, DEFAULT_USER_STATS, localDayKey } from "@/data/db";
@@ -189,6 +190,7 @@ function MobileHeader({ user }: { user: Me | null }) {
 export function Shell() {
   useApplyTheme();
   useRefreshAccount();
+  useClassSync();
   const location = useLocation();
   const onboardedAt = useSettings((state) => state.onboardedAt);
   const { areas: platformAreas, user } = usePlatformAreas();

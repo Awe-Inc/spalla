@@ -113,10 +113,10 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  /componentes), staffPaint.ts (palette and note/beam/slur/rest painters shared by both staves; rests come from
                                  staffLayout `restShape` and use the --font-music glyphs),
                                  Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
-apps/web/src/data/               db.ts (Dexie v9: results, routines, practiceDays, userStats,
+apps/web/src/data/               db.ts (Dexie v10: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections,
-                                 recordings + recordingFiles, classAssignments = cópia offline das tarefas da turma de
-                                 `GET /me/lessons`), moduleProgress.ts (moduleSummary: estrelas, tocados, minutos,
+                                 recordings + recordingFiles, classAssignments e classAnnouncements = cópia offline das
+                                 tarefas e avisos da turma de `GET /me/lessons`), moduleProgress.ts (moduleSummary: estrelas, tocados, minutos,
                                  nível firme e lista por nível de um módulo), exportCsv.ts (histórico em CSV: `;`, BOM,
                                  vírgula decimal, para o Excel em português), recordings.ts (gravador: metadados em `recordings`, bytes em
                                  `recordingFiles`, `pieceKey` = resultId, `?peca=&titulo=`, par antes/depois só da mesma
@@ -207,7 +207,10 @@ apps/api/src/                    Fastify 5 + Zod 4 + SQL puro; routes/{auth,teac
                                  auth/permissions.ts (catálogo de permissões e papéis do sistema), db/migrations
 apps/web/src/api/                client.ts (api.get/post/…, queryString, errorMessage), useApiData + LoadState, types
 apps/web/src/account/            classAssignments.ts (tarefas da turma: guarda no Dexie, progresso por item, conclui
-                                 sozinha após o saveRun no Tocar e no refresh; TarefasDaTurma em Estudar › Caderno), store da sessão, ui.tsx (só
+                                 sozinha após o saveRun no Tocar e no refresh; TarefasDaTurma em Estudar › Caderno), classSync.ts
+                                 (useClassSync no Shell: refresh ao abrir, ao voltar para a aba, ao reconectar e a cada
+                                 5 min com a aba visível, no mínimo 60 s entre dois), classAnnouncements.ts (avisos dos
+                                 últimos 7 dias → frase da faixa de avisos da Hoje), store da sessão, ui.tsx (só
                                  FormError, Notice, LoadState, RequireAccount e datas; campos e Badge vêm de design/fields),
                                  links.ts (signupLink), practiceSync, files (PDF autenticado)
 apps/web/src/areas/conta/        entrar, criar conta (convite e código de turma pela URL), minha conta

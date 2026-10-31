@@ -2,7 +2,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
 import { Link } from "react-router";
 
-import { useClassAssignments } from "@/account/classAssignments";
+import { announcementSentence, recentAnnouncements } from "@/account/classAnnouncements";
+import { useClassAnnouncements, useClassAssignments } from "@/account/classAssignments";
 import { useSettings } from "@/app/settings";
 import { fromState } from "@/areas/tocar/origin";
 import { db } from "@/data/db";
@@ -17,7 +18,7 @@ import { ButtonLink, Card, EmptyState, GoalDots, ProgressRing } from "@/design/c
 import { Icon, type IconName } from "@/design/icons";
 import { PageHeader, SkeletonList } from "@/design/layout";
 
-import { useClassAssignmentsRefresh, useTodayPlan } from "./useTodayPlan";
+import { useTodayPlan } from "./useTodayPlan";
 
 const STAGGER_MS = 40;
 const FROM_TODAY = fromState("/");
@@ -120,11 +121,14 @@ function useNotices(today: string): Notice[] {
   const suzuki = useLiveQuery(() => db.suzukiPieces.toArray(), []) ?? [];
   const lessonTasks = useLiveQuery(() => db.lessonTasks.toArray(), []) ?? [];
   const assignments = useClassAssignments();
+  const announcements = useClassAnnouncements();
   const lessonWeekday = useSettings((state) => state.lessonWeekday);
   const openTasks = splitTasks(lessonTasks).open.length + assignments.filter((assignment) => assignment.doneAt === null).length;
   const due = dueReviews(suzuki, today).length;
   const nextLesson = nextLessonSentence(lessonWeekday, new Date());
+  const announcement = announcementSentence(recentAnnouncements(announcements, Date.now()));
   const notices: Notice[] = [];
+  if (announcement) notices.push({ key: "avisos", icon: "aulas", text: announcement, to: "/aulas/turmas" });
   if (openTasks > 0) notices.push({ key: "tarefas", icon: "aulas", text: plural(openTasks, "tarefa da aula", "tarefas da aula"), to: "/estudar/caderno" });
   if (due > 0) notices.push({ key: "suzuki", icon: "repertorio", text: `Revisão Suzuki: ${plural(due, "peça", "peças")}`, to: "/repertorio/suzuki" });
   if (nextLesson) notices.push({ key: "aula", icon: "estudar", text: nextLesson.replace(/\.$/, ""), to: "/estudar/caderno" });
@@ -156,7 +160,6 @@ export function HojePage() {
   const notices = useNotices(today.today);
   const allDone = today.progress.total > 0 && today.progress.done === today.progress.total;
   const frozenToday = today.stats.frozenDays.includes(today.today);
-  useClassAssignmentsRefresh();
 
   useEffect(() => {
     if (allDone && !today.sessionCompleted) void grantSessionBonus(today.today);

@@ -1,8 +1,8 @@
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { api, isPlatformEnabled } from "@/api/client";
-import type { AssignmentItem, Lessons, StudentAssignment } from "@/api/types";
-import { db, type ExerciseResult, type StoredClassAssignment } from "@/data/db";
+import type { AssignmentItem, Lessons, StudentAnnouncement, StudentAssignment } from "@/api/types";
+import { db, type ExerciseResult, type StoredClassAnnouncement, type StoredClassAssignment } from "@/data/db";
 import type { ClassTaskItem } from "@/data/planner";
 
 import { isStudentUser, useAccount } from "./store";
@@ -83,11 +83,20 @@ function canUseClassAssignments(): boolean {
   return isPlatformEnabled() && token !== null && isStudentUser(user);
 }
 
-export async function storeClassAssignments(assignments: readonly StudentAssignment[]): Promise<void> {
+export async function storeClassAssignments(assignments: readonly StudentAssignment[], announcements: readonly StudentAnnouncement[]): Promise<void> {
   const syncedAt = Date.now();
-  await db.transaction("rw", db.classAssignments, async () => {
+  await db.transaction("rw", db.classAssignments, db.classAnnouncements, async () => {
     await db.classAssignments.clear();
     await db.classAssignments.bulkPut(assignments.map<StoredClassAssignment>((assignment) => ({ ...assignment, syncedAt })));
+    await db.classAnnouncements.clear();
+    await db.classAnnouncements.bulkPut(announcements.map<StoredClassAnnouncement>((announcement) => ({ ...announcement, syncedAt })));
+  });
+}
+
+async function clearClassData(): Promise<void> {
+  await db.transaction("rw", db.classAssignments, db.classAnnouncements, async () => {
+    await db.classAssignments.clear();
+    await db.classAnnouncements.clear();
   });
 }
 
@@ -120,14 +129,18 @@ export async function completeAssignmentsAfterRun(exerciseId: string): Promise<S
 
 export async function refreshClassAssignments(lessons?: Lessons, signal?: AbortSignal): Promise<StudentAssignment[]> {
   if (!canUseClassAssignments()) {
-    await db.classAssignments.clear();
+    await clearClassData();
     return [];
   }
   const fresh = lessons ?? (await api.get<Lessons>("/me/lessons", signal));
-  await storeClassAssignments(fresh.assignments);
+  await storeClassAssignments(fresh.assignments, fresh.announcements);
   return completeReady(fresh.assignments);
 }
 
 export function useClassAssignments(): StoredClassAssignment[] {
   return useLiveQuery(() => db.classAssignments.toArray(), []) ?? [];
+}
+
+export function useClassAnnouncements(): StoredClassAnnouncement[] {
+  return useLiveQuery(() => db.classAnnouncements.orderBy("createdAt").reverse().toArray(), []) ?? [];
 }

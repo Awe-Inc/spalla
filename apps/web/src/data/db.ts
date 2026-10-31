@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 
-import type { StudentAssignment } from "@/api/types";
+import type { StudentAnnouncement, StudentAssignment } from "@/api/types";
 
 export interface ExerciseResult {
   id?: number;
@@ -153,6 +153,10 @@ export interface StoredClassAssignment extends StudentAssignment {
   syncedAt: number;
 }
 
+export interface StoredClassAnnouncement extends StudentAnnouncement {
+  syncedAt: number;
+}
+
 export class FretlessDatabase extends Dexie {
   results!: EntityTable<ExerciseResult, "id">;
   routines!: EntityTable<Routine, "id">;
@@ -168,6 +172,7 @@ export class FretlessDatabase extends Dexie {
   recordings!: EntityTable<StoredRecording, "id">;
   recordingFiles!: EntityTable<StoredRecordingFile, "id">;
   classAssignments!: EntityTable<StoredClassAssignment, "id">;
+  classAnnouncements!: EntityTable<StoredClassAnnouncement, "id">;
 
   constructor(name = "fretless") {
     super(name);
@@ -209,6 +214,9 @@ export class FretlessDatabase extends Dexie {
     });
     this.version(9).stores({
       classAssignments: "id, createdAt, doneAt",
+    });
+    this.version(10).stores({
+      classAnnouncements: "id, createdAt",
     });
   }
 }
