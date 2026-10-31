@@ -17,7 +17,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (120 cases) + vitest core (14) + vitest web (378); API: 44 em apps/api
+pnpm test                          # WASM harness (120 cases) + vitest core (14) + vitest web (442); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e:aulas   # professora + admin + aluno in three contexts against a throwaway API
                                    # on 3410 (PGlite temp) and vite on 4180; muted; see docs/testes.md (~45 s)
@@ -70,7 +70,9 @@ apps/web/src/design/tokenCatalog.ts nomes e papéis de todos os tokens (cores po
                                  se um token do `@theme inline` ficar de fora do catálogo ou sobrar nele
 apps/web/src/app/                Shell (sidebar sticky h-dvh ≥ lg com marca, 5 áreas, grupo Aulas por papel e
                                  rodapé fixo; barra inferior de 5 itens abaixo), router (tela cheia por
-                                 `handle: { fullscreen: true }`, LegacyRedirect das rotas antigas, 404), settings store
+                                 `handle: { fullscreen: true }`, LegacyRedirect das rotas antigas, 404), settings store, externalValue
+                                 (store mínimo sobre useSyncExternalStore), appUpdate + UpdateNotice (SW em prompt),
+                                 databaseHealth + DatabaseNotice (db.open falhou), useLeaveWarning (beforeunload)
 apps/web/src/areas/<área>/       one folder per area. As 5 áreas: hoje (`/`), estudar (`/estudar` Rotina ·
                                  `/estudar/metodo` · `/estudar/caderno`), musicas = Repertório (`/repertorio`,
                                  `/repertorio/suzuki`, `/repertorio/estante`), ferramentas, voce (`/voce` progresso,
@@ -120,7 +122,7 @@ apps/web/src/data/               db.ts (Dexie v10: results, routines, practiceDa
                                  nível firme e lista por nível de um módulo), exportCsv.ts (histórico em CSV: `;`, BOM,
                                  vírgula decimal, para o Excel em português), recordings.ts (gravador: metadados em `recordings`, bytes em
                                  `recordingFiles`, `pieceKey` = resultId, `?peca=&titulo=`, par antes/depois só da mesma
-                                 peça; fora do backup e do reset), sections.ts (detalhe da peça:
+                                 peça; entra no backup, fica fora do reset), sections.ts (detalhe da peça:
                                  frases de 4 compassos, rótulo 1-based, `?de=&ate=&bpm=` de/para o Tocar, trechos por `pieceKey` = resultId), suzuki.ts (trilha
                                  Suzuki: livros do core `suzuki.book.N`, peças tocáveis por título, revisão 1/3/7/14/30 dias), sheets.ts (estante:
                                  importSheetFile valida PDF e guarda bytes em `sheetFiles`, metadados em `sheets`), gamification.ts (XP, maestria, conquistas),
@@ -145,7 +147,10 @@ apps/web/src/data/               db.ts (Dexie v10: results, routines, practiceDa
                                  PlannedBlock tem `item` {id,title,playPath}, que a Hoje e o progresso usam no
                                  lugar de `exercise`, nulo para peça fora do core; blocos fixados entram primeiro), progress.ts (saveRun: resultado + XP + conquistas + medalhas novas; bônus de sessão,
                                  setDailyGoal), calendar.ts (heatmap 12 semanas, tendência
-                                 de precisão), backup.ts (exportar .json, resetar progresso, limpar cache + SW),
+                                 de precisão), backup.ts (backup v2: todas as tabelas menos as cópias da turma, bytes como `{"$bytes": base64}`, configurações do
+                                 localStorage; `parseBackup` valida `version`/tabelas, `restoreBackup` troca só as tabelas presentes numa
+                                 transação; resetar progresso, limpar cache + SW), storageErrors.ts (isQuotaError olha o `inner` do Dexie,
+                                 describeStorageError), storageUsage.ts (persist() depois das boas-vindas, uso/quota no DadosCard),
                                  nativeProgress.ts (progress.txt do app nativo → Dexie: parser puro, melhor
                                  resultado por exercício com cents assinados 0, dias com minutes 1; exercício ou
                                  dia que já existe não é tocado),
@@ -436,3 +441,18 @@ send never post the same results twice. The session planner (`planSession`) assi
   e só o navegador mostrou. `app/encoding.test.ts` varre todo `.ts`/`.tsx` de `src` atrás de `Ã`/`Â` seguidos de byte
   de continuação. Regra: script que regrava fonte lê e escreve com `utf8` explícito (Node `readFileSync(p, "utf8")`;
   no PowerShell 5.1 `Get-Content -Encoding utf8`/`Set-Content -Encoding utf8`), nunca o padrão do sistema.
+
+- **E2E do Tocar quebrado por rótulo velho** (31/10). O spec procurava "As duas" depois que a opção virou "Pistas e
+  pauta"; o CI não rodava E2E, então ninguém viu. Regra: renomear rótulo de controle → `grep` em `e2e/`; o job `e2e` do
+  `ci.yml` roda as duas suítes.
+- **Falha do WASM virava "Montando a sessão…" para sempre** (31/10). `useCore` guardava a promessa rejeitada e as telas
+  só tratavam `loading`/`ready`. Agora é um store com `retryCore` e toda tela que lê o core mostra `CoreErrorNotice`
+  (teste em `useCore.test`). Regra: tela que usa `useCore` trata `status === "error"`, nunca só o esqueleto.
+- **E2E falha sozinho quando se edita arquivo durante a execução.** O Playwright sobe o vite em dev; o HMR recarrega a
+  página no meio da passada e o teste do Tocar estoura o tempo. Regra: nada de editar `apps/web` com E2E rodando.
+- **Cota cheia caía como erro genérico.** O Dexie embrulha o `QuotaExceededError` em `AbortError`/`DexieError` com o
+  original em `inner`; checar só `name` não pega. `isQuotaError` desce pelo `inner` (teste em `storageErrors.test`).
+- **`instanceof Uint8Array` falha nos testes com fake-indexeddb.** Os bytes voltam do realm do Node, não do jsdom, e o
+  backup gravava `{}` no lugar do arquivo. `backup.ts` usa `Object.prototype.toString.call(v) === "[object Uint8Array]"`.
+- **Service worker em modo prompt: nunca `skipWaiting`/`registerType: "autoUpdate"`.** A troca automática recarregava
+  a página no meio de uma passada. A versão nova só entra pelo "Atualizar" do `UpdateNotice` (fora do Tocar).

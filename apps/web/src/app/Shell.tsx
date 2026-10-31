@@ -11,7 +11,9 @@ import { levelForXp } from "@/data/gamification";
 import { Wordmark } from "@/design/brand";
 import { Icon, type IconName } from "@/design/icons";
 
+import { DatabaseNotice } from "./DatabaseNotice";
 import { resolveTheme, useSettings } from "./settings";
+import { UpdateNotice } from "./UpdateNotice";
 
 interface Area {
   to: string;
@@ -215,6 +217,8 @@ export function Shell() {
       <MobileHeader user={user} />
 
       <main id="conteudo" className="mx-auto w-full min-w-0 max-w-page px-4 pb-28 pt-6 md:px-6 lg:px-10 lg:pb-16 lg:pt-10">
+        <DatabaseNotice />
+        <UpdateNotice />
         <Outlet />
       </main>
 

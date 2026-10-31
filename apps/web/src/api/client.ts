@@ -1,4 +1,7 @@
 const NETWORK_ERROR_MESSAGE = "Não deu para falar com o servidor. Confira a internet e tente de novo.";
+const TIMEOUT_ERROR_MESSAGE = "O servidor demorou demais para responder. Confira a internet e tente de novo.";
+export const REQUEST_TIMEOUT_MS = 15_000;
+export const TRANSFER_TIMEOUT_MS = 120_000;
 
 export const API_URL: string = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
@@ -34,12 +37,23 @@ interface RequestOptions {
   body?: unknown;
   form?: FormData;
   signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 function isErrorBody(value: unknown): value is { error: { code: string; message: string; fields?: Record<string, string> } } {
   if (typeof value !== "object" || value === null || !("error" in value)) return false;
   const error = (value as { error: unknown }).error;
   return typeof error === "object" && error !== null && typeof (error as { message?: unknown }).message === "string";
+}
+
+function requestSignal(options: RequestOptions): AbortSignal {
+  const timeoutMs = options.timeoutMs ?? (options.form ? TRANSFER_TIMEOUT_MS : REQUEST_TIMEOUT_MS);
+  const timeout = AbortSignal.timeout(timeoutMs);
+  return options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+}
+
+function isNamedDomError(cause: unknown, name: string): boolean {
+  return cause instanceof DOMException && cause.name === name;
 }
 
 async function send(method: Method, path: string, options: RequestOptions): Promise<Response> {
@@ -55,9 +69,11 @@ async function send(method: Method, path: string, options: RequestOptions): Prom
   }
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { method, headers, body, signal: options.signal ?? null });
+    response = await fetch(`${API_URL}${path}`, { method, headers, body, signal: requestSignal(options) });
   } catch (cause) {
-    if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+    if (options.signal?.aborted) throw options.signal.reason ?? cause;
+    if (isNamedDomError(cause, "TimeoutError")) throw new ApiError(0, "tempo", TIMEOUT_ERROR_MESSAGE);
+    if (isNamedDomError(cause, "AbortError")) throw cause;
     throw new ApiError(0, "rede", NETWORK_ERROR_MESSAGE);
   }
   if (response.ok) return response;
@@ -74,7 +90,7 @@ export async function apiRequest<T>(method: Method, path: string, options: Reque
 }
 
 export async function apiBlob(path: string, signal?: AbortSignal): Promise<Blob> {
-  const response = await send("GET", path, signal ? { signal } : {});
+  const response = await send("GET", path, signal ? { signal, timeoutMs: TRANSFER_TIMEOUT_MS } : { timeoutMs: TRANSFER_TIMEOUT_MS });
   return response.blob();
 }
 

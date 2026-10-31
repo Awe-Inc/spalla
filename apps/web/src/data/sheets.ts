@@ -1,4 +1,5 @@
 import { db, type StoredSheet } from "./db";
+import { describeStorageError } from "./storageErrors";
 
 export const MAX_SHEET_FILE_BYTES = 64 * 1024 * 1024;
 const PDF_MIME = "application/pdf";
@@ -30,10 +31,8 @@ export function describeSizeError(sizeBytes: number): string {
   return `O arquivo tem ${Math.round(sizeBytes / 1024 / 1024)} MB; o limite é ${MAX_SHEET_FILE_BYTES / 1024 / 1024} MB.`;
 }
 
-export function describeStorageError(cause: unknown): string {
-  const name = cause instanceof Error ? cause.name : "";
-  if (name === "QuotaExceededError") return "O aparelho está sem espaço para guardar esse PDF.";
-  return "Não deu para guardar esse PDF. Tente de novo.";
+export function describeSheetStorageError(cause: unknown): string {
+  return describeStorageError(cause, "esse PDF");
 }
 
 export function pageCountLabel(pageCount: number): string {

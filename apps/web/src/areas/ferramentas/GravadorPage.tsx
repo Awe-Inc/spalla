@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 
 import type { FinishedRecording } from "@/audio/recorder";
 import { useRecorder, type RecorderStatus } from "@/audio/useRecorder";
+import { useLeaveWarning } from "@/app/useLeaveWarning";
 import { db } from "@/data/db";
 import {
   comparablePair,
@@ -18,6 +19,7 @@ import {
   toggleCompared,
   type RecordingPiece,
 } from "@/data/recordings";
+import { describeStorageError } from "@/data/storageErrors";
 import { Button, Card, InlineError } from "@/design/components";
 import { FIELD_CLASS } from "@/design/fields";
 
@@ -39,6 +41,8 @@ interface TakeFormProps {
 
 function TakeForm({ take, piece, onSaved, onDiscard }: TakeFormProps) {
   const [name, setName] = useState(() => defaultRecordingName(new Date(), piece?.title ?? null));
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const blob = useMemo(() => new Blob([new Uint8Array(take.bytes)], { type: take.mimeType }), [take]);
   const url = useObjectUrl(blob);
   return (
@@ -47,7 +51,12 @@ function TakeForm({ take, piece, onSaved, onDiscard }: TakeFormProps) {
       aria-label="Guardar gravação"
       onSubmit={(event) => {
         event.preventDefault();
-        void saveRecording({ ...take, name, piece }).then(onSaved);
+        setIsSaving(true);
+        setError(null);
+        saveRecording({ ...take, name, piece }).then(onSaved, (cause: unknown) => {
+          setIsSaving(false);
+          setError(describeStorageError(cause, "a gravação"));
+        });
       }}
     >
       <p className="font-medium">Gravação de {formatClock(take.durationMs)}</p>
@@ -56,9 +65,10 @@ function TakeForm({ take, piece, onSaved, onDiscard }: TakeFormProps) {
         Nome
         <input value={name} onChange={(event) => setName(event.target.value)} name="nome-gravacao" autoComplete="off" maxLength={NAME_MAX_LENGTH} className={FIELD_CLASS} />
       </label>
+      {error ? <InlineError title="A gravação não foi guardada." nextStep={`${error} Ela continua aqui até você guardar ou descartar.`} /> : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" variant="primary">
-          Guardar gravação
+        <Button type="submit" variant="primary" disabled={isSaving}>
+          {isSaving ? "Guardando…" : "Guardar gravação"}
         </Button>
         <Button variant="ghost" onClick={onDiscard}>
           Descartar
@@ -133,10 +143,15 @@ export function GravadorPage() {
   const piece = pieces.find((candidate) => candidate.key === pieceKey) ?? null;
   const shown = newestFirst(recordings).filter((recording) => matchesFilter(recording.pieceKey, filter));
   const pair = comparablePair(recordings, compared);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  useLeaveWarning(recorder.take !== null || recorder.status === "recording");
 
   function forget(id: number) {
     setCompared((selected) => selected.filter((existing) => existing !== id));
-    void removeRecording(id);
+    removeRecording(id).then(
+      () => setRemoveError(null),
+      () => setRemoveError("Feche e abra o app e tente apagar de novo."),
+    );
   }
 
   return (
@@ -172,6 +187,7 @@ export function GravadorPage() {
               <option value={UNLINKED_RECORDINGS}>Sem peça</option>
             </select>
           </label>
+          {removeError ? <InlineError title="A gravação não foi apagada." nextStep={removeError} /> : null}
           {shown.length === 0 ? (
             <p className="text-ink-muted">Nenhuma gravação aqui ainda. Grave uma passada e ouça logo depois: o ouvido percebe o que a mão não sente.</p>
           ) : (

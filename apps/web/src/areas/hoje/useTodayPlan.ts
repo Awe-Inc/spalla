@@ -23,6 +23,7 @@ export interface TodayPlan {
   streak: number;
   stats: UserStats;
   coreReady: boolean;
+  coreError: string | null;
 }
 
 export function useRoutines(): Routine[] {
@@ -72,6 +73,7 @@ export function useTodayPlan(): TodayPlan {
     streak: currentStreak(days, today, stats.frozenDays),
     stats,
     coreReady: core.status === "ready",
+    coreError: core.status === "error" ? core.message : null,
   };
 }
 

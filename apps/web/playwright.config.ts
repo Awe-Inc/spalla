@@ -8,6 +8,7 @@ const SERVER_START_TIMEOUT_MS = 90_000;
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "aulas/**",
   timeout: TEST_TIMEOUT_MS,
   fullyParallel: false,
   retries: 0,

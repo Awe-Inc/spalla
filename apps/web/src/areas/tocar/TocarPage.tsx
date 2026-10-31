@@ -9,6 +9,7 @@ import { useTodayBlock } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useListen } from "@/audio/useListen";
+import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
 import { readPracticeRequest } from "@/data/sections";
 import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
@@ -250,7 +251,7 @@ export function TocarPage() {
 
       <main className="grid content-center gap-6">
         {error ? <InlineError title="Não dá para tocar isso agora." nextStep={error} /> : null}
-        {coreStatus.status === "error" ? <InlineError title="O núcleo não carregou." nextStep={coreStatus.message} /> : null}
+        <CoreErrorNotice title="O núcleo não carregou." />
         {mic.status.status === "error" ? <InlineError title="O microfone não abriu." nextStep={mic.status.message} /> : null}
 
         {needsHeadphones ? <HeadphoneNotice onConfirm={confirmHeadphones} /> : null}

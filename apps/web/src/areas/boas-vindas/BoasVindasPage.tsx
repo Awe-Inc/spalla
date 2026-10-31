@@ -7,6 +7,7 @@ import { usePitchInput } from "@/audio/usePitchInput";
 import { useCore } from "@/core/useCore";
 import { setDailyGoal } from "@/data/progress";
 import { DEFAULT_ROUTINE_MINUTES } from "@/data/routines";
+import { requestPersistentStorage } from "@/data/storageUsage";
 import { Wordmark } from "@/design/brand";
 import { Button, InlineError } from "@/design/components";
 import { FIELD_CLASS } from "@/design/fields";
@@ -117,6 +118,7 @@ export function BoasVindasPage() {
 
   async function finish() {
     try {
+      void requestPersistentStorage();
       await setDailyGoal(goalXp);
     } finally {
       settings.completeOnboarding();

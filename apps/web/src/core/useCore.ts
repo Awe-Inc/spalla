@@ -1,18 +1,33 @@
 import { loadCore, type FretlessCore } from "@fretless/core";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+export type CoreStatus =
+  | { status: "loading" }
+  | { status: "ready"; core: FretlessCore }
+  | { status: "error"; message: string };
+
+const CORE_ERROR_MESSAGE = "Falha ao carregar o núcleo.";
 
 let corePromise: Promise<FretlessCore> | null = null;
-let loadedCore: FretlessCore | null = null;
+let coreState: CoreStatus = { status: "loading" };
+const listeners = new Set<() => void>();
+
+function setCoreState(next: CoreStatus): void {
+  coreState = next;
+  listeners.forEach((listener) => listener());
+}
 
 export function getCore(): Promise<FretlessCore> {
   if (!corePromise) {
+    if (coreState.status === "error") setCoreState({ status: "loading" });
     corePromise = loadCore().then(
       (core) => {
-        loadedCore = core;
+        setCoreState({ status: "ready", core });
         return core;
       },
       (error: unknown) => {
         corePromise = null;
+        setCoreState({ status: "error", message: error instanceof Error ? error.message : CORE_ERROR_MESSAGE });
         throw error;
       },
     );
@@ -20,30 +35,30 @@ export function getCore(): Promise<FretlessCore> {
   return corePromise;
 }
 
-export type CoreStatus =
-  | { status: "loading" }
-  | { status: "ready"; core: FretlessCore }
-  | { status: "error"; message: string };
+export function retryCore(): void {
+  getCore().catch(() => undefined);
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function snapshot(): CoreStatus {
+  return coreState;
+}
 
 export function useCore(): CoreStatus {
-  const [state, setState] = useState<CoreStatus>(() => (loadedCore ? { status: "ready", core: loadedCore } : { status: "loading" }));
+  const state = useSyncExternalStore(subscribe, snapshot, snapshot);
 
   useEffect(() => {
-    if (loadedCore) return;
-    let cancelled = false;
-    getCore()
-      .then((core) => {
-        if (!cancelled) setState({ status: "ready", core });
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setState({ status: "error", message: error instanceof Error ? error.message : "Falha ao carregar o núcleo." });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+    if (coreState.status === "loading") retryCore();
   }, []);
 
   return state;
+}
+
+export function resetCoreForTests(): void {
+  corePromise = null;
+  coreState = { status: "loading" };
 }

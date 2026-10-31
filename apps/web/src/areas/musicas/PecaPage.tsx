@@ -11,6 +11,7 @@ import { HistoricoExercicio } from "@/areas/estudar/HistoricoExercicio";
 import { ListenSoundPicker } from "@/areas/tocar/ListenSoundPicker";
 import { clampBpm } from "@/areas/tocar/tempo";
 import { useSession } from "@/areas/tocar/useSession";
+import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { db } from "@/data/db";
 import { formatClock, newestFirst, recorderPath } from "@/data/recordings";
 import { addSection, phraseSections, practicePath, removeSection, sortedSections } from "@/data/sections";
@@ -127,7 +128,7 @@ export function PecaPage() {
     return (
       <>
         <PageHeader back={BACK} title="Abrindo a partitura…" />
-        <SkeletonList rows={4} label="Abrindo a partitura…" />
+        {coreStatus.status === "error" ? <CoreErrorNotice title="A partitura não abriu." /> : <SkeletonList rows={4} label="Abrindo a partitura…" />}
       </>
     );
   }

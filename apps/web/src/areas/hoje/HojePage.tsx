@@ -1,11 +1,12 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { announcementSentence, recentAnnouncements } from "@/account/classAnnouncements";
 import { useClassAnnouncements, useClassAssignments } from "@/account/classAssignments";
 import { useSettings } from "@/app/settings";
 import { fromState } from "@/areas/tocar/origin";
+import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { db } from "@/data/db";
 import { SESSION_COMPLETE_XP } from "@/data/gamification";
 import { nextLessonSentence, splitTasks } from "@/data/lessons";
@@ -14,7 +15,7 @@ import { grantSessionBonus } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
 import { BLOCK_LABELS } from "@/data/routines";
 import { dueReviews } from "@/data/suzuki";
-import { ButtonLink, Card, EmptyState, GoalDots, ProgressRing } from "@/design/components";
+import { ButtonLink, Card, EmptyState, GoalDots, InlineError, ProgressRing } from "@/design/components";
 import { Icon, type IconName } from "@/design/icons";
 import { PageHeader, SkeletonList } from "@/design/layout";
 
@@ -160,9 +161,10 @@ export function HojePage() {
   const notices = useNotices(today.today);
   const allDone = today.progress.total > 0 && today.progress.done === today.progress.total;
   const frozenToday = today.stats.frozenDays.includes(today.today);
+  const [bonusError, setBonusError] = useState(false);
 
   useEffect(() => {
-    if (allDone && !today.sessionCompleted) void grantSessionBonus(today.today);
+    if (allDone && !today.sessionCompleted) grantSessionBonus(today.today).then(() => setBonusError(false), () => setBonusError(true));
   }, [allDone, today.sessionCompleted, today.today]);
 
   const nextItem = today.next?.item ?? null;
@@ -203,7 +205,9 @@ export function HojePage() {
               </p>
             </div>
 
-            {!today.coreReady ? <SkeletonList rows={3} label="Montando a sessão…" /> : null}
+            {bonusError ? <InlineError title="O bônus da sessão não foi guardado." nextStep="Ele entra quando você abrir a Hoje de novo." /> : null}
+            {today.coreError ? <CoreErrorNotice title="A sessão não foi montada." /> : null}
+            {!today.coreReady && !today.coreError ? <SkeletonList rows={3} label="Montando a sessão…" /> : null}
 
             {today.coreReady && allDone ? (
               <EmptyState

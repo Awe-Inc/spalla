@@ -182,13 +182,17 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
 interface InlineErrorProps {
   title: string;
   nextStep: string;
+  action?: ReactNode;
 }
 
-export function InlineError({ title, nextStep }: InlineErrorProps) {
+export function InlineError({ title, nextStep, action }: InlineErrorProps) {
   return (
-    <div className="rounded-md bg-off-soft p-4 text-ink" role="alert">
-      <p className="font-semibold">{title}</p>
-      <p className="text-ink-muted">{nextStep}</p>
+    <div className="grid justify-items-start gap-3 rounded-md bg-off-soft p-4 text-ink" role="alert">
+      <div>
+        <p className="font-semibold">{title}</p>
+        <p className="text-ink-muted">{nextStep}</p>
+      </div>
+      {action}
     </div>
   );
 }

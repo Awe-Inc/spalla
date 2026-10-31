@@ -88,7 +88,7 @@ export default defineConfig({
     pdfjsAssets(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["icon.svg"],
       manifest: {
         name: "Spalla",

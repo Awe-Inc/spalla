@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useLocation, useParams } from "react-router";
 
 import { fromState } from "@/areas/tocar/origin";
+import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
 import { db, type ExerciseResult } from "@/data/db";
 import { moduleSummary, type ExerciseSummary } from "@/data/moduleProgress";

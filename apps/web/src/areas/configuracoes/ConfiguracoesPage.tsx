@@ -1,11 +1,11 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { STAFF_SCALES, useSettings, type Accent, type NoteNaming, type StaffScale, type ThemePreference } from "@/app/settings";
 import { db, DEFAULT_USER_STATS } from "@/data/db";
 import { setDailyGoal } from "@/data/progress";
 import { VoceTabs } from "@/areas/voce/VoceTabs";
-import { ButtonLink, PageHeader } from "@/design/components";
+import { ButtonLink, InlineError, PageHeader } from "@/design/components";
 import { LISTEN_SOUND_OPTIONS } from "@/audio/listenSounds";
 import { ChoiceChips } from "@/design/fields";
 import { PAGE_STYLE_OPTIONS, READING_GUIDE_OPTIONS, VIEW_OPTIONS } from "@/areas/tocar/viewOptions";
@@ -56,6 +56,7 @@ function SettingGroup({ title, children }: { title: string; children: ReactNode 
 export function ConfiguracoesPage() {
   const settings = useSettings();
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
+  const [goalError, setGoalError] = useState(false);
 
   return (
     <>
@@ -92,7 +93,8 @@ export function ConfiguracoesPage() {
 
           <SettingGroup title="Prática">
             <SettingRow title="Meta diária" hint="Nota perfeita vale 3 XP, boa vale 1; a sessão completa dá 50.">
-              <ChoiceChips name="goal" label="Meta diária" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => void setDailyGoal(xp)} />
+              <ChoiceChips name="goal" label="Meta diária" value={stats.dailyGoalXp} options={GOAL_OPTIONS.map((xp) => ({ value: xp, label: `${xp} XP` }))} onChange={(xp) => setDailyGoal(xp).then(() => setGoalError(false), () => setGoalError(true))} />
+              {goalError ? <InlineError title="A meta não mudou." nextStep="Escolha a meta de novo." /> : null}
             </SettingRow>
             <SettingRow title="Som do Ouvir" hint="Violino gravado, ou um som sintético. O puro (senoidal) ajuda a ouvir a afinação.">
               <ChoiceChips name="listen-sound" label="Som do Ouvir" value={settings.listenSound} options={LISTEN_SOUND_OPTIONS} onChange={(listenSound) => settings.setPracticeAudio({ listenSound })} />

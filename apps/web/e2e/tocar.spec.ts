@@ -45,7 +45,7 @@ test("o jogador sintético toca um exercício do começo ao resultado", async ({
   await expect(page.getByText("Jogador sintético")).toBeVisible();
 
   await page.getByRole("button", { name: "Estou de fone" }).click();
-  await page.getByRole("group", { name: "Vista" }).getByRole("button", { name: "As duas" }).click();
+  await page.getByRole("group", { name: "Vista" }).getByRole("button", { name: "Pistas e pauta" }).click();
   await page.getByRole("button", { name: "Começar" }).click();
 
   const playing = page.getByRole("region", { name: "Nota atual" });

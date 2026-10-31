@@ -2,7 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useState, type ChangeEvent } from "react";
 
 import { db, type StoredSheet } from "@/data/db";
-import { describeStorageError, importSheetFile, pageCountLabel, removeSheet } from "@/data/sheets";
+import { describeSheetStorageError, importSheetFile, pageCountLabel, removeSheet } from "@/data/sheets";
 import { buttonClass, ButtonLink, EmptyState, InlineError, Menu } from "@/design/components";
 import { Icon } from "@/design/icons";
 import { List, ListRow, PageHeader, SkeletonList } from "@/design/layout";
@@ -15,7 +15,7 @@ async function importOne(file: File): Promise<string | null> {
     const outcome = await importSheetFile(file, countPdfPages);
     return outcome.ok ? null : outcome.error;
   } catch (cause: unknown) {
-    return describeStorageError(cause);
+    return describeSheetStorageError(cause);
   }
 }
 
@@ -67,7 +67,7 @@ function ImportPdfButton({ busy, onFiles }: { busy: boolean; onFiles: (event: Ch
 
 export function EstantePage() {
   const sheets = useLiveQuery(() => db.sheets.orderBy("openedAt").reverse().toArray(), []);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ title: string; nextStep: string } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
   async function onFiles(event: ChangeEvent<HTMLInputElement>) {
@@ -80,12 +80,16 @@ export function EstantePage() {
       const failure = await importOne(file);
       if (failure) failures.push(`${file.name}: ${failure}`);
     }
-    setError(failures.length > 0 ? failures.join(" ") : null);
+    setError(failures.length > 0 ? { title: "Algum PDF não entrou.", nextStep: failures.join(" ") } : null);
     setIsImporting(false);
   }
 
   function confirmRemove(sheet: StoredSheet) {
-    if (sheet.id !== undefined && window.confirm(`Apagar "${sheet.title}" da estante? O PDF sai do aparelho.`)) void removeSheet(sheet.id);
+    if (sheet.id === undefined || !window.confirm(`Apagar "${sheet.title}" da estante? O PDF sai do aparelho.`)) return;
+    removeSheet(sheet.id).then(
+      () => setError(null),
+      () => setError({ title: "O PDF não saiu da estante.", nextStep: "Feche e abra o app e tente apagar de novo." }),
+    );
   }
 
   return (
@@ -98,7 +102,7 @@ export function EstantePage() {
       <RepertorioTabs />
 
       <div className="grid gap-4">
-        {error ? <InlineError title="Algum PDF não entrou." nextStep={error} /> : null}
+        {error ? <InlineError title={error.title} nextStep={error.nextStep} /> : null}
 
         {sheets === undefined ? <SkeletonList rows={3} label="Abrindo a estante…" /> : null}
 

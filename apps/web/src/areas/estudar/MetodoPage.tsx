@@ -1,6 +1,7 @@
 import type { CurriculumModule } from "@fretless/core";
 import { useLiveQuery } from "dexie-react-hooks";
 
+import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, db, type ExerciseResult } from "@/data/db";
 import { InlineError } from "@/design/components";

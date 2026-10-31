@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clampPage, describeSizeError, describeStorageError, hasPdfHeader, isPdfFile, MAX_SHEET_FILE_BYTES, sheetTitle } from "./sheets";
+import { clampPage, describeSizeError, describeSheetStorageError, hasPdfHeader, isPdfFile, MAX_SHEET_FILE_BYTES, sheetTitle } from "./sheets";
 
 describe("isPdfFile", () => {
   it("accepts by mime type or by extension, whatever the case", () => {
@@ -51,11 +51,11 @@ describe("hasPdfHeader with junk before the magic", () => {
   });
 });
 
-describe("describeStorageError", () => {
+describe("describeSheetStorageError", () => {
   it("tells the user the device is full on a quota error", () => {
     const quota = new Error("full");
     quota.name = "QuotaExceededError";
-    expect(describeStorageError(quota)).toContain("sem espaço");
-    expect(describeStorageError(new Error("x"))).toContain("Tente de novo");
+    expect(describeSheetStorageError(quota)).toContain("sem espaço");
+    expect(describeSheetStorageError(new Error("x"))).toContain("Tente de novo");
   });
 });

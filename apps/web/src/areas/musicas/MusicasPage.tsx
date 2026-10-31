@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState, type ChangeEvent } from "react";
 
+import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, db } from "@/data/db";
 import { importPieceFile, removePiece } from "@/data/importPiece";
@@ -18,6 +19,7 @@ import {
   type PieceStatus,
 } from "@/data/pieces";
 import { detailPath } from "@/data/sections";
+import { describeStorageError, isQuotaError } from "@/data/storageErrors";
 import { buttonClass, ButtonLink, EmptyState, InlineError, Menu, Stars } from "@/design/components";
 import { Badge, type BadgeTone } from "@/design/fields";
 import { Icon } from "@/design/icons";
@@ -117,8 +119,8 @@ export function MusicasPage() {
     try {
       const outcome = await importPieceFile(core.core, file);
       setError(outcome.ok ? null : outcome.error);
-    } catch {
-      setError("Tente outro arquivo MusicXML (.xml, .musicxml ou .mxl).");
+    } catch (cause: unknown) {
+      setError(isQuotaError(cause) ? describeStorageError(cause, "a música") : "Tente outro arquivo MusicXML (.xml, .musicxml ou .mxl).");
     } finally {
       setIsImporting(false);
     }

@@ -11,9 +11,9 @@ Auditoria só de leitura (código, configs e `vite build`). Códigos dos achados
 - Precache do service worker: 372 entradas, 7,4 MB (pdf.js, 110 `.mxl`, todos os subsets de fonte).
 - Currículo: 9 módulos, 161 exercícios (151 jogáveis). Por nível: L1 33, L2 33, L3 28, L4 16, L5 15, L6 15, L7 6,
   L8 9, L9 4, L10 2 (0 jogáveis). Repertório embutido: 9 melodias, só nos níveis 1, 2, 3 e 5.
-- E2E: o teste principal do Tocar está quebrado e o CI não roda E2E.
+- E2E: o teste principal do Tocar estava quebrado e o CI não rodava E2E (corrigido na Fase 1).
 
-## Fase 1 — Rede de segurança (dados e erros)
+## Fase 1 — Rede de segurança (dados e erros) — feita em 31/10
 Nada de recurso novo até o app parar de falhar calado e de arriscar o progresso do aluno.
 
 | # | O quê | Onde | Esf. |

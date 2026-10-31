@@ -5,9 +5,10 @@ import { useSettings } from "@/app/settings";
 import { useCore } from "@/core/useCore";
 import { db, type BlockKind, type LessonTask } from "@/data/db";
 import { addLessonTask, nextLessonSentence, removeLessonTask, splitTasks, toggleLessonTask, WEEKDAY_NAMES } from "@/data/lessons";
+import { describeStorageError } from "@/data/storageErrors";
 import { BLOCK_KINDS, BLOCK_LABELS, ROUTINE_ORDER } from "@/data/routines";
 import { weekSummary, weekWindow } from "@/data/weekSummary";
-import { Button, Card } from "@/design/components";
+import { Button, Card, InlineError } from "@/design/components";
 import { COMPACT_FIELD_CLASS, FIELD_CLASS } from "@/design/fields";
 
 import { ResumoDaSemana } from "./ResumoDaSemana";
@@ -15,11 +16,17 @@ import { ResumoDaSemana } from "./ResumoDaSemana";
 const TASK_BLOCKS: BlockKind[] = [...ROUTINE_ORDER, "livre"];
 const SELECT_CLASS = `${FIELD_CLASS} cursor-pointer pr-8`;
 
-function TaskRow({ task, exerciseTitle }: { task: LessonTask; exerciseTitle: string | null }) {
+interface TaskRowProps {
+  task: LessonTask;
+  exerciseTitle: string | null;
+  onError: () => void;
+}
+
+function TaskRow({ task, exerciseTitle, onError }: TaskRowProps) {
   const isDone = task.doneAt !== null;
   return (
     <li className="flex items-center gap-3 py-2">
-      <input type="checkbox" className="size-5 accent-primary" checked={isDone} onChange={() => void toggleLessonTask(task)} aria-label={`Feito: ${task.text}`} />
+      <input type="checkbox" className="size-5 accent-primary" checked={isDone} onChange={() => toggleLessonTask(task).catch(onError)} aria-label={`Feito: ${task.text}`} />
       <div className="grid flex-1 gap-0.5">
         <span className={isDone ? "text-ink-subtle line-through" : ""}>{task.text}</span>
         <span className="text-caption text-ink-subtle">
@@ -28,7 +35,7 @@ function TaskRow({ task, exerciseTitle }: { task: LessonTask; exerciseTitle: str
         </span>
       </div>
       {task.id !== undefined ? (
-        <button type="button" className="text-caption text-ink-subtle hover:text-off" onClick={() => void removeLessonTask(task.id!)} aria-label={`Apagar: ${task.text}`}>
+        <button type="button" className="text-caption text-ink-subtle hover:text-off" onClick={() => removeLessonTask(task.id!).catch(onError)} aria-label={`Apagar: ${task.text}`}>
           Apagar
         </button>
       ) : null}
@@ -47,15 +54,26 @@ export function CadernoDaAula() {
   const [blockType, setBlockType] = useState<BlockKind>("peca-nova");
   const [itemId, setItemId] = useState<string>("");
   const [showDone, setShowDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { open, done } = splitTasks(tasks);
   const exercises = core.status === "ready" ? core.core.exercises.filter((exercise) => exercise.playable) : [];
   const linkable = exercises.filter((exercise) => BLOCK_KINDS[blockType].includes(exercise.kind));
   const titleOf = (id: string | null) => (id ? exercises.find((exercise) => exercise.id === id)?.title ?? null : null);
   const summary = weekSummary({ window: weekWindow(lessonWeekday, new Date()), days, results, tasks });
 
+  function onTaskError() {
+    setError("Não deu para atualizar a tarefa. Tente de novo.");
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
-    await addLessonTask(text, blockType, itemId || null);
+    try {
+      await addLessonTask(text, blockType, itemId || null);
+    } catch (cause: unknown) {
+      setError(describeStorageError(cause, "a tarefa"));
+      return;
+    }
+    setError(null);
     setText("");
     setItemId("");
   }
@@ -79,7 +97,7 @@ export function CadernoDaAula() {
       {open.length > 0 ? (
         <ul className="divide-y divide-hairline">
           {open.map((task) => (
-            <TaskRow key={task.id} task={task} exerciseTitle={titleOf(task.itemId)} />
+            <TaskRow key={task.id} task={task} exerciseTitle={titleOf(task.itemId)} onError={onTaskError} />
           ))}
         </ul>
       ) : (
@@ -106,6 +124,7 @@ export function CadernoDaAula() {
           Anotar
         </Button>
       </form>
+      {error ? <InlineError title="O caderno não foi atualizado." nextStep={error} /> : null}
       {done.length > 0 ? (
         <div className="grid gap-1">
           <button type="button" className="w-fit text-caption font-semibold text-primary" onClick={() => setShowDone((current) => !current)}>
@@ -114,7 +133,7 @@ export function CadernoDaAula() {
           {showDone ? (
             <ul className="divide-y divide-hairline">
               {done.map((task) => (
-                <TaskRow key={task.id} task={task} exerciseTitle={titleOf(task.itemId)} />
+                <TaskRow key={task.id} task={task} exerciseTitle={titleOf(task.itemId)} onError={onTaskError} />
               ))}
             </ul>
           ) : null}
