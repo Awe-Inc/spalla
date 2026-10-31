@@ -98,7 +98,7 @@ export function ChoiceChips<T extends string | number>({ name, value, options, o
         return (
           <label
             key={option.value}
-            className={`inline-flex h-10 cursor-pointer items-center rounded-sm px-4 text-small font-semibold transition-[background-color,color,box-shadow] duration-fast ease-spalla has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus ${
+            className={`inline-flex h-11 cursor-pointer items-center rounded-sm px-4 text-small font-semibold transition-[background-color,color,box-shadow] duration-fast ease-spalla has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus ${
               checked ? "bg-surface text-ink shadow-card" : "text-ink-muted hover:text-ink"
             }`}
           >

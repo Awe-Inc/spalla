@@ -1,4 +1,5 @@
 import type { GameStats, MeasureRange, NoteJudgement, PracticeSession, SessionState } from "@fretless/core";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
@@ -10,18 +11,22 @@ import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useListen } from "@/audio/useListen";
 import { CoreErrorNotice } from "@/core/CoreErrorNotice";
+import { db, recordSectionRun } from "@/data/db";
 import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
+import { lastCleanBpm } from "@/data/repetitions";
 import { readPracticeRequest } from "@/data/sections";
-import { Button, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
+import { Button, ConfirmButton, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
 import { Tuner } from "@/design/Tuner";
 import { displayNoteName } from "@/music/noteNames";
 
-import { fromState, tocarOrigin } from "./origin";
+import { fromState, offersNextBlock, tocarOrigin } from "./origin";
 import { autoSlowdown, slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { ListenSoundPicker } from "./ListenSoundPicker";
 import { ComboBar } from "./ComboBar";
 import { ResultScreen } from "./ResultScreen";
 import { ScoreView } from "./ScoreView";
+import { isTypingTarget, shortcutFor } from "./shortcuts";
+import { BPM_STEP } from "./tempo";
 import { TocarControls } from "./TocarControls";
 import { useAccompaniment } from "./useAccompaniment";
 import { LEAD_IN_SECONDS, useSession } from "./useSession";
@@ -81,6 +86,11 @@ export function TocarPage() {
   const [droneOn, setDroneOn] = useState(false);
   const startedAtRef = useRef<number | null>(null);
   const savedRunRef = useRef(false);
+  const savedLoopRef = useRef(false);
+  const tempoAppliedRef = useRef<PracticeSession | null>(null);
+  const shortcutRef = useRef<((event: KeyboardEvent) => void) | null>(null);
+  const pastResults = useLiveQuery(() => (resultId ? db.results.where("exerciseId").equals(resultId).toArray() : []), [resultId]);
+  const cleanBpm = pastResults === undefined ? undefined : lastCleanBpm(pastResults);
 
   const exerciseDrone = exercise?.droneMidi ?? 0;
   const droneMidi = exerciseDrone > 0 ? exerciseDrone : DRONE_A4_MIDI;
@@ -104,6 +114,13 @@ export function TocarPage() {
     if (request.range) setLoop(request.range);
     if (request.bpm !== null) setBpm(request.bpm);
   }, [session, searchParams, setLoop, setBpm]);
+
+  useEffect(() => {
+    if (!session || cleanBpm === undefined || tempoAppliedRef.current === session) return;
+    tempoAppliedRef.current = session;
+    const request = readPracticeRequest(searchParams, session.measureCount);
+    if (request.bpm === null && cleanBpm !== null) setBpm(cleanBpm);
+  }, [session, cleanBpm, searchParams, setBpm]);
 
   useEffect(() => {
     if (!session || !isListening) return;
@@ -142,16 +159,32 @@ export function TocarPage() {
 
   useEffect(() => {
     if (!session || snapshot?.state !== "finished" || !loop) return;
-    void recordLoopCompleted();
+    if (!savedLoopRef.current) {
+      savedLoopRef.current = true;
+      void recordLoopCompleted();
+      if (resultId && startedAtRef.current !== null) {
+        recordSectionRun({
+          pieceKey: resultId,
+          firstIndex: loop.firstIndex,
+          lastIndex: loop.lastIndex,
+          accuracyPct: session.stats.accuracyPct,
+          bpm: Math.round(session.score.beatsPerMinute),
+          durationSeconds: (Date.now() - startedAtRef.current) / 1000,
+          playedAt: Date.now(),
+        }).catch(() => setSaveError("O trecho não foi salvo neste aparelho."));
+      }
+    }
     const timer = window.setTimeout(() => {
       slowedRunRef.current = false;
+      savedLoopRef.current = false;
+      startedAtRef.current = Date.now();
       session.restart();
       accompaniment.rewind(-LEAD_IN_SECONDS);
       session.start();
       setSnapshot(readSnapshot(session));
     }, LOOP_RESTART_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [snapshot?.state, session, loop, accompaniment]);
+  }, [snapshot?.state, session, loop, accompaniment, resultId]);
 
   useEffect(() => {
     if (!score || !resultId || !limits || loop || snapshot?.state !== "finished" || savedRunRef.current || startedAtRef.current === null) return;
@@ -187,6 +220,7 @@ export function TocarPage() {
     session.restart();
     startedAtRef.current = Date.now();
     savedRunRef.current = false;
+    savedLoopRef.current = false;
     slowedRunRef.current = false;
     setSlowdown(null);
     setOutcome(null);
@@ -198,13 +232,17 @@ export function TocarPage() {
     setSnapshot(readSnapshot(session));
   }
 
-  function stopLoop() {
+  function stopRun() {
     if (!session) return;
     session.stop();
-    setLoop(null);
     accompaniment.stopDrone();
     stopInput();
     setSnapshot(null);
+  }
+
+  function stopLoop() {
+    stopRun();
+    setLoop(null);
   }
 
   function keepTempo(previous: number) {
@@ -228,11 +266,42 @@ export function TocarPage() {
   const isRunning = snapshot !== null && snapshot.state !== "finished" && snapshot.state !== "idle";
   const isIdle = score !== null && (!snapshot || snapshot.state === "idle") && !error;
   const fullMeasureCount = session?.measureCount ?? 0;
+  const isFinished = snapshot?.state === "finished";
+  const canBegin = score !== null && !needsHeadphones && mic.status.status !== "starting";
+
+  useEffect(() => {
+    shortcutRef.current = (event: KeyboardEvent) => {
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || isTypingTarget(event.target)) return;
+      const action = shortcutFor(event.key, { isRunning, isFinished });
+      if (!action) return;
+      event.preventDefault();
+      if (action === "toggle") {
+        if (isRunning) stopRun();
+        else if (canBegin) void begin();
+      } else if (action === "again") {
+        if (canBegin) void begin();
+      } else if (action === "listen") {
+        if (isHearing) listen.stop();
+        else void listen.play();
+      } else {
+        setBpm(bpm + (action === "faster" ? BPM_STEP : -BPM_STEP));
+      }
+    };
+  });
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => shortcutRef.current?.(event);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div data-theme="dark" className="grid min-h-dvh grid-rows-[auto_1fr_auto] gap-4 bg-canvas px-4 py-4 text-ink md:px-8">
       <header className="flex items-center justify-between gap-4">
         <div className="grid gap-0.5">
+          <p className="sr-only" aria-live="polite">
+            {isRunning ? `Passada começou a ${bpm} bpm.` : snapshot?.state === "finished" ? "Passada terminada." : ""}
+          </p>
           <h1 className="text-heading font-semibold">{exercise?.title ?? score?.title ?? "Carregando…"}</h1>
           {exercise ? <p className="text-caption text-ink-subtle">{exercise.subtitle}</p> : null}
           {loop ? (
@@ -241,11 +310,23 @@ export function TocarPage() {
             </p>
           ) : null}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           {loop && snapshot ? <Button onClick={stopLoop}>Parar repetição</Button> : null}
-          <Button variant="ghost" onClick={leave}>
-            Sair
-          </Button>
+          {isRunning && !loop ? (
+            <>
+              <Button icon="voltar" onClick={() => void begin()}>
+                Recomeçar
+              </Button>
+              <Button onClick={stopRun}>Parar</Button>
+            </>
+          ) : null}
+          {isRunning ? (
+            <ConfirmButton label="Sair" variant="ghost" question="Descartar esta passada?" confirmLabel="Sair" onConfirm={leave} />
+          ) : (
+            <Button variant="ghost" onClick={leave}>
+              Sair
+            </Button>
+          )}
         </div>
       </header>
 
@@ -323,7 +404,7 @@ export function TocarPage() {
             saveError={saveError}
             completedTasks={completedTasks}
             back={origin}
-            next={origin.to === "/" && nextBlock ? { title: nextBlock.title, to: nextBlock.playPath, state: fromState("/") } : null}
+            next={offersNextBlock(origin) && nextBlock ? { title: nextBlock.title, to: nextBlock.playPath, state: fromState(origin.to) } : null}
             onPlayAgain={() => void begin()}
             onRepeatHardest={repeatHardest}
             onChangeTempo={(next) => {
@@ -345,7 +426,9 @@ export function TocarPage() {
             {exercise ? <p className="max-w-prose text-ink-muted">{exercise.howTo}</p> : null}
             <p className="text-caption text-ink-subtle">
               {score.noteCount} notas · {bpm} bpm
+              {cleanBpm ? ` · último limpo: ${cleanBpm} bpm` : ""}
             </p>
+            <p className="hidden text-caption text-ink-subtle lg:block">Espaço começa e para · R toca de novo · L ouve · setas mudam o bpm</p>
             <div className="flex flex-wrap justify-center gap-3">
               <ListenSoundPicker />
               <Button variant="secondary" onClick={() => (isHearing ? listen.stop() : void listen.play())} disabled={listen.status === "carregando"} aria-pressed={listen.status === "tocando"}>

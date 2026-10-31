@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import "fake-indexeddb/auto";
 
-import { bestResultsByExercise, currentStreak, db, localDayKey, starsFor, type ExerciseResult } from "./db";
+import { beforeEach, describe, expect, it } from "vitest";
+
+import { bestResultsByExercise, currentStreak, db, localDayKey, recordSectionRun, starsFor, type ExerciseResult } from "./db";
 
 function result(exerciseId: string, stars: 0 | 1 | 2 | 3, accuracyPct: number): ExerciseResult {
   return { exerciseId, stars, accuracyPct, playedAt: 0, meanSignedCents: 0, bpm: 60, durationSeconds: 30 };
@@ -71,5 +73,22 @@ describe("currentStreak", () => {
 describe("localDayKey", () => {
   it("formats using the local calendar date", () => {
     expect(localDayKey(new Date(2026, 0, 5, 23, 30))).toBe("2026-01-05");
+  });
+});
+
+describe("recordSectionRun", () => {
+  beforeEach(async () => {
+    await Promise.all([db.sectionRuns.clear(), db.practiceDays.clear(), db.results.clear()]);
+  });
+
+  it("keeps the bar range and counts minutes without creating a result", async () => {
+    const playedAt = new Date(2026, 9, 31, 10).getTime();
+    await db.practiceDays.put({ day: "2026-10-31", minutes: 2, exercisesPlayed: 1, xp: 30 });
+    await recordSectionRun({ pieceKey: "scales.1oct.69", firstIndex: 2, lastIndex: 5, accuracyPct: 82, bpm: 72, durationSeconds: 90, playedAt });
+
+    const [run] = await db.sectionRuns.toArray();
+    expect(run).toMatchObject({ firstIndex: 2, lastIndex: 5, accuracyPct: 82 });
+    expect(await db.practiceDays.get("2026-10-31")).toMatchObject({ minutes: 3.5, exercisesPlayed: 1, xp: 30 });
+    expect(await db.results.count()).toBe(0);
   });
 });

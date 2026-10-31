@@ -10,12 +10,13 @@ import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { db } from "@/data/db";
 import { SESSION_COMPLETE_XP } from "@/data/gamification";
 import { nextLessonSentence, splitTasks } from "@/data/lessons";
-import { blockProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
+import { blockProgress, weakestBlock, type PlannedBlock, type RunsByExercise } from "@/data/planner";
 import { grantSessionBonus } from "@/data/progress";
 import { goalSentence } from "@/data/repetitions";
+import { practicePath } from "@/data/sections";
 import { BLOCK_LABELS } from "@/data/routines";
 import { dueReviews } from "@/data/suzuki";
-import { ButtonLink, Card, EmptyState, GoalDots, InlineError, ProgressRing } from "@/design/components";
+import { Button, ButtonLink, Card, GoalDots, InlineError, ProgressRing } from "@/design/components";
 import { Icon, type IconName } from "@/design/icons";
 import { PageHeader, SkeletonList } from "@/design/layout";
 
@@ -40,6 +41,11 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
+function blockPath(planned: PlannedBlock): string {
+  const playPath = planned.item?.playPath ?? "/";
+  return planned.targetBpm ? practicePath(playPath, planned.targetBpm) : playPath;
+}
+
 function BlockMarker({ index, done, current }: { index: number; done: boolean; current: boolean }) {
   const tone = done ? "bg-in-tune-soft text-in-tune" : current ? "bg-primary text-on-primary" : "bg-surface-soft text-ink-muted";
   return (
@@ -60,9 +66,11 @@ interface BlockRowProps {
   index: number;
   runsToday: RunsByExercise;
   current: boolean;
+  weakest: boolean;
+  onSkip: (id: string) => void;
 }
 
-function BlockRow({ planned, index, runsToday, current }: BlockRowProps) {
+function BlockRow({ planned, index, runsToday, current, weakest, onSkip }: BlockRowProps) {
   const item = planned.item;
   const progress = blockProgress(planned, runsToday);
   const done = progress?.complete ?? false;
@@ -81,10 +89,11 @@ function BlockRow({ planned, index, runsToday, current }: BlockRowProps) {
           <span aria-hidden>/</span>
           <span className="font-mono tabular">{planned.block.durationMinutes} min</span>
           <BlockOrigin planned={planned} />
+          {weakest ? <span className="rounded-sm bg-off-soft px-1.5 text-caption text-off">Mais fraco hoje</span> : null}
         </div>
         {item ? (
           <Link
-            to={item.playPath}
+            to={blockPath(planned)}
             state={FROM_TODAY}
             className={`w-fit max-w-full truncate text-body font-semibold after:absolute after:inset-0 after:rounded-md after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-focus ${titleTone}`}
           >
@@ -107,6 +116,16 @@ function BlockRow({ planned, index, runsToday, current }: BlockRowProps) {
           </span>
         ) : null}
       </div>
+      {item && planned.canSkip && !done ? (
+        <Button variant="ghost" icon="avancar" className="relative z-10 self-center" onClick={() => onSkip(item.id)} aria-label={`Outra peça no lugar de ${item.title}`}>
+          Outra peça
+        </Button>
+      ) : null}
+      {item && weakest ? (
+        <ButtonLink icon="play" to={blockPath(planned)} state={FROM_TODAY} className="relative z-10 self-center" aria-label={`Repetir ${item.title}`}>
+          Repetir
+        </ButtonLink>
+      ) : null}
     </li>
   );
 }
@@ -162,12 +181,14 @@ export function HojePage() {
   const allDone = today.progress.total > 0 && today.progress.done === today.progress.total;
   const frozenToday = today.stats.frozenDays.includes(today.today);
   const [bonusError, setBonusError] = useState(false);
+  const skipPiece = useSettings((state) => state.skipPiece);
 
   useEffect(() => {
     if (allDone && !today.sessionCompleted) grantSessionBonus(today.today).then(() => setBonusError(false), () => setBonusError(true));
   }, [allDone, today.sessionCompleted, today.today]);
 
   const nextItem = today.next?.item ?? null;
+  const weakest = allDone ? weakestBlock(today.plan, today.runsToday) : null;
 
   return (
     <>
@@ -187,7 +208,7 @@ export function HojePage() {
                 <p className="text-small text-ink-muted md:text-center">
                   Próximo: <span className="font-semibold text-ink">{nextItem.title}</span>
                 </p>
-                <ButtonLink variant="primary" size="lg" icon="play" to={nextItem.playPath} state={FROM_TODAY} className="w-full" aria-label={`Tocar agora: ${nextItem.title}`}>
+                <ButtonLink variant="primary" size="lg" icon="play" to={today.next ? blockPath(today.next) : nextItem.playPath} state={FROM_TODAY} className="w-full" aria-label={`Tocar agora: ${nextItem.title}`}>
                   Tocar agora
                 </ButtonLink>
               </div>
@@ -210,17 +231,22 @@ export function HojePage() {
             {!today.coreReady && !today.coreError ? <SkeletonList rows={3} label="Montando a sessão…" /> : null}
 
             {today.coreReady && allDone ? (
-              <EmptyState
-                title={`Tudo feito. +${SESSION_COMPLETE_XP} XP pela sessão completa.`}
-                description="Quer continuar? Repita o bloco que ficou mais fraco ou abra uma peça do repertório."
-                action={<ButtonLink to="/repertorio">Abrir o repertório</ButtonLink>}
-              />
+              <div role="status" className="grid gap-1 rounded-md bg-in-tune-soft px-4 py-3">
+                <p className="text-body font-semibold text-ink">Tudo feito. +{SESSION_COMPLETE_XP} XP pela sessão completa.</p>
+                <p className="text-small text-ink-muted">
+                  Quer continuar? Repita o bloco que ficou mais fraco ou{" "}
+                  <Link to="/repertorio" className="font-semibold text-primary underline-offset-4 hover:underline">
+                    abra uma peça do repertório
+                  </Link>
+                  .
+                </p>
+              </div>
             ) : null}
 
-            {today.coreReady && !allDone ? (
+            {today.coreReady ? (
               <ol aria-label="Blocos da sessão" className="-mx-3 grid gap-1">
                 {today.plan.map((planned, index) => (
-                  <BlockRow key={`${planned.block.type}-${index}`} planned={planned} index={index} runsToday={today.runsToday} current={planned === today.next} />
+                  <BlockRow key={`${planned.block.type}-${index}`} planned={planned} index={index} runsToday={today.runsToday} current={planned === today.next} weakest={allDone && planned === weakest} onSkip={(id) => skipPiece(today.today, id)} />
                 ))}
               </ol>
             ) : null}

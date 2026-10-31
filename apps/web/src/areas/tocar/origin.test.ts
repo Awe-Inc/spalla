@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fromState, tocarOrigin } from "./origin";
+import { fromState, offersNextBlock, tocarOrigin } from "./origin";
 
 describe("tocarOrigin", () => {
   it("returns to Hoje when the run was started from the session", () => {
@@ -22,5 +22,14 @@ describe("tocarOrigin", () => {
     expect(tocarOrigin(fromState("//evil.example"), true)).toEqual({ to: "/estudar/metodo", label: "Estudar" });
     expect(tocarOrigin({ from: "https://evil.example" }, false)).toEqual({ to: "/repertorio", label: "Repertório" });
     expect(tocarOrigin({ from: 42 }, false)).toEqual({ to: "/repertorio", label: "Repertório" });
+  });
+});
+
+describe("offersNextBlock", () => {
+  it("offers the next block when the run came from Hoje or from Estudar, and nowhere else", () => {
+    expect(offersNextBlock({ to: "/", label: "Hoje" })).toBe(true);
+    expect(offersNextBlock({ to: "/estudar/metodo", label: "Estudar" })).toBe(true);
+    expect(offersNextBlock({ to: "/repertorio", label: "Repertório" })).toBe(false);
+    expect(offersNextBlock({ to: "/estudarx", label: "Estudar" })).toBe(false);
   });
 });

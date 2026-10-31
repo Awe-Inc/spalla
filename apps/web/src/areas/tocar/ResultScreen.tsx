@@ -1,4 +1,5 @@
 import type { GameStats, MeasureRange, NoteJudgement, Score } from "@fretless/core";
+import { useEffect, useRef } from "react";
 import type { BlockGoal } from "@/areas/hoje/useTodayPlan";
 import { ACHIEVEMENTS, MASTERY_LEVELS, type MasteryLevel } from "@/data/gamification";
 import { driftSentence, unheardSentence } from "@/data/history";
@@ -161,13 +162,24 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
   const goalLabel = goal ? goalSentence(goal.block, goal.progress) : null;
   const unheardLabel = unheardSentence(stats.unheard);
   const mastery = outcome ? (Math.max(outcome.mastery, outcome.masteryBefore) as MasteryLevel) : null;
+  const summaryRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    summaryRef.current?.focus();
+  }, []);
 
   return (
     <section className="mx-auto grid w-full max-w-2xl gap-5 text-center" aria-label="Resultado">
       <Card tone="hero" as="div" className="grid justify-items-center gap-4">
-        <p className="text-small font-semibold text-primary">{headline(stats, outcome)}</p>
-        <Stars count={outcome?.stars ?? 0} size="lg" isRevealed />
-        <p className="font-display text-display text-balance">{Math.round(stats.accuracyPct)}% de precisão</p>
+        <p className="text-small font-semibold text-primary" aria-live="polite">
+          {headline(stats, outcome)}
+        </p>
+        <span className={outcome || saveError ? "" : "invisible"}>
+          <Stars count={outcome?.stars ?? 0} size="lg" isRevealed={outcome !== null} />
+        </span>
+        <h2 ref={summaryRef} tabIndex={-1} className="font-display text-display text-balance focus:outline-none">
+          {Math.round(stats.accuracyPct)}% de precisão
+        </h2>
         <p className="max-w-prose text-ink-muted">{driftSentence(stats.meanSignedCents)}</p>
         {unheardLabel ? <p className="max-w-prose text-small text-ink-muted">{unheardLabel}</p> : null}
         {saveError ? <p className="text-small text-off">{saveError}</p> : null}

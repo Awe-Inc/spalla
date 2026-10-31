@@ -30,7 +30,7 @@ const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
 ];
 
 const toggleClass =(on: boolean) =>
-  `inline-flex h-9 items-center gap-2 rounded-pill px-4 text-caption font-semibold transition-colors duration-fast ease-spalla ${
+  `inline-flex h-11 items-center gap-2 rounded-pill px-4 text-caption font-semibold transition-colors duration-fast ease-spalla ${
     on ? "bg-primary text-on-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
   }`;
 
@@ -45,11 +45,11 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
       <div className="grid gap-1">
         <span className="text-caption text-ink-subtle">Andamento</span>
         <div className="flex items-center gap-2">
-          <Button aria-label={`Diminuir ${BPM_STEP} bpm`} className="h-9 w-9 px-0 md:h-9" onClick={() => onBpm(bpm - BPM_STEP)} disabled={bpm <= limits.minBpm}>
+          <Button aria-label={`Diminuir ${BPM_STEP} bpm`} className="size-11 px-0 md:h-11" onClick={() => onBpm(bpm - BPM_STEP)} disabled={bpm <= limits.minBpm}>
             −
           </Button>
           <span className="w-20 text-center font-mono text-numeric tabular">{bpm}</span>
-          <Button aria-label={`Aumentar ${BPM_STEP} bpm`} className="h-9 w-9 px-0 md:h-9" onClick={() => onBpm(bpm + BPM_STEP)} disabled={bpm >= limits.maxBpm}>
+          <Button aria-label={`Aumentar ${BPM_STEP} bpm`} className="size-11 px-0 md:h-11" onClick={() => onBpm(bpm + BPM_STEP)} disabled={bpm >= limits.maxBpm}>
             +
           </Button>
         </div>
@@ -112,7 +112,7 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
             <label className="flex items-center gap-2">
               <span className="text-ink-subtle">Divisão</span>
               <select
-                className="h-8 rounded-sm bg-surface-soft px-2 text-ink"
+                className="h-11 rounded-sm bg-surface-soft px-2 text-ink"
                 value={prefs.metronomeSubdivision}
                 onChange={(event) => prefs.setPracticeAudio({ metronomeSubdivision: Number(event.target.value) as Subdivision })}
               >
@@ -125,7 +125,7 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
             </label>
             <label className="flex items-center gap-2">
               <span className="text-ink-subtle">Som</span>
-              <select className="h-8 rounded-sm bg-surface-soft px-2 text-ink" value={prefs.metronomeSound} onChange={(event) => prefs.setPracticeAudio({ metronomeSound: event.target.value as ClickSound })}>
+              <select className="h-11 rounded-sm bg-surface-soft px-2 text-ink" value={prefs.metronomeSound} onChange={(event) => prefs.setPracticeAudio({ metronomeSound: event.target.value as ClickSound })}>
                 {(Object.keys(CLICK_SOUNDS) as ClickSound[]).map((sound) => (
                   <option key={sound} value={sound}>
                     {CLICK_SOUNDS[sound].label}
@@ -152,7 +152,7 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
             <label className="flex items-center gap-2">
               <span className="text-ink-subtle">Do compasso</span>
               <select
-                className="h-8 rounded-sm bg-surface-soft px-2 font-mono text-ink tabular"
+                className="h-11 rounded-sm bg-surface-soft px-2 font-mono text-ink tabular"
                 value={first}
                 onChange={(event) => onLoop({ firstIndex: Number(event.target.value), lastIndex: Math.max(last, Number(event.target.value)) })}
               >
@@ -166,7 +166,7 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
             <label className="flex items-center gap-2">
               <span className="text-ink-subtle">ao</span>
               <select
-                className="h-8 rounded-sm bg-surface-soft px-2 font-mono text-ink tabular"
+                className="h-11 rounded-sm bg-surface-soft px-2 font-mono text-ink tabular"
                 value={last}
                 onChange={(event) => onLoop({ firstIndex: Math.min(first, Number(event.target.value)), lastIndex: Number(event.target.value) })}
               >

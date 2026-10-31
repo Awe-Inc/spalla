@@ -133,6 +133,17 @@ export interface StoredSection {
   createdAt: number;
 }
 
+export interface StoredSectionRun {
+  id?: number;
+  pieceKey: string;
+  firstIndex: number;
+  lastIndex: number;
+  accuracyPct: number;
+  bpm: number;
+  durationSeconds: number;
+  playedAt: number;
+}
+
 export interface StoredRecording {
   id?: number;
   name: string;
@@ -169,6 +180,7 @@ export class FretlessDatabase extends Dexie {
   sheetFiles!: EntityTable<StoredSheetFile, "id">;
   suzukiPieces!: EntityTable<StoredSuzukiPiece, "key">;
   pieceSections!: EntityTable<StoredSection, "id">;
+  sectionRuns!: EntityTable<StoredSectionRun, "id">;
   recordings!: EntityTable<StoredRecording, "id">;
   recordingFiles!: EntityTable<StoredRecordingFile, "id">;
   classAssignments!: EntityTable<StoredClassAssignment, "id">;
@@ -217,6 +229,9 @@ export class FretlessDatabase extends Dexie {
     });
     this.version(10).stores({
       classAnnouncements: "id, createdAt",
+    });
+    this.version(11).stores({
+      sectionRuns: "++id, pieceKey, playedAt",
     });
   }
 }
@@ -273,6 +288,22 @@ export function currentStreak(days: readonly PracticeDay[], today: string, froze
 
 export async function readUserStats(): Promise<UserStats> {
   return (await db.userStats.get("me")) ?? DEFAULT_USER_STATS;
+}
+
+export async function recordSectionRun(run: StoredSectionRun): Promise<void> {
+  const day = localDayKey(new Date(run.playedAt));
+  await db.transaction("rw", db.sectionRuns, db.practiceDays, async () => {
+    await db.sectionRuns.add(run);
+    const existing = await db.practiceDays.get(day);
+    await db.practiceDays.put({
+      exercisesPlayed: 0,
+      xp: 0,
+      goalMet: false,
+      ...existing,
+      day,
+      minutes: (existing?.minutes ?? 0) + run.durationSeconds / 60,
+    });
+  });
 }
 
 export async function recordResult(result: ExerciseResult): Promise<void> {

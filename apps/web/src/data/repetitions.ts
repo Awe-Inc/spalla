@@ -3,6 +3,7 @@ import { localDayKey, type ExerciseResult, type RoutineBlock } from "./db";
 export const CLEAN_RUN_ACCURACY_PCT = 90;
 export const DEFAULT_CLEAN_REPETITIONS = 3;
 export const SERIES_BEFORE_TEMPO_RAISE = 3;
+export const ONE_TIME_MIN_ACCURACY_PCT = 60;
 
 export interface GoalProgress {
   done: number;
@@ -13,6 +14,11 @@ export interface GoalProgress {
 
 export function isCleanRun(result: ExerciseResult): boolean {
   return result.accuracyPct >= CLEAN_RUN_ACCURACY_PCT;
+}
+
+export function lastCleanBpm(results: readonly ExerciseResult[]): number | null {
+  const latest = results.filter(isCleanRun).reduce<ExerciseResult | null>((found, result) => (!found || result.playedAt > found.playedAt ? result : found), null);
+  return latest ? latest.bpm : null;
 }
 
 export function runsByExercise(results: readonly ExerciseResult[], since: number): Map<string, ExerciseResult[]> {
@@ -59,8 +65,8 @@ export function goalProgress(block: RoutineBlock, runs: readonly ExerciseResult[
   const recentClean = runs.slice(-Math.max(block.goalValue, 1)).map(isCleanRun);
   switch (block.goal) {
     case "repeticoes-limpas": {
-      const streak = cleanStreak(runs);
-      return { done: Math.min(streak, block.goalValue), total: block.goalValue, complete: streak >= block.goalValue, recentClean };
+      const complete = longestCleanStreak(runs) >= block.goalValue;
+      return { done: complete ? block.goalValue : Math.min(cleanStreak(runs), block.goalValue), total: block.goalValue, complete, recentClean };
     }
     case "estrelas": {
       const stars = Math.max(0, ...runs.map((run) => run.stars));
@@ -70,8 +76,10 @@ export function goalProgress(block: RoutineBlock, runs: readonly ExerciseResult[
       const minutes = minutesPlayed(runs);
       return { done: Math.min(Math.floor(minutes), block.durationMinutes), total: block.durationMinutes, complete: minutes >= block.durationMinutes, recentClean };
     }
-    case "uma-vez":
-      return { done: runs.length > 0 ? 1 : 0, total: 1, complete: runs.length > 0, recentClean };
+    case "uma-vez": {
+      const complete = runs.some((run) => run.accuracyPct >= ONE_TIME_MIN_ACCURACY_PCT);
+      return { done: complete ? 1 : 0, total: 1, complete, recentClean };
+    }
   }
 }
 
@@ -84,6 +92,6 @@ export function goalSentence(block: RoutineBlock, progress: GoalProgress): strin
     case "tempo":
       return progress.complete ? `${block.durationMinutes} min feitos` : `${progress.done} de ${block.durationMinutes} min`;
     case "uma-vez":
-      return null;
+      return !progress.complete && progress.recentClean.length > 0 ? `Uma passada com ${ONE_TIME_MIN_ACCURACY_PCT}% fecha o bloco` : null;
   }
 }

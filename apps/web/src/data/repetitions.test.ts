@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult, RoutineBlock } from "./db";
-import { cleanStreak, closedSeriesDays, goalProgress, goalSentence, isCleanRun, runsByExercise, shouldRaiseTempo } from "./repetitions";
+import { cleanStreak, closedSeriesDays, goalProgress, goalSentence, isCleanRun, lastCleanBpm, runsByExercise, shouldRaiseTempo } from "./repetitions";
 
 const startOfDay = Date.parse("2026-10-28T00:00:00");
 
@@ -17,6 +17,16 @@ describe("isCleanRun", () => {
   it("counts 90% or better and nothing below", () => {
     expect(isCleanRun(run(90))).toBe(true);
     expect(isCleanRun(run(89.9))).toBe(false);
+  });
+});
+
+describe("lastCleanBpm", () => {
+  it("returns the tempo of the most recent clean run, ignoring weaker ones after it", () => {
+    const clean = { ...run(95, 1), bpm: 72 };
+    const olderClean = { ...run(92, 0), bpm: 60 };
+    const weakLater = { ...run(50, 2), bpm: 90 };
+    expect(lastCleanBpm([weakLater, clean, olderClean])).toBe(72);
+    expect(lastCleanBpm([weakLater])).toBeNull();
   });
 });
 
@@ -48,8 +58,19 @@ describe("goalProgress", () => {
 
   it("treats one play as done for uma-vez and uses best stars for estrelas", () => {
     expect(goalProgress(block("uma-vez", 1), [])).toMatchObject({ done: 0, complete: false });
-    expect(goalProgress(block("uma-vez", 1), [run(40)])).toMatchObject({ done: 1, complete: true });
+    expect(goalProgress(block("uma-vez", 1), [run(40)])).toMatchObject({ done: 0, complete: false });
+    expect(goalProgress(block("uma-vez", 1), [run(40), run(60)])).toMatchObject({ done: 1, complete: true });
     expect(goalProgress(block("estrelas", 2), [run(50, 0, "scale-1", 1), run(85, 1, "scale-1", 2)])).toMatchObject({ done: 2, complete: true });
+  });
+
+  it("keeps a closed series closed when a weaker run comes after it", () => {
+    const progress = goalProgress(block("repeticoes-limpas", 3), [run(95), run(92), run(91), run(40)]);
+    expect(progress).toMatchObject({ done: 3, complete: true });
+    expect(goalSentence(block("repeticoes-limpas", 3), progress)).toBe("3 limpas seguidas, série fechada");
+  });
+
+  it("tells why a single weak run does not close a one-time block", () => {
+    expect(goalSentence(block("uma-vez", 1), goalProgress(block("uma-vez", 1), [run(40)]))).toBe("Uma passada com 60% fecha o bloco");
   });
 
   it("sums played minutes for a tempo block", () => {

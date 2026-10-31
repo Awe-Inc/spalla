@@ -17,6 +17,11 @@ export type PageStyle = (typeof PAGE_STYLES)[number];
 export const READING_GUIDES = ["nota", "compasso", "nenhum"] as const;
 export type ReadingGuide = (typeof READING_GUIDES)[number];
 
+export interface SkippedPieces {
+  day: string;
+  ids: string[];
+}
+
 export interface PracticeAudioPrefs {
   metronomeOn: boolean;
   metronomeSubdivision: Subdivision;
@@ -42,6 +47,8 @@ interface SettingsState extends PracticeAudioPrefs {
   readingGuide: ReadingGuide;
   accent: Accent;
   lessonWeekday: number | null;
+  skippedPieces: SkippedPieces;
+  skipPiece: (day: string, id: string) => void;
   setLessonWeekday: (weekday: number | null) => void;
   setRoutine: (routineId: number) => void;
   completeOnboarding: () => void;
@@ -74,6 +81,8 @@ export const useSettings = create<SettingsState>()(
       readingGuide: "nota",
       accent: "padrao",
       lessonWeekday: null,
+      skippedPieces: { day: "", ids: [] },
+      skipPiece: (day, id) => set(({ skippedPieces }) => ({ skippedPieces: { day, ids: skippedPieces.day === day ? [...skippedPieces.ids, id] : [id] } })),
       setLessonWeekday: (lessonWeekday) => set({ lessonWeekday }),
       setRoutine: (routineId) => set({ routineId }),
       completeOnboarding: () => set({ onboardedAt: Date.now() }),
@@ -99,9 +108,10 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, listenSound, autoSlowdown }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, skippedPieces, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, listenSound, autoSlowdown }) => ({
         theme,
         lessonWeekday,
+        skippedPieces,
         noteNaming,
         inputDeviceId,
         routineId,

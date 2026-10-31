@@ -17,7 +17,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (120 cases) + vitest core (14) + vitest web (442); API: 44 em apps/api
+pnpm test                          # WASM harness (120 cases) + vitest core (14) + vitest web (458); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e:aulas   # professora + admin + aluno in three contexts against a throwaway API
                                    # on 3410 (PGlite temp) and vite on 4180; muted; see docs/testes.md (~45 s)
@@ -115,8 +115,10 @@ apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core ses
                                  /componentes), staffPaint.ts (palette and note/beam/slur/rest painters shared by both staves; rests come from
                                  staffLayout `restShape` and use the --font-music glyphs),
                                  Highway.tsx (string-lane canvas), canvas.ts (useCanvasSize + fitCanvas, shared by both canvases)
-apps/web/src/data/               db.ts (Dexie v10: results, routines, practiceDays, userStats,
+apps/web/src/data/               db.ts (Dexie v11: results, routines, practiceDays, userStats,
                                  achievements, lessonTasks, pieces, sheets + sheetFiles, suzukiPieces, pieceSections,
+                                 sectionRuns (passadas do "Treinar trecho": recordSectionRun soma os minutos do dia e não
+                                 cria result, então não mexe em estrelas, melhor resultado nem no planejador),
                                  recordings + recordingFiles, classAssignments e classAnnouncements = cópia offline das
                                  tarefas e avisos da turma de `GET /me/lessons`), moduleProgress.ts (moduleSummary: estrelas, tocados, minutos,
                                  nível firme e lista por nível de um módulo), exportCsv.ts (histórico em CSV: `;`, BOM,
@@ -456,3 +458,11 @@ send never post the same results twice. The session planner (`planSession`) assi
   backup gravava `{}` no lugar do arquivo. `backup.ts` usa `Object.prototype.toString.call(v) === "[object Uint8Array]"`.
 - **Service worker em modo prompt: nunca `skipWaiting`/`registerType: "autoUpdate"`.** A troca automática recarregava
   a página no meio de uma passada. A versão nova só entra pelo "Atualizar" do `UpdateNotice` (fora do Tocar).
+- **Peça nova tocada hoje ia parar no bloco de revisão** (31/10, P8). O planner monta a revisão primeiro e pegava
+  qualquer exercício já tocado hoje, inclusive a peça nova que o aluno acabou de começar; o bloco "peça nova" ficava com
+  outra. Regra: o "já tocado hoje" só vale se o exercício pertence ao tipo do bloco (`belongsToBlock`: revisão exige
+  resultado anterior, peça nova exige < 2★). E o plano lê `best`/`latest` só de antes do início do dia, para não se
+  reorganizar depois de tocar. Teste em `planner.test` ("peça nova e rodízio").
+- **Série fechada reabria com uma passada ruim** (31/10, P10). `goalProgress` usava `cleanStreak` (conta do fim), então
+  uma passada fraca depois de fechar 3 limpas zerava o bloco e tirava o bônus. Meta de repetições fecha pelo
+  `longestCleanStreak` do dia. Teste em `repetitions.test`.

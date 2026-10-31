@@ -103,7 +103,7 @@ export function ConfirmButton({ label, confirmLabel = label, question = "Tem cer
       <button
         ref={confirmRef}
         type="button"
-        className={`${buttonClass("danger")} h-10 px-3 text-small`}
+        className={`${buttonClass("danger")} h-11 px-3 text-small`}
         onClick={() => {
           setAsking(false);
           onConfirm();
@@ -111,7 +111,7 @@ export function ConfirmButton({ label, confirmLabel = label, question = "Tem cer
       >
         {confirmLabel}
       </button>
-      <button type="button" className={`${buttonClass("ghost")} h-10 px-3 text-small`} onClick={() => setAsking(false)}>
+      <button type="button" className={`${buttonClass("ghost")} h-11 px-3 text-small`} onClick={() => setAsking(false)}>
         Cancelar
       </button>
     </span>

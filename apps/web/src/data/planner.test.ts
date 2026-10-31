@@ -2,7 +2,7 @@ import type { Exercise, ExerciseKind } from "@fretless/core";
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult } from "./db";
-import { nextOpenBlock, planSession, sessionProgress, studentLevel, type ClassTaskItem } from "./planner";
+import { nextOpenBlock, planSession, sessionProgress, studentLevel, weakestBlock, type ClassTaskItem } from "./planner";
 import { runsByExercise } from "./repetitions";
 import { defaultRoutines, hasRepeatedNeighbours, withPinnedItem } from "./routines";
 
@@ -95,6 +95,44 @@ function planWithClass(classTasks: ClassTaskItem[], lessonTasks: Parameters<type
   return planSession({ routine, exercises, best: new Map(), latest: new Map(), lessonTasks, classTasks, playedToday: new Set(), now, day: "2026-10-28" });
 }
 
+describe("tarefas sem bloco", () => {
+  it("gives a class task with no free matching block its own block from the class", () => {
+    const planned = planWithClass([classTask("scale-1"), classTask("scale-2")]);
+    const extra = planned.at(-1);
+    expect(planned).toHaveLength(routine.blocks.length + 1);
+    expect(extra).toMatchObject({ assignmentId: "a-scale-2", exercise: { id: "scale-2" }, block: { type: "escalas" } });
+  });
+
+  it("shows a notebook task without an exercise on the block of its type", () => {
+    const task = { id: 1, text: "Arco reto na corda Lá", blockType: "escalas" as const, itemId: null, createdAt: now, doneAt: null };
+    const block = planWithClass([], [task]).find((item) => item.block.type === "escalas");
+    expect(block).toMatchObject({ fromLesson: true, reason: "Da aula: Arco reto na corda Lá" });
+    expect(block?.exercise).not.toBeNull();
+  });
+});
+
+describe("peça nova e rodízio", () => {
+  it("keeps a new piece played for the first time today in the new-piece block, not in review", () => {
+    const yesterday = result("piece-1", 2, 92, 1);
+    const best = new Map([[yesterday.exerciseId, yesterday]]);
+    const planned = planSession({ routine, exercises, best, latest: best, lessonTasks: [], playedToday: new Set(["piece-2"]), now, day: "2026-10-28" });
+    expect(planned.find((item) => item.block.type === "peca-nova")?.item?.id).toBe("piece-2");
+    expect(planned.find((item) => item.block.type === "revisao")?.item?.id).toBe("piece-1");
+  });
+
+  it("rotates a new piece out after it stayed stuck for several days", () => {
+    const planned = planSession({ routine, exercises, best: new Map(), latest: new Map(), lessonTasks: [], playedToday: new Set(), triedDays: new Map([["piece-1", 4]]), now, day: "2026-10-28" });
+    expect(planned.find((item) => item.block.type === "peca-nova")?.item?.id).toBe("piece-2");
+  });
+
+  it("leaves out what the student skipped today and lets only free picks be skipped", () => {
+    const planned = planSession({ routine, exercises, best: new Map(), latest: new Map(), lessonTasks: [], playedToday: new Set(), skipped: new Set(["piece-1"]), now, day: "2026-10-28" });
+    const fresh = planned.find((item) => item.block.type === "peca-nova");
+    expect(fresh?.item?.id).toBe("piece-2");
+    expect(fresh?.canSkip).toBe(true);
+  });
+});
+
 describe("planSession com tarefas da turma", () => {
   it("põe a tarefa do professor no bloco antes do caderno e da regra, mesmo acima do nível", () => {
     const planned = planWithClass([classTask("piece-9")], [{ text: "Revisar", blockType: "revisao", itemId: "piece-1", createdAt: now, doneAt: null }]);
@@ -178,5 +216,15 @@ describe("pinned pieces", () => {
   it("gives every other block an exercise with its play path", () => {
     const others = planPinned().filter((item) => item.block.type !== "peca-nova" && item.exercise);
     expect(others.every((item) => item.item?.playPath === `/tocar/${item.exercise!.id}`)).toBe(true);
+  });
+});
+
+describe("weakestBlock", () => {
+  it("points at the block whose last run today was the weakest", () => {
+    const planned = plan([]);
+    const [first, second] = planned.filter((item) => item.item);
+    const runs = today({ ...result(first!.item!.id, 2, 95, 0), playedAt: startOfDay + 1 }, { ...result(second!.item!.id, 1, 62, 0), playedAt: startOfDay + 2 });
+    expect(weakestBlock(planned, runs)).toBe(second);
+    expect(weakestBlock(planned, today())).toBeNull();
   });
 });

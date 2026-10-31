@@ -44,7 +44,7 @@ describe("Dexie migration", () => {
     const current = new FretlessDatabase(NAME);
     await current.open();
 
-    expect(current.verno).toBe(10);
+    expect(current.verno).toBe(11);
     expect(current.tables.map((table) => table.name)).not.toContain("settings");
     expect(current.tables.map((table) => table.name)).toEqual(
       expect.arrayContaining(["suzukiPieces", "pieceSections", "recordings", "recordingFiles", "classAssignments", "classAnnouncements"]),

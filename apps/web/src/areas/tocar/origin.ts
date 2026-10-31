@@ -21,6 +21,12 @@ function labelFor(path: string): string | null {
   return match ? match[1] : null;
 }
 
+const NEXT_BLOCK_ORIGINS = ["/", "/estudar"];
+
+export function offersNextBlock(origin: TocarOrigin): boolean {
+  return NEXT_BLOCK_ORIGINS.some((path) => (path === "/" ? labelFor(origin.to) === "Hoje" : origin.to === path || origin.to.startsWith(`${path}/`) || origin.to.startsWith(`${path}?`)));
+}
+
 export function fromState(path: string): { from: string } {
   return { from: path };
 }

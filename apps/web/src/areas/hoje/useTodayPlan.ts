@@ -31,9 +31,18 @@ export function useRoutines(): Routine[] {
   return useMemo(() => [...defaultRoutines(), ...own], [own]);
 }
 
+export function triedDaysByExercise(results: readonly ExerciseResult[]): Map<string, number> {
+  const days = results.reduce((byExercise, result) => {
+    const seen = byExercise.get(result.exerciseId) ?? new Set<string>();
+    return byExercise.set(result.exerciseId, seen.add(localDayKey(new Date(result.playedAt))));
+  }, new Map<string, Set<string>>());
+  return new Map([...days].map(([id, seen]) => [id, seen.size]));
+}
+
 export function useTodayPlan(): TodayPlan {
   const core = useCore();
   const routineId = useSettings((state) => state.routineId);
+  const skippedPieces = useSettings((state) => state.skippedPieces);
   const routines = useRoutines();
   const today = localDayKey(new Date());
   const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
@@ -51,12 +60,15 @@ export function useTodayPlan(): TodayPlan {
   const runsToday = useMemo(() => runsByExercise(results, startOfDay), [results, startOfDay]);
   const doneToday = useMemo(() => new Set(runsToday.keys()), [runsToday]);
 
+  const skipped = useMemo(() => new Set(skippedPieces.day === today ? skippedPieces.ids : []), [skippedPieces, today]);
+
   const plan = useMemo(() => {
     if (exercises.length === 0) return [];
-    const best = bestResultsByExercise(results);
-    const latest = latestResultsByExercise(results);
-    return planSession({ routine, exercises, best, latest, lessonTasks, classTasks, playedToday: doneToday, now: Date.now(), day: today });
-  }, [exercises, results, routine, lessonTasks, classTasks, doneToday, today]);
+    const before = results.filter((result) => result.playedAt < startOfDay);
+    const best = bestResultsByExercise(before);
+    const latest = latestResultsByExercise(before);
+    return planSession({ routine, exercises, best, latest, lessonTasks, classTasks, playedToday: doneToday, triedDays: triedDaysByExercise(before), skipped, now: startOfDay, day: today });
+  }, [exercises, results, routine, lessonTasks, classTasks, doneToday, skipped, startOfDay, today]);
   const todayRecord = days.find((day) => day.day === today);
 
   return {

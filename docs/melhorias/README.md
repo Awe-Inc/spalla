@@ -29,7 +29,7 @@ Nada de recurso novo até o app parar de falhar calado e de arriscar o progresso
 | Q18 | Tempo limite de 15 s nas chamadas à API | `api/client.ts:60` | P |
 | Q8 Q9 | Testes de `saveRun`, `grantSessionBonus`, `resetProgress`, backup/restauração e migração do Dexie v4→v10 | `data/` | M |
 
-## Fase 2 — O estudo no Tocar e na Hoje
+## Fase 2 — O estudo no Tocar e na Hoje — feita em 31/10
 O que o aluno sente toda vez que pega o violino.
 
 | # | O quê | Esf. |

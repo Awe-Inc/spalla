@@ -41,7 +41,7 @@ export interface TabItem {
 }
 
 function tabClass(isActive: boolean): string {
-  return `inline-flex h-10 items-center gap-2 rounded-sm px-4 text-small font-semibold transition-[background-color,color,box-shadow] duration-fast ease-spalla ${
+  return `inline-flex h-11 items-center gap-2 rounded-sm px-4 text-small font-semibold transition-[background-color,color,box-shadow] duration-fast ease-spalla ${
     isActive ? "bg-surface text-ink shadow-card" : "text-ink-muted hover:text-ink"
   }`;
 }

@@ -17,6 +17,7 @@ export const BACKUP_TABLES = [
   "lessonTasks",
   "suzukiPieces",
   "pieceSections",
+  "sectionRuns",
   "pieces",
   "sheets",
   "sheetFiles",
@@ -175,8 +176,8 @@ export async function exportBackup(): Promise<void> {
 }
 
 export async function resetProgress(): Promise<void> {
-  await db.transaction("rw", [db.results, db.practiceDays, db.userStats, db.achievements, db.suzukiPieces], async () => {
-    await Promise.all([db.results.clear(), db.practiceDays.clear(), db.achievements.clear(), db.suzukiPieces.clear()]);
+  await db.transaction("rw", [db.results, db.sectionRuns, db.practiceDays, db.userStats, db.achievements, db.suzukiPieces], async () => {
+    await Promise.all([db.results.clear(), db.sectionRuns.clear(), db.practiceDays.clear(), db.achievements.clear(), db.suzukiPieces.clear()]);
     await db.userStats.put({ ...DEFAULT_USER_STATS });
   });
 }
