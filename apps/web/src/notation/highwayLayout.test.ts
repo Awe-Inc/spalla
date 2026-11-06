@@ -18,7 +18,7 @@ function event(overrides: Partial<ScoreEvent>): ScoreEvent {
     isTiedFrom: false,
     string: 2,
     bowSpan: 1,
-    bowSlot: 0, marks: "", dynamic: "",
+    bowSlot: 0, marks: "", dynamic: "", isGrace: false, graceSlashed: false, chordMidi: [], chordNames: [],
     noteName: "A4",
     latinName: "Lá4",
     ...overrides,

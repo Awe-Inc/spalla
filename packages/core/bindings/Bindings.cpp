@@ -82,8 +82,29 @@ val eventToVal(const score::ScoreEvent& e, int fifths) {
     o.set("bowSlot", static_cast<int>(e.bowSlot));
     o.set("marks", noteMarkNames(e.marks));
     o.set("dynamic", std::string(e.dynamic));
+    o.set("isGrace", e.isGrace);
+    o.set("graceSlashed", e.graceSlashed);
+    val chordMidi = val::array();
+    val chordNames = val::array();
+    for (std::size_t i = 0; i < e.chordSize; ++i) {
+        chordMidi.call<void>("push", e.chordMidi[i]);
+        chordNames.call<void>("push", std::string(e.chordNames[i]));
+    }
+    o.set("chordMidi", chordMidi);
+    o.set("chordNames", chordNames);
     o.set("noteName", std::string(e.noteName));
     o.set("latinName", e.isRest ? std::string() : latinName(e.midi, fifths));
+    return o;
+}
+
+val expressionToVal(const score::ScoreExpression& e) {
+    val o = val::object();
+    const char* kind = e.kind == score::ScoreExpression::Kind::Crescendo ? "crescendo"
+        : e.kind == score::ScoreExpression::Kind::Diminuendo ? "diminuendo" : "dynamic";
+    o.set("kind", std::string(kind));
+    o.set("startSeconds", e.startSeconds);
+    o.set("endSeconds", e.endSeconds);
+    o.set("text", std::string(e.text));
     return o;
 }
 
@@ -139,6 +160,11 @@ val scoreToVal(const score::Score& s) {
     }
     o.set("measures", measures);
     o.set("beamGroups", beamGroupsToVal(s));
+    val expressions = val::array();
+    for (const auto& expression : s.expressions) {
+        expressions.call<void>("push", expressionToVal(expression));
+    }
+    o.set("expressions", expressions);
     return o;
 }
 
@@ -616,6 +642,7 @@ private:
         tempos.insert(tempos.begin(), score::TempoMark{0.0, tempoAtCut, holdAtCut});
         cut.tempoMap       = std::move(tempos);
         cut.beatsPerMinute = writtenAtCut;
+        cut.expressions    = full.expressionsWithin(fromQuarters, toQuarters, fromSeconds, tail.endSeconds);
         return cut;
     }
 

@@ -19,6 +19,7 @@ const emptyScore: Score = {
   events: [],
   measures: [],
   beamGroups: [],
+  expressions: [],
 };
 
 describe("ScrollingStaff", () => {

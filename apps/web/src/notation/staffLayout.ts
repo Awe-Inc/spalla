@@ -76,7 +76,46 @@ export function durationQuarters(score: Score, index: number): number {
   let rate = index + 1 < events.length ? quartersPerSecond(events, index, index + 1) : 0;
   if (rate <= 0 && index > 0) rate = quartersPerSecond(events, index - 1, index);
   if (rate <= 0) rate = score.beatsPerMinute / 60;
-  return event.durationSeconds * rate;
+  return (event.durationSeconds + secondsTakenByGraces(events, index)) * rate;
+}
+
+function secondsTakenByGraces(events: ScoreEvent[], index: number): number {
+  if (events[index]?.isGrace) return 0;
+  let taken = 0;
+  for (let at = index - 1; at >= 0 && events[at]?.isGrace; at -= 1) taken += events[at]?.durationSeconds ?? 0;
+  return taken;
+}
+
+export interface GraceSlot {
+  principal: number;
+  stepsBefore: number;
+}
+
+export function graceSlot(events: ScoreEvent[], index: number): GraceSlot | null {
+  if (!events[index]?.isGrace) return null;
+  let principal = index + 1;
+  while (events[principal]?.isGrace) principal += 1;
+  return events[principal] ? { principal, stepsBefore: principal - index } : null;
+}
+
+export interface ChordHead {
+  position: number;
+  accidental: "#" | "b" | null;
+  side: number;
+}
+
+export function chordHeads(event: ScoreEvent, stemUp: boolean): ChordHead[] {
+  const heads: ChordHead[] = [];
+  let previous = staffPosition(event.noteName);
+  let previousSide = 0;
+  for (const name of event.chordNames) {
+    const position = staffPosition(name);
+    const side = previous - position === 1 && previousSide === 0 ? (stemUp ? 1 : -1) : 0;
+    heads.push({ position, accidental: accidentalOf(name), side });
+    previous = position;
+    previousSide = side;
+  }
+  return heads;
 }
 
 export function beamCount(quarters: number): number {

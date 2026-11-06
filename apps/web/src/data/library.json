@@ -22,7 +22,7 @@
     "file": "Adieu_cousine_Lo_sa_Puget.mxl",
     "title": "Adieu, cousine",
     "composer": "Loïsa Puget",
-    "noteCount": 366,
+    "noteCount": 399,
     "beatsPerMinute": 100,
     "level": 4
   },
@@ -31,7 +31,7 @@
     "file": "4_Adieux_de_l_h_tesse_arabe_Georges_Bizet.mxl",
     "title": "Adieux de l'hôtesse arabe",
     "composer": "Georges Bizet",
-    "noteCount": 42,
+    "noteCount": 46,
     "beatsPerMinute": 72,
     "level": 2
   },
@@ -58,7 +58,7 @@
     "file": "1_Am_Wasserfall_Josephine_Lang.mxl",
     "title": "Am Wasserfall",
     "composer": "Josephine Lang",
-    "noteCount": 120,
+    "noteCount": 125,
     "beatsPerMinute": 114,
     "level": 3
   },
@@ -76,7 +76,7 @@
     "file": "12_An_meine_entfernte_Lieben_Maria_Theresia_von_Paradis.mxl",
     "title": "An meine entfernte Lieben",
     "composer": "Maria Theresia von Paradis",
-    "noteCount": 81,
+    "noteCount": 82,
     "beatsPerMinute": 50,
     "level": 3
   },
@@ -103,7 +103,7 @@
     "file": "Aubade_C_cile_Chaminade.mxl",
     "title": "Aubade",
     "composer": "Cécile Chaminade",
-    "noteCount": 233,
+    "noteCount": 239,
     "beatsPerMinute": 60,
     "level": 4
   },
@@ -112,7 +112,7 @@
     "file": "7_Auf_dem_Flusse_Franz_Schubert.mxl",
     "title": "Auf dem Flusse",
     "composer": "Franz Schubert",
-    "noteCount": 204,
+    "noteCount": 211,
     "beatsPerMinute": 43,
     "level": 4
   },
@@ -139,7 +139,7 @@
     "file": "03_Aus_dem_Siegwart_Wohl_und_immer_wohl_dem_Mann_Maria_Theresia_von_Para.mxl",
     "title": "Aus Siegwart",
     "composer": "Maria Theresia von Paradis",
-    "noteCount": 86,
+    "noteCount": 88,
     "beatsPerMinute": 92,
     "level": 3
   },
@@ -148,7 +148,7 @@
     "file": "3_Barcarole_Josephine_Lang.mxl",
     "title": "Barcarole",
     "composer": "Josephine Lang",
-    "noteCount": 231,
+    "noteCount": 243,
     "beatsPerMinute": 45,
     "level": 4
   },
@@ -166,16 +166,16 @@
     "file": "Celia_s_Complaint_Thomas_Arne.mxl",
     "title": "Celia’s Complaint",
     "composer": "Thomas Arne",
-    "noteCount": 146,
+    "noteCount": 168,
     "beatsPerMinute": 120,
-    "level": 3
+    "level": 4
   },
   {
     "slug": "17_chant_d_amour_georges_bizet",
     "file": "17_Chant_d_amour_Georges_Bizet.mxl",
     "title": "Chant d’amour",
     "composer": "Georges Bizet",
-    "noteCount": 284,
+    "noteCount": 298,
     "beatsPerMinute": 100,
     "level": 4
   },
@@ -184,7 +184,7 @@
     "file": "5_Das_ist_ein_Tag_der_klingen_mag_Clara_Schumann.mxl",
     "title": "Das ist ein Tag, der klingen mag",
     "composer": "Clara Schumann",
-    "noteCount": 84,
+    "noteCount": 88,
     "beatsPerMinute": 108,
     "level": 3
   },
@@ -193,7 +193,7 @@
     "file": "11_Das_M_dchen_am_Ufer_Corona_Schr_ter.mxl",
     "title": "Das Mädchen am Ufer",
     "composer": "Corona Elisabeth Wilhelmine Schröter",
-    "noteCount": 58,
+    "noteCount": 62,
     "beatsPerMinute": 80,
     "level": 2
   },
@@ -211,7 +211,7 @@
     "file": "3_Der_Himmel_mit_all_seinen_Sonnen_w_r_mein_Josephine_Lang.mxl",
     "title": "Der Himmel mit all' seinen Sonnen wär' mein",
     "composer": "Josephine Lang",
-    "noteCount": 258,
+    "noteCount": 261,
     "beatsPerMinute": 116,
     "level": 4
   },
@@ -220,7 +220,7 @@
     "file": "5_Der_Schnee_ist_zergangen_Robert_Franz.mxl",
     "title": "Der Schnee is zergangen",
     "composer": "Robert Franz",
-    "noteCount": 100,
+    "noteCount": 101,
     "beatsPerMinute": 116,
     "level": 3
   },
@@ -229,7 +229,7 @@
     "file": "05_Der_Soldat_I_Hugo_Wolf.mxl",
     "title": "Der Soldat I",
     "composer": "Hugo Wolf",
-    "noteCount": 128,
+    "noteCount": 135,
     "beatsPerMinute": 140,
     "level": 3
   },
@@ -238,7 +238,7 @@
     "file": "1_Der_spanische_Zitherknabe_Johanna_Kinkel.mxl",
     "title": "Der Spanische Zitherknabe",
     "composer": "Johanna Kinkel",
-    "noteCount": 462,
+    "noteCount": 471,
     "beatsPerMinute": 116,
     "level": 4
   },
@@ -274,7 +274,7 @@
     "file": "16_Die_alten_b_sen_Lieder_Robert_Schumann.mxl",
     "title": "Die alten, bösen Lieder",
     "composer": "Robert Schumann",
-    "noteCount": 168,
+    "noteCount": 169,
     "beatsPerMinute": 80,
     "level": 4
   },
@@ -283,7 +283,7 @@
     "file": "03_Die_Blume_der_Blumen_Louise_Reichardt.mxl",
     "title": "Die Blume der Blumen",
     "composer": "Louise Reichardt",
-    "noteCount": 151,
+    "noteCount": 155,
     "beatsPerMinute": 120,
     "level": 3
   },
@@ -319,7 +319,7 @@
     "file": "11_Die_Stadt_Franz_Schubert.mxl",
     "title": "Die Stadt",
     "composer": "Franz Schubert",
-    "noteCount": 85,
+    "noteCount": 86,
     "beatsPerMinute": 60,
     "level": 3
   },
@@ -328,7 +328,7 @@
     "file": "07_Die_Zigeunerin_Hugo_Wolf.mxl",
     "title": "Die Zigeunerin",
     "composer": "Hugo Wolf",
-    "noteCount": 221,
+    "noteCount": 227,
     "beatsPerMinute": 55,
     "level": 4
   },
@@ -373,7 +373,7 @@
     "file": "2_Feuerfarb_Ludwig_van_Beethoven.mxl",
     "title": "Feuerfarb",
     "composer": "Ludwig van Beethoven",
-    "noteCount": 297,
+    "noteCount": 315,
     "beatsPerMinute": 75,
     "level": 4
   },
@@ -382,7 +382,7 @@
     "file": "Five_o_clock_in_the_morning_Charlotte_Alington_Barnard.mxl",
     "title": "Five o’clock in the morning",
     "composer": "Charlotte Alington Barnard [published as \"Claribel\"]",
-    "noteCount": 263,
+    "noteCount": 266,
     "beatsPerMinute": 114,
     "level": 4
   },
@@ -409,7 +409,7 @@
     "file": "1_Gedenkst_du_mein_Josephine_Lang.mxl",
     "title": "Gedenkst du mein?",
     "composer": "Josephine Lang",
-    "noteCount": 199,
+    "noteCount": 203,
     "beatsPerMinute": 92,
     "level": 4
   },
@@ -427,7 +427,7 @@
     "file": "3_Halt_Franz_Schubert.mxl",
     "title": "Halt!",
     "composer": "Franz Schubert",
-    "noteCount": 142,
+    "noteCount": 143,
     "beatsPerMinute": 125,
     "level": 3
   },
@@ -472,7 +472,7 @@
     "file": "10_Ida_aus_Ariels_Offenbarungen_Louise_Reichardt.mxl",
     "title": "Ida (aus Ariels Offenbarungen)",
     "composer": "Louise Reichardt",
-    "noteCount": 137,
+    "noteCount": 146,
     "beatsPerMinute": 90,
     "level": 3
   },
@@ -481,7 +481,7 @@
     "file": "23_Im_Westen_Robert_Schumann.mxl",
     "title": "Im Westen",
     "composer": "Robert Schumann",
-    "noteCount": 80,
+    "noteCount": 81,
     "beatsPerMinute": 110,
     "level": 3
   },
@@ -499,7 +499,7 @@
     "file": "In_1822_Guy_d_Hardelot.mxl",
     "title": "In 1822",
     "composer": "Guy d’ Hardelot",
-    "noteCount": 180,
+    "noteCount": 182,
     "beatsPerMinute": 94,
     "level": 4
   },
@@ -508,7 +508,7 @@
     "file": "6_In_der_Ferne_Franz_Schubert.mxl",
     "title": "In der Ferne",
     "composer": "Franz Schubert",
-    "noteCount": 230,
+    "noteCount": 232,
     "beatsPerMinute": 70,
     "level": 4
   },
@@ -526,7 +526,7 @@
     "file": "09_Irrlicht_Franz_Schubert.mxl",
     "title": "Irrlicht",
     "composer": "Franz Schubert",
-    "noteCount": 153,
+    "noteCount": 156,
     "beatsPerMinute": 120,
     "level": 3
   },
@@ -535,7 +535,7 @@
     "file": "2_Italien_Fanny_Hensel.mxl",
     "title": "Italien",
     "composer": "Fanny (Mendelssohn) Hensel",
-    "noteCount": 192,
+    "noteCount": 197,
     "beatsPerMinute": 116,
     "level": 4
   },
@@ -571,7 +571,7 @@
     "file": "6_Klage_Johanna_Kinkel.mxl",
     "title": "Klage",
     "composer": "Johanna Kinkel",
-    "noteCount": 126,
+    "noteCount": 132,
     "beatsPerMinute": 60,
     "level": 3
   },
@@ -580,7 +580,7 @@
     "file": "L_amour_captif_C_cile_Chaminade.mxl",
     "title": "L’amour captif",
     "composer": "Cécile Chaminade",
-    "noteCount": 199,
+    "noteCount": 205,
     "beatsPerMinute": 92,
     "level": 4
   },
@@ -607,7 +607,7 @@
     "file": "Le_ch_ne_et_le_roseau_VWV_1036_Pauline_Viardot.mxl",
     "title": "Le chêne et le roseau, VWV 1036",
     "composer": "Pauline Viardot",
-    "noteCount": 365,
+    "noteCount": 372,
     "beatsPerMinute": 100,
     "level": 4
   },
@@ -652,7 +652,7 @@
     "file": "5_Mollys_Abschied_Ludwig_van_Beethoven.mxl",
     "title": "Mollys Abschied",
     "composer": "Ludwig van Beethoven",
-    "noteCount": 49,
+    "noteCount": 51,
     "beatsPerMinute": 60,
     "level": 2
   },
@@ -841,7 +841,7 @@
     "file": "04_St_ndchen_Franz_Schubert.mxl",
     "title": "Ständchen",
     "composer": "Franz Schubert",
-    "noteCount": 183,
+    "noteCount": 197,
     "beatsPerMinute": 62,
     "level": 4
   },
@@ -868,7 +868,7 @@
     "file": "The_Bird_and_the_Rose_Amy_Elsie_Horrocks.mxl",
     "title": "The Bird and the Rose",
     "composer": "Amy Elsie Horrocks",
-    "noteCount": 183,
+    "noteCount": 185,
     "beatsPerMinute": 92,
     "level": 4
   },
@@ -877,7 +877,7 @@
     "file": "5_The_Owl_Liza_Lehmann.mxl",
     "title": "The Owl",
     "composer": "Liza Lehmann",
-    "noteCount": 117,
+    "noteCount": 126,
     "beatsPerMinute": 100,
     "level": 3
   },
@@ -895,7 +895,7 @@
     "file": "4_The_Wren_Liza_Lehmann.mxl",
     "title": "The Wren",
     "composer": "Liza Lehmann",
-    "noteCount": 134,
+    "noteCount": 158,
     "beatsPerMinute": 116,
     "level": 3
   },
@@ -904,7 +904,7 @@
     "file": "5_Through_the_Long_Days_Edward_Elgar.mxl",
     "title": "Through the Long Days",
     "composer": "Edward Elgar",
-    "noteCount": 94,
+    "noteCount": 95,
     "beatsPerMinute": 33,
     "level": 3
   },
@@ -913,7 +913,7 @@
     "file": "18_Toujours_elle_Augusta_Mary_Anne_Holm_s.mxl",
     "title": "Toujours elle!",
     "composer": "Holmès, Augusta Mary Anne",
-    "noteCount": 173,
+    "noteCount": 175,
     "beatsPerMinute": 116,
     "level": 4
   },
@@ -967,7 +967,7 @@
     "file": "2_When_I_am_dead_my_dearest_Samuel_Coleridge_Taylor.mxl",
     "title": "When I am dead, my dearest",
     "composer": "Samuel Coleridge-Taylor",
-    "noteCount": 122,
+    "noteCount": 124,
     "beatsPerMinute": 94,
     "level": 3
   },

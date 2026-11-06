@@ -151,6 +151,23 @@ void GameEngine::update(double deltaSeconds,
     }
 }
 
+namespace {
+
+/// How far a frame is from what this event accepts, measured to the closest of
+/// the notes of a chord.
+float centsToEvent(float frequencyHz, const score::ScoreEvent& note) noexcept {
+    float best = centsBetween(frequencyHz, note.frequencyHz);
+    for (std::size_t i = 0; i < note.acceptedCount; ++i) {
+        const float cents = centsBetween(frequencyHz, note.acceptedHz[i]);
+        if (std::fabs(cents) < std::fabs(best)) {
+            best = cents;
+        }
+    }
+    return best;
+}
+
+}  // namespace
+
 void GameEngine::accumulate(const audio::PitchFrame& frame) {
     const auto& events = score_->events;
     if (cursor_ >= events.size() || events[cursor_].isRest) {
@@ -163,7 +180,7 @@ void GameEngine::accumulate(const audio::PitchFrame& frame) {
     }
 
     const bool  voiced  = frame.frequencyHz > 0.0f;
-    const float cents   = voiced ? centsBetween(frame.frequencyHz, note.frequencyHz) : 0.0f;
+    const float cents   = voiced ? centsToEvent(frame.frequencyHz, note) : 0.0f;
     const bool  inTune  = voiced && std::fabs(cents) <= config_.centsGood;
     // Past the written end the window only exists to credit a late player.
     // Counting silence or other pitches there would charge this note for the
@@ -210,7 +227,7 @@ void GameEngine::releaseNoteTheFrameHasLeft(const audio::PitchFrame& frame) {
     // over, a sounding frame that is not this note — or that is, but the next
     // note repeats the pitch — belongs to what comes next.
     const bool stillThisNote =
-        std::fabs(centsBetween(frame.frequencyHz, note.frequencyHz)) <= config_.centsGood;
+        std::fabs(centsToEvent(frame.frequencyHz, note)) <= config_.centsGood;
     const score::ScoreEvent* next = nullptr;
     for (std::size_t i = cursor_ + 1; i < events.size(); ++i) {
         if (!events[i].isRest) {
@@ -284,7 +301,9 @@ void GameEngine::judgeCurrentNote(double atTime) {
                          acc_.unreadable > acc_.voicedOffTune &&
                          unreadableRatio >= requiredRatio;
 
-    if (unheard) {
+    // A grace note lasts a few analysis windows at best, so silence on one says
+    // more about the detector than about the player.
+    if (unheard || (note.isGrace && !heard)) {
         judgement.grade  = HitGrade::Unheard;
         judgement.points = 0;
         ++stats_.unheard;

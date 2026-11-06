@@ -2,11 +2,11 @@ import type { NoteJudgement, Score } from "@fretless/core";
 import { type CSSProperties, useCallback, useMemo, useRef } from "react";
 
 import { headerOffsets } from "@/notation/pageLayout";
-import { barlineTimes, buildGeometry, noteX, toneFor, visibleEventIndices, type StaffGeometry } from "@/notation/staffLayout";
+import { barlineTimes, buildGeometry, noteX, toneFor, visibleEventIndices, visibleWindow, type StaffGeometry } from "@/notation/staffLayout";
 
 import { useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
 import type { FrameSource } from "./liveRun";
-import { drawBeams, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
+import { drawBeams, drawExpressions, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
 
 const STAFF_LEFT = 8;
 
@@ -59,6 +59,8 @@ export function drawStaff(ctx: CanvasRenderingContext2D, size: CanvasSize, palet
   }
   drawBeams(ctx, props.score, visible, geometry, palette);
   drawSlurs(ctx, props.score, visible, geometry, palette);
+  const seen = visibleWindow(geometry);
+  drawExpressions(ctx, props.score.expressions, seen.start, seen.end, geometry, palette);
   drawPlayhead(ctx, geometry, palette);
 }
 

@@ -21,6 +21,7 @@ const emptyScore: Score = {
   events: [],
   measures: [],
   beamGroups: [],
+  expressions: [],
 };
 
 function renderWith(view: PlayView) {

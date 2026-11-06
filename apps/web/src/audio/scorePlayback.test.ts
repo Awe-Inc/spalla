@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { eventIndexAt, notesBetween, playableNotes, playbackWindow } from "./scorePlayback";
 
 function event(midi: number, startSeconds: number, durationSeconds: number, measureIndex: number, extra: Partial<ScoreEvent> = {}): ScoreEvent {
-  return { midi, startSeconds, durationSeconds, measureIndex, isRest: false, isTiedFrom: false, ...extra } as ScoreEvent;
+  return { midi, startSeconds, durationSeconds, measureIndex, isRest: false, isTiedFrom: false, chordMidi: [], ...extra } as ScoreEvent;
 }
 
 function scoreOf(events: ScoreEvent[], measureSeconds = 2, measureCount = 3): Score {

@@ -34,7 +34,7 @@ function event(overrides: Partial<ScoreEvent>): ScoreEvent {
     isTiedFrom: false,
     string: 2,
     bowSpan: 1,
-    bowSlot: 0, marks: "", dynamic: "",
+    bowSlot: 0, marks: "", dynamic: "", isGrace: false, graceSlashed: false, chordMidi: [], chordNames: [],
     noteName: "A4",
     latinName: "Lá4",
     ...overrides,
@@ -57,6 +57,7 @@ function score(events: ScoreEvent[], overrides: Partial<Score> = {}): Score {
     events,
     measures: [],
     beamGroups: [],
+    expressions: [],
     ...overrides,
   };
 }
@@ -194,7 +195,7 @@ describe("slurSpans", () => {
       event({ bowSpan: 2, bowSlot: 0 }),
       event({ bowSpan: 2, bowSlot: 1 }),
       event({ bowSpan: 3, bowSlot: 0 }),
-      event({ bowSpan: 1, bowSlot: 0, marks: "", dynamic: "", isRest: true }),
+      event({ bowSpan: 1, bowSlot: 0, marks: "", dynamic: "", isGrace: false, graceSlashed: false, chordMidi: [], chordNames: [], isRest: true }),
     ];
     expect(slurSpans(score(events), [0, 1, 2, 3])).toEqual([{ firstIndex: 0, lastIndex: 1 }]);
   });

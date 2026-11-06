@@ -90,6 +90,9 @@ enum NoteMark : std::uint16_t {
     kMarkHarmonic      = 1u << 12,
 };
 
+/// How many notes below the top one a chord keeps. A violin sounds four at most.
+inline constexpr std::size_t kMaxChordExtras = 3;
+
 /// One note or rest on the flattened timeline.
 struct ScoreEvent {
     double       startSeconds    = 0.0;
@@ -114,6 +117,20 @@ struct ScoreEvent {
     std::uint16_t marks          = 0;     ///< `NoteMark` bits
     char         dynamic[6]      = {};    ///< "mf", "sfz", … as printed under this note
     char         noteName[5]     = {};    ///< "A4", "C#5", …
+    /// A grace note: on the timeline so it can be heard and judged, with its
+    /// time taken from the note after it. Printed small, and missing one does
+    /// not cost a note.
+    bool         isGrace         = false;
+    bool         graceSlashed    = false;
+    /// The rest of a double or triple stop, below `midi`.
+    std::uint8_t chordSize       = 0;
+    int          chordMidi[kMaxChordExtras] = {-1, -1, -1};
+    char         chordNames[kMaxChordExtras][5] = {};
+    /// What else the detector may legitimately report for this chord. One
+    /// pitch detector hears a double stop as either note or, on a fifth or a
+    /// fourth, as their shared period, which is no note on the page at all.
+    std::uint8_t acceptedCount   = 0;
+    float        acceptedHz[kMaxChordExtras + 1] = {};
 
     [[nodiscard]] double endSeconds() const noexcept {
         return startSeconds + durationSeconds;
@@ -157,6 +174,17 @@ struct MeasureMark {
     }
 };
 
+/// Something printed along a stretch of the music rather than on one note.
+struct ScoreExpression {
+    enum class Kind : std::uint8_t { Crescendo, Diminuendo, Dynamic };
+    Kind   kind           = Kind::Dynamic;
+    double startQuarters  = 0.0;
+    double endQuarters    = 0.0;
+    double startSeconds   = 0.0;
+    double endSeconds     = 0.0;
+    char   text[6]        = {};   ///< for `Dynamic`
+};
+
 struct Score {
     std::string title;
     std::string composer;
@@ -171,10 +199,18 @@ struct Score {
     std::vector<ScoreEvent> events;   ///< sorted by startSeconds
     std::vector<TempoMark>  tempoMap;
     std::vector<MeasureMark> measures; ///< performance order, contiguous
+    std::vector<ScoreExpression> expressions;   ///< sorted by startQuarters
 
     /// Seconds of written time cut off the front by `trimSilentIntro`, at the
     /// written tempo. Zero when the part plays from its first bar.
     double trimmedIntroSeconds = 0.0;
+
+    /// `expressions` as seen from a cut of the piece starting at the given
+    /// point: what lies outside is gone and what crosses an edge is clipped.
+    [[nodiscard]] std::vector<ScoreExpression> expressionsWithin(double fromQuarters,
+                                                                 double toQuarters,
+                                                                 double fromSeconds,
+                                                                 double toSeconds) const;
 
     /// The bar sounding at `timeSeconds`, or `measures.size()` outside the
     /// piece (before the first bar or after the last one ends).

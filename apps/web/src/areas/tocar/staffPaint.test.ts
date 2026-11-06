@@ -15,7 +15,7 @@ function canvasSpy() {
 }
 
 function scoreWith(overrides: Partial<ScoreEvent>): Score {
-  const event = { startSeconds: 0, durationSeconds: 1, startQuarters: 0, frequencyHz: 440, midi: 69, measure: 1, measureIndex: 0, beat: 1, isRest: false, isTiedFrom: false, string: 2, bowSpan: 1, bowSlot: 0, marks: "", dynamic: "", noteName: "A4", latinName: "Lá4", ...overrides } as ScoreEvent;
+  const event = { startSeconds: 0, durationSeconds: 1, startQuarters: 0, frequencyHz: 440, midi: 69, measure: 1, measureIndex: 0, beat: 1, isRest: false, isTiedFrom: false, string: 2, bowSpan: 1, bowSlot: 0, marks: "", dynamic: "", isGrace: false, graceSlashed: false, chordMidi: [], chordNames: [], noteName: "A4", latinName: "Lá4", ...overrides } as ScoreEvent;
   return { events: [event], beamGroups: [], measures: [], tempoMap: [], beatsPerMeasure: 4, beatUnit: 4, keyFifths: 0 } as unknown as Score;
 }
 

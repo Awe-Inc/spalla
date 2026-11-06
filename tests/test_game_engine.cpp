@@ -330,3 +330,99 @@ TEST(the_synthetic_player_reproduces_its_configured_bias) {
     // 12 cents is outside Perfect but inside Great.
     CHECK_EQ(engine.stats().great, 4);
 }
+
+namespace {
+
+score::Score loadMeasure(const std::string& notes) {
+    const std::string xml =
+        R"(<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>4</divisions><key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <direction><sound tempo="60"/></direction>)" +
+        notes + R"(
+    </measure>
+  </part>
+</score-partwise>)";
+    auto parsed = score::parseMusicXmlBuffer(xml.c_str(), xml.size());
+    return parsed.value_or(score::Score{});
+}
+
+void feedConstantPitch(game::GameEngine& engine, float hz, double untilSeconds) {
+    constexpr double kStep = 1.0 / 240.0;
+    constexpr double kBlock = 256.0 / 48000.0;
+    double nextBlock = 0.0;
+    std::vector<audio::PitchFrame> frames;
+    for (double t = engine.songTime(); t < untilSeconds; t += kStep) {
+        frames.clear();
+        while (nextBlock <= t) {
+            audio::PitchFrame frame{};
+            frame.streamTimeSec = nextBlock;
+            frame.frequencyHz = hz;
+            frame.confidence = 0.95f;
+            frame.rmsLinear = 0.08f;
+            frames.push_back(frame);
+            nextBlock += kBlock;
+        }
+        engine.update(kStep, frames.data(), frames.size());
+    }
+}
+
+const char* const kDoubleStop =
+    "<note><pitch><step>E</step><octave>5</octave></pitch><duration>16</duration></note>"
+    "<note><chord/><pitch><step>A</step><octave>4</octave></pitch><duration>16</duration></note>";
+
+}  // namespace
+
+TEST(a_double_stop_counts_when_the_detector_hears_the_lower_note) {
+    const auto sheet = loadMeasure(kDoubleStop);
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    feedConstantPitch(engine, 440.0f, 5.0);
+    CHECK_EQ(engine.stats().miss, 0);
+    CHECK_EQ(engine.stats().unheard, 0);
+    CHECK_EQ(engine.stats().judgedNotes, 1);
+}
+
+TEST(a_double_stop_counts_when_the_detector_hears_the_shared_period) {
+    const auto sheet = loadMeasure(kDoubleStop);
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    feedConstantPitch(engine, 220.0f, 5.0);
+    CHECK_EQ(engine.stats().miss, 0);
+    CHECK_EQ(engine.stats().unheard, 0);
+}
+
+TEST(a_wrong_note_on_a_double_stop_is_still_a_miss) {
+    const auto sheet = loadMeasure(kDoubleStop);
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    feedConstantPitch(engine, 494.0f, 5.0);
+    CHECK_EQ(engine.stats().miss, 1);
+}
+
+TEST(a_grace_note_that_is_not_heard_costs_nothing) {
+    const auto sheet = loadMeasure(
+        R"(<note><grace slash="yes"/><pitch><step>B</step><octave>4</octave></pitch><type>eighth</type></note>
+           <note><pitch><step>A</step><octave>4</octave></pitch><duration>16</duration></note>)");
+    CHECK_EQ(sheet.events.size(), std::size_t{2});
+    game::GameEngine engine;
+    engine.setScore(&sheet);
+    engine.setLeadInSeconds(0.0);
+    engine.start();
+    feedConstantPitch(engine, 440.0f, 5.0);
+    CHECK_EQ(engine.stats().miss, 0);
+    CHECK_EQ(engine.stats().unheard, 1);
+    CHECK_EQ(engine.stats().judgedNotes, 2);
+    CHECK(engine.allJudgements()[0].grade == game::HitGrade::Unheard);
+    CHECK(engine.allJudgements()[1].grade != game::HitGrade::Miss);
+}

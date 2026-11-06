@@ -31,6 +31,9 @@ export function playableNotes(score: Score, range: MeasureRange | null = null): 
       notes[notes.length - 1] = { ...previous, durationSec: event.startSeconds + event.durationSeconds - previous.startSec };
       continue;
     }
+    for (const midi of event.chordMidi) {
+      notes.push({ midi, startSec: event.startSeconds, durationSec: event.durationSeconds });
+    }
     notes.push({ midi: event.midi, startSec: event.startSeconds, durationSec: event.durationSeconds });
   }
   return notes;

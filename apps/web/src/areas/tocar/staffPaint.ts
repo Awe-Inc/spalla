@@ -1,4 +1,4 @@
-import type { Score, ScoreEvent } from "@fretless/core";
+import type { Score, ScoreEvent, ScoreExpression } from "@fretless/core";
 
 import {
   accidentalOf,
@@ -9,7 +9,9 @@ import {
   beamGroupOf,
   beamThickness,
   beamYAt,
+  chordHeads,
   durationQuarters,
+  graceSlot,
   hasStem,
   isHollowHead,
   keySignaturePositions,
@@ -106,6 +108,8 @@ export function strokeLine(ctx: CanvasRenderingContext2D, x0: number, y0: number
   ctx.stroke();
   ctx.globalAlpha = 1;
 }
+
+const GRACE_SCALE = 0.62;
 
 function fillHead(ctx: CanvasRenderingContext2D, x: number, y: number, geometry: StaffGeometry, color: string, alpha: number, hollow: boolean, paper: string): void {
   ctx.globalAlpha = alpha;
@@ -281,9 +285,95 @@ function drawNoteMarks(ctx: CanvasRenderingContext2D, event: ScoreEvent, x: numb
   ctx.globalAlpha = 1;
 }
 
+function drawAccidental(ctx: CanvasRenderingContext2D, accidental: string, x: number, y: number, size: number, palette: Palette, color: string, alpha: number): void {
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.font = `${Math.round(size)}px ${palette.mono}`;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  ctx.fillText(accidental, x, y);
+  ctx.globalAlpha = 1;
+}
+
+function drawGrace(ctx: CanvasRenderingContext2D, score: Score, index: number, geometry: StaffGeometry, palette: Palette, tone: NoteTone): void {
+  const event = score.events[index];
+  const slot = graceSlot(score.events, index);
+  const principal = slot ? score.events[slot.principal] : undefined;
+  if (!event || !slot || !principal) return;
+  const headWidth = geometry.headWidth * GRACE_SCALE;
+  const x = noteX(geometry, principal.startSeconds) - geometry.headWidth * 0.55 - headWidth * 1.35 * slot.stepsBefore;
+  if (x < -OFFSCREEN_MARGIN || x > geometry.width + OFFSCREEN_MARGIN) return;
+  const position = staffPosition(event.noteName);
+  const y = positionY(geometry, position);
+  const { color, alpha } = toneColor(tone, palette);
+  for (const ledger of ledgerLinePositions(position)) {
+    fillRect(ctx, x - headWidth * 0.85, positionY(geometry, ledger), headWidth * 1.7, 1, palette.inkMuted, 0.8);
+  }
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x, y, headWidth / 2, (geometry.headHeight * GRACE_SCALE) / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  const stemTopX = x + headWidth / 2;
+  const tipY = y - stemLength(geometry) * GRACE_SCALE;
+  fillRect(ctx, stemTopX - 0.5, tipY, 1, y - tipY, color, alpha);
+  strokeLine(ctx, stemTopX, tipY, stemTopX + geometry.spacing * 0.5, tipY + geometry.spacing * 0.7, 1.2, color, alpha);
+  if (event.graceSlashed) {
+    const reach = geometry.spacing * 0.55;
+    const middle = tipY + geometry.spacing * 0.75;
+    strokeLine(ctx, stemTopX - reach, middle + reach, stemTopX + reach, middle - reach, 1, color, alpha);
+  }
+  const accidental = accidentalOf(event.noteName);
+  if (accidental) drawAccidental(ctx, accidental, x - headWidth * 0.7, y, geometry.spacing * 1.3 * GRACE_SCALE + 2, palette, color, alpha);
+}
+
+function drawChordExtras(ctx: CanvasRenderingContext2D, event: ScoreEvent, x: number, stemUp: boolean, hollow: boolean, geometry: StaffGeometry, palette: Palette, color: string, alpha: number): number {
+  let lowestY = positionY(geometry, staffPosition(event.noteName));
+  for (const head of chordHeads(event, stemUp)) {
+    const y = positionY(geometry, head.position);
+    const headX = x + head.side * geometry.headWidth * 0.95;
+    for (const ledger of ledgerLinePositions(head.position)) {
+      fillRect(ctx, headX - geometry.headWidth * 0.85, positionY(geometry, ledger), geometry.headWidth * 1.7, 1, palette.inkMuted, 0.8);
+    }
+    fillHead(ctx, headX, y, geometry, color, alpha, hollow, palette.paper);
+    if (head.accidental) drawAccidental(ctx, head.accidental, x - geometry.headWidth * 0.8, y, geometry.spacing * 1.3, palette, color, alpha);
+    lowestY = Math.max(lowestY, y);
+  }
+  return lowestY;
+}
+
+export function drawExpressions(ctx: CanvasRenderingContext2D, expressions: readonly ScoreExpression[], fromSeconds: number, toSeconds: number, geometry: StaffGeometry, palette: Palette): void {
+  const y = Math.min(geometry.height - geometry.spacing * 0.6, geometry.bottomY + geometry.spacing * 2.6);
+  for (const expression of expressions) {
+    const isPoint = expression.kind === "dynamic";
+    if (expression.startSeconds >= toSeconds) continue;
+    if (isPoint ? expression.startSeconds < fromSeconds : expression.endSeconds <= fromSeconds) continue;
+    if (isPoint) {
+      ctx.fillStyle = palette.ink;
+      ctx.font = `italic 700 ${Math.round(geometry.spacing * 1.4)}px ${palette.music}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(expression.text, noteX(geometry, expression.startSeconds), y);
+      continue;
+    }
+    const x0 = noteX(geometry, Math.max(expression.startSeconds, fromSeconds));
+    const x1 = noteX(geometry, Math.min(expression.endSeconds, toSeconds));
+    const open = geometry.spacing * 0.5;
+    const pointX = expression.kind === "crescendo" ? x0 : x1;
+    const mouthX = expression.kind === "crescendo" ? x1 : x0;
+    strokeLine(ctx, pointX, y, mouthX, y - open, 1, palette.ink);
+    strokeLine(ctx, pointX, y, mouthX, y + open, 1, palette.ink);
+  }
+}
+
 export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: number, geometry: StaffGeometry, palette: Palette, tone: NoteTone): void {
   const event = score.events[index];
   if (!event) return;
+  if (event.isGrace) {
+    drawGrace(ctx, score, index, geometry, palette, tone);
+    return;
+  }
   const x = noteX(geometry, event.startSeconds);
   if (x < -OFFSCREEN_MARGIN || x > geometry.width + OFFSCREEN_MARGIN) return;
   if (event.isRest) {
@@ -301,38 +391,34 @@ export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: num
   }
 
   const quarters = durationQuarters(score, index);
-  fillHead(ctx, x, y, geometry, color, alpha, isHollowHead(quarters), palette.paper);
+  const hollow = isHollowHead(quarters);
+  fillHead(ctx, x, y, geometry, color, alpha, hollow, palette.paper);
+
+  const group = beamGroupOf(score.beamGroups, index);
+  const beam = group ? beamLayoutFor(score, group, geometry) : null;
+  const lowestY = drawChordExtras(ctx, event, x, beam ? beam.stemUp : stemUpFor(position), hollow, geometry, palette, color, alpha);
 
   let markStemUp = stemUpFor(position);
   let stemTipY = y;
-  const group = beamGroupOf(score.beamGroups, index);
-  if (group) {
-    const beam = beamLayoutFor(score, group, geometry);
+  if (beam) {
     const sx = stemX(geometry, event.startSeconds, beam.stemUp);
     const tip = beamYAt(beam, sx);
     markStemUp = beam.stemUp;
     stemTipY = tip;
-    fillRect(ctx, sx - 0.75, Math.min(tip, y), 1.5, Math.abs(y - tip), color, alpha);
+    const top = Math.min(tip, y);
+    fillRect(ctx, sx - 0.75, top, 1.5, Math.max(tip, lowestY) - top, color, alpha);
   } else if (hasStem(quarters)) {
     const stemUp = stemUpFor(position);
     const length = stemLength(geometry);
-    stemTipY = stemUp ? y - length : y + length;
+    stemTipY = stemUp ? y - length : lowestY + length;
     const sx = stemX(geometry, event.startSeconds, stemUp);
-    const stemY = stemUp ? y - length : y;
-    fillRect(ctx, sx - 0.75, stemY, 1.5, length, color, alpha);
-    drawFlags(ctx, sx, stemY, stemUp, beamCount(quarters), geometry, color, alpha);
+    const stemY = stemUp ? stemTipY : y;
+    fillRect(ctx, sx - 0.75, stemY, 1.5, stemUp ? lowestY - stemTipY : stemTipY - y, color, alpha);
+    drawFlags(ctx, sx, stemUp ? stemTipY : lowestY, stemUp, beamCount(quarters), geometry, color, alpha);
   }
 
   const accidental = accidentalOf(event.noteName);
-  if (accidental) {
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = color;
-    ctx.font = `${Math.round(geometry.spacing * 1.3)}px ${palette.mono}`;
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "right";
-    ctx.fillText(accidental, x - geometry.headWidth * 0.8, y);
-    ctx.globalAlpha = 1;
-  }
+  if (accidental) drawAccidental(ctx, accidental, x - geometry.headWidth * 0.8, y, geometry.spacing * 1.3, palette, color, alpha);
 
   drawNoteMarks(ctx, event, x, position, markStemUp, stemTipY, geometry, palette, color, alpha);
 }

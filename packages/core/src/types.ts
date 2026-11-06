@@ -16,6 +16,10 @@ export interface ScoreEvent {
   bowSlot: number;
   marks: string;
   dynamic: string;
+  isGrace: boolean;
+  graceSlashed: boolean;
+  chordMidi: number[];
+  chordNames: string[];
   noteName: string;
   latinName: string;
 }
@@ -29,6 +33,13 @@ export interface Measure {
   beats: number;
   beatUnit: number;
   beatOffset: number;
+}
+
+export interface ScoreExpression {
+  kind: "crescendo" | "diminuendo" | "dynamic";
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
 }
 
 export interface BeamGroup {
@@ -51,6 +62,7 @@ export interface Score {
   events: ScoreEvent[];
   measures: Measure[];
   beamGroups: BeamGroup[];
+  expressions: ScoreExpression[];
 }
 
 export type ExerciseKind =

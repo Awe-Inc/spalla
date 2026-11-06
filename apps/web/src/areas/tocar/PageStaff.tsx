@@ -18,7 +18,7 @@ import { positionY, toneFor, type NoteTone, type StaffGeometry } from "@/notatio
 
 import { canvasPixelRatio, useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
 import type { FrameSource } from "./liveRun";
-import { drawBeams, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
+import { drawBeams, drawExpressions, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
 
 interface PageStaffProps {
   score: Score;
@@ -173,6 +173,7 @@ function drawSystem(ctx: CanvasRenderingContext2D, props: PageDrawProps, system:
   }
   drawBeams(ctx, systemScore, indices, geometry, palette);
   drawSlurs(ctx, systemScore, indices, geometry, palette);
+  drawExpressions(ctx, score.expressions, system.startSeconds, system.endSeconds, geometry, palette);
 }
 
 export function drawPage(ctx: CanvasRenderingContext2D, size: CanvasSize, palette: Palette, props: PageDrawProps): void {

@@ -421,3 +421,94 @@ TEST(timewise_scores_are_read_with_their_navigation) {
     CHECK_EQ(score->events[0].measure, 7);
     CHECK_EQ(score->events[2].measure, 8);
 }
+
+namespace {
+
+std::string pitched(const char* step, int octave, int duration, const std::string& inside = "",
+                    const std::string& after = "") {
+    return "<note>" + inside + "<pitch><step>" + step + "</step><octave>" + std::to_string(octave) +
+           "</octave></pitch><duration>" + std::to_string(duration) + "</duration>" + after + "</note>";
+}
+
+std::string graceNote(const char* step, const char* type, bool slashed) {
+    return std::string("<note><grace") + (slashed ? " slash=\"yes\"" : "") + "/><pitch><step>" + step +
+           "</step><octave>4</octave></pitch><type>" + type + "</type></note>";
+}
+
+}  // namespace
+
+TEST(double_stop_keeps_the_lower_note_and_accepts_it) {
+    const auto score = parsed(piece({pitched("A", 4, 4) + pitched("D", 4, 4, "<chord/>")}));
+    CHECK(score.has_value());
+    if (!score.has_value()) return;
+    CHECK_EQ(score->events.size(), std::size_t{1});
+    const auto& event = score->events[0];
+    CHECK_EQ(event.midi, 69);
+    CHECK_EQ(static_cast<int>(event.chordSize), 1);
+    CHECK_EQ(event.chordMidi[0], 62);
+    CHECK(std::string(event.chordNames[0]) == "D4");
+    CHECK(event.acceptedCount >= 1);
+}
+
+TEST(slashed_grace_takes_its_time_from_the_principal_and_the_bar_stays_whole) {
+    const auto score = parsed(piece({graceNote("B", "eighth", true) + whole("A"), whole("C")}));
+    CHECK(score.has_value());
+    if (!score.has_value()) return;
+    CHECK_EQ(score->events.size(), std::size_t{3});
+    CHECK(score->events[0].isGrace);
+    CHECK(score->events[0].graceSlashed);
+    CHECK(std::abs(score->events[0].durationSeconds - 0.125) < 1e-6);
+    CHECK(!score->events[1].isGrace);
+    CHECK(std::abs(score->events[1].startSeconds - 0.125) < 1e-6);
+    CHECK(std::abs(score->events[1].endSeconds() - 4.0) < 1e-6);
+    CHECK(std::abs(score->events[2].startSeconds - 4.0) < 1e-6);
+}
+
+TEST(graces_never_take_more_than_half_the_principal) {
+    const auto score = parsed(piece({graceNote("B", "quarter", false) + graceNote("C", "quarter", false) +
+                                     pitched("A", 4, 1) + pitched("A", 4, 3)}));
+    CHECK(score.has_value());
+    if (!score.has_value()) return;
+    CHECK_EQ(score->events.size(), std::size_t{4});
+    CHECK(std::abs(score->events[2].startSeconds - 0.5) < 1e-6);
+    CHECK(std::abs(score->events[3].startSeconds - 1.0) < 1e-6);
+}
+
+TEST(wedges_become_timed_expressions_and_follow_the_repeat) {
+    const std::string open = R"(<direction><direction-type><wedge type="crescendo"/></direction-type></direction>)";
+    const std::string shut = R"(<direction><direction-type><wedge type="stop"/></direction-type></direction>)";
+    const auto score = parsed(piece({open + pitched("A", 4, 2) + shut + pitched("B", 4, 2) + kBackward}));
+    CHECK(score.has_value());
+    if (!score.has_value()) return;
+    CHECK_EQ(score->expressions.size(), std::size_t{2});
+    if (score->expressions.size() != 2) return;
+    CHECK(score->expressions[0].kind == ScoreExpression::Kind::Crescendo);
+    CHECK(std::abs(score->expressions[0].endSeconds - 2.0) < 1e-6);
+    CHECK(std::abs(score->expressions[1].startSeconds - 4.0) < 1e-6);
+}
+
+TEST(dynamic_on_a_tied_continuation_survives_at_its_own_time) {
+    const std::string dynamic = R"(<direction><direction-type><dynamics><p/></dynamics></direction-type></direction>)";
+    const auto score = parsed(piece({
+        pitched("A", 4, 4, "", R"(<tie type="start"/>)"),
+        dynamic + pitched("A", 4, 4, "", R"(<tie type="stop"/>)"),
+    }));
+    CHECK(score.has_value());
+    if (!score.has_value()) return;
+    CHECK_EQ(score->events.size(), std::size_t{1});
+    CHECK_EQ(score->expressions.size(), std::size_t{1});
+    if (score->expressions.empty()) return;
+    CHECK(std::string(score->expressions[0].text) == "p");
+    CHECK(std::abs(score->expressions[0].startSeconds - 4.0) < 1e-6);
+}
+
+TEST(slur_becomes_one_bow) {
+    const auto slur = [](const char* type) { return std::string("<notations><slur type=\"") + type + "\"/></notations>"; };
+    const auto score = parsed(piece({pitched("A", 4, 1, "", slur("start")) + pitched("B", 4, 1) +
+                                     pitched("C", 5, 1, "", slur("stop")) + pitched("D", 5, 1)}));
+    CHECK(score.has_value());
+    if (!score.has_value()) return;
+    CHECK_EQ(static_cast<int>(score->events[0].bowSpan), 3);
+    CHECK_EQ(static_cast<int>(score->events[2].bowSlot), 2);
+    CHECK_EQ(static_cast<int>(score->events[3].bowSpan), 1);
+}

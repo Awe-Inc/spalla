@@ -103,7 +103,7 @@ void findBeamGroups(const Score& score, std::vector<BeamGroup>& out) {
     const auto& events = score.events;
 
     const auto beamable = [&](std::size_t i) {
-        return !events[i].isRest && beamCount(durationQuarters(score, i)) > 0;
+        return !events[i].isRest && !events[i].isGrace && beamCount(durationQuarters(score, i)) > 0;
     };
     const auto spanIndex = [&](std::size_t i) {
         const Meter  meter = meterOf(score, events[i]);

@@ -28,7 +28,7 @@ function note(overrides: Partial<ScoreEvent>): ScoreEvent {
     isTiedFrom: false,
     string: 3,
     bowSpan: 1,
-    bowSlot: 0, marks: "", dynamic: "",
+    bowSlot: 0, marks: "", dynamic: "", isGrace: false, graceSlashed: false, chordMidi: [], chordNames: [],
     noteName: "E5",
     latinName: "Mi5",
     ...overrides,
@@ -51,6 +51,7 @@ function score(events: ScoreEvent[]): Score {
     events,
     measures: [],
     beamGroups: [],
+    expressions: [],
   };
 }
 

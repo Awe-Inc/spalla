@@ -119,3 +119,36 @@ TEST(frequency_to_note_conversion_round_trips) {
     CHECK_NEAR(fretless::audio::centsOffset(440.0f * std::pow(2.0f, 20.0f / 1200.0f)),
                20.0, 0.1);
 }
+
+TEST(double_stops_read_as_one_of_their_notes_or_their_shared_period) {
+    struct Stop {
+        double low;
+        double high;
+        double shared;
+        const char* name;
+    };
+    const Stop stops[] = {
+        {440.00, 659.26, 220.00, "La4+Mi5"},
+        {293.66, 440.00, 146.83, "Re4+La4"},
+        {440.00, 554.37, 110.00, "La4+Do#5"},
+        {659.26, 880.00, 220.00, "Mi5+La5"},
+        {196.00, 293.66, 98.00, "Sol3+Re4"},
+    };
+    constexpr double kCentsAllowed = 30.0;
+    auto detector = makeDetector();
+    for (const Stop& stop : stops) {
+        const auto low = makeTone(stop.low, detector.requiredSamples());
+        const auto high = makeTone(stop.high, detector.requiredSamples());
+        std::vector<float> mixed(low.size());
+        for (std::size_t i = 0; i < low.size(); ++i) {
+            mixed[i] = 0.6f * (low[i] + high[i]);
+        }
+        const auto estimate = detector.process(mixed.data(), mixed.size());
+        const auto near = [&](double hz) {
+            return estimate.frequencyHz > 0.0f &&
+                   std::fabs(1200.0 * std::log2(estimate.frequencyHz / hz)) <= kCentsAllowed;
+        };
+        std::printf("    %s -> %.1f Hz (conf %.2f)\n", stop.name, estimate.frequencyHz, estimate.confidence);
+        CHECK(near(stop.low) || near(stop.high) || near(stop.shared));
+    }
+}

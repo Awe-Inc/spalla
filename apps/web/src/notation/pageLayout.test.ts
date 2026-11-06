@@ -17,7 +17,7 @@ function note(measureIndex: number, startSeconds: number, durationSeconds = 1): 
     isTiedFrom: false,
     string: 2,
     bowSpan: 1,
-    bowSlot: 0, marks: "", dynamic: "",
+    bowSlot: 0, marks: "", dynamic: "", isGrace: false, graceSlashed: false, chordMidi: [], chordNames: [],
     noteName: "A4",
     latinName: "Lá4",
   };
@@ -47,6 +47,7 @@ function quarterScore(measureCount: number, notesPerMeasure = 4): Score {
     events,
     measures: Array.from({ length: measureCount }, (_, m) => measure(m)),
     beamGroups: [],
+    expressions: [],
   };
 }
 

@@ -57,7 +57,7 @@ class FakeAudioContext {
 const score = scoreOf();
 
 function scoreOf(): Score {
-  const events = [0, 1, 2, 3].map((index) => ({ midi: 67 + index, startSeconds: index, durationSeconds: 1, measureIndex: Math.floor(index / 2), isRest: false, isTiedFrom: false }));
+  const events = [0, 1, 2, 3].map((index) => ({ midi: 67 + index, startSeconds: index, durationSeconds: 1, measureIndex: Math.floor(index / 2), isRest: false, isTiedFrom: false, chordMidi: [] }));
   const measures = [0, 1].map((index) => ({ startSeconds: index * 2, endSeconds: (index + 1) * 2, beats: 2, beatUnit: 4, beatOffset: 0, lengthQuarters: 2, startQuarters: index * 2, number: index + 1 }));
   return { events, measures, durationSeconds: 4, beatsPerMinute: 60 } as unknown as Score;
 }

@@ -483,10 +483,135 @@ struct RawEvent {
     bool   isRest           = false;
     bool   tieStart         = false;
     bool   tieStop          = false;
+    bool   slurStart        = false;
+    bool   slurStop         = false;
+    bool   isGrace          = false;
+    bool   graceSlashed     = false;
     std::uint16_t marks     = 0;
+    std::uint8_t chordSize  = 0;
+    int    chordMidi[kMaxChordExtras] = {-1, -1, -1};
+    char   chordNames[kMaxChordExtras][5] = {};
     char   dynamic[6]       = {};
     char   noteName[5]      = {};
 };
+
+/// A grace note waiting for the note it leans on, which only exists once the
+/// voices are collapsed and the ties merged.
+struct RawGrace {
+    double onsetQuarters   = 0.0;
+    double writtenQuarters = 0.0;
+    int    midi            = -1;
+    bool   slashed         = false;
+    char   noteName[5]     = {};
+};
+
+constexpr double kSlashedGraceQuarters = 0.125;
+constexpr double kDefaultGraceQuarters = 0.25;
+constexpr double kMostOfANoteAGraceTakes = 0.5;
+
+double graceWrittenQuarters(const pugi::xml_node& note) {
+    if (note.child("grace").attribute("slash").as_string() == std::string("yes")) {
+        return kSlashedGraceQuarters;
+    }
+    const std::string type = note.child_value("type");
+    if (type == "quarter") return 1.0;
+    if (type == "eighth") return 0.5;
+    if (type == "16th") return 0.25;
+    if (type == "32nd") return 0.125;
+    return kDefaultGraceQuarters;
+}
+
+/// Puts each grace note on the timeline in front of its principal. Played on
+/// the beat, as classical string writing reads them: the time comes out of the
+/// principal, never out of the bar, so everything after stays where it was.
+void insertGraceNotes(std::vector<RawEvent>& events, const std::vector<RawGrace>& graces) {
+    if (graces.empty()) {
+        return;
+    }
+    std::vector<RawEvent> out;
+    out.reserve(events.size() + graces.size());
+    for (auto event : events) {
+        std::vector<const RawGrace*> own;
+        double wanted = 0.0;
+        for (const auto& grace : graces) {
+            if (!event.isRest && std::abs(grace.onsetQuarters - event.startQuarters) <= kOnsetEpsilon) {
+                own.push_back(&grace);
+                wanted += grace.writtenQuarters;
+            }
+        }
+        if (!own.empty() && wanted > 0.0) {
+            const double available = event.durationQuarters * kMostOfANoteAGraceTakes;
+            const double shrink = std::min(1.0, available / wanted);
+            double cursor = event.startQuarters;
+            for (const RawGrace* grace : own) {
+                RawEvent small;
+                small.startQuarters    = cursor;
+                small.durationQuarters = grace->writtenQuarters * shrink;
+                small.midi             = grace->midi;
+                small.measure          = event.measure;
+                small.playedMeasure    = event.playedMeasure;
+                small.isGrace          = true;
+                small.graceSlashed     = grace->slashed;
+                std::memcpy(small.noteName, grace->noteName, sizeof(small.noteName));
+                out.push_back(small);
+                cursor += small.durationQuarters;
+            }
+            event.durationQuarters -= cursor - event.startQuarters;
+            event.startQuarters = cursor;
+        }
+        out.push_back(event);
+    }
+    events.swap(out);
+}
+
+/// Each slur becomes the bow a violinist takes it under.
+void applySlurs(const std::vector<RawEvent>& events, std::vector<std::uint8_t>& span,
+                std::vector<std::uint8_t>& slot) {
+    span.assign(events.size(), 1);
+    slot.assign(events.size(), 0);
+    constexpr std::size_t kLongestBow = 255;
+    const auto bowless = [&events](std::size_t k) { return events[k].isRest || events[k].isGrace; };
+    std::size_t first = events.size();
+    for (std::size_t i = 0; i < events.size(); ++i) {
+        if (bowless(i)) {
+            continue;
+        }
+        const RawEvent& event = events[i];
+        if (first == events.size() && event.slurStart) {
+            first = i;
+        }
+        if (first != events.size() && event.slurStop && i > first) {
+            std::size_t notes = 0;
+            for (std::size_t k = first; k <= i; ++k) {
+                if (!bowless(k)) ++notes;
+            }
+            const auto count = static_cast<std::uint8_t>(std::min(notes, kLongestBow));
+            std::size_t index = 0;
+            for (std::size_t k = first; k <= i; ++k) {
+                if (bowless(k)) continue;
+                span[k] = count;
+                slot[k] = static_cast<std::uint8_t>(std::min(index, kLongestBow));
+                ++index;
+            }
+            first = event.slurStart ? i : events.size();
+        }
+    }
+}
+
+/// The period a fifth or a fourth shares, when it is one a violin could sound.
+float sharedPeriodHz(float lowHz, float highHz) noexcept {
+    constexpr float kLowestHeardHz = 170.0f;
+    constexpr float kHowClose = 0.012f;
+    const float ratio = highHz / lowHz;
+    for (int below = 2; below <= 3; ++below) {
+        const float above = std::round(ratio * static_cast<float>(below));
+        if (std::fabs(ratio - above / static_cast<float>(below)) <= ratio * kHowClose) {
+            const float shared = lowHz / static_cast<float>(below);
+            return shared >= kLowestHeardHz ? shared : 0.0f;
+        }
+    }
+    return 0.0f;
+}
 
 /// One played bar, still in quarters. `beats`/`beatUnit` are the meter in
 /// force when it was read; the time signature can change at any bar.
@@ -843,6 +968,10 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     // note that follows it; a rest cannot show it, so it waits for a real note.
     char          pendingDynamic[6] = {};
     std::uint16_t pendingMarks      = 0;
+    std::vector<RawGrace> graces;
+    std::vector<ScoreExpression> expressions;
+    // A wedge opens and closes in separate directions, numbered so two can overlap.
+    std::vector<std::pair<int, std::size_t>> openWedges;
 
     const bool statesTempo = std::any_of(measures.begin(), measures.end(), [](const pugi::xml_node& m) {
         return static_cast<bool>(m.select_node(".//sound[@tempo]")) ||
@@ -909,6 +1038,28 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                 if (std::strcmp(name, "direction") == 0) {
                     for (const auto type : element.children("direction-type")) {
                         readDynamic(type, pendingDynamic);
+                        if (const auto wedge = type.child("wedge")) {
+                            const double at = quarterCursor +
+                                element.child("offset").text().as_double(0.0) / divisions;
+                            const std::string kind = wedge.attribute("type").as_string();
+                            const int number = wedge.attribute("number").as_int(1);
+                            if (kind == "crescendo" || kind == "diminuendo") {
+                                ScoreExpression opened;
+                                opened.kind = kind == "crescendo" ? ScoreExpression::Kind::Crescendo
+                                                                  : ScoreExpression::Kind::Diminuendo;
+                                opened.startQuarters = at;
+                                opened.endQuarters   = -1.0;
+                                openWedges.emplace_back(number, expressions.size());
+                                expressions.push_back(opened);
+                            } else if (kind == "stop") {
+                                const auto open = std::find_if(openWedges.rbegin(), openWedges.rend(),
+                                    [number](const auto& entry) { return entry.first == number; });
+                                if (open != openWedges.rend()) {
+                                    expressions[open->second].endQuarters = at;
+                                    openWedges.erase(std::next(open).base());
+                                }
+                            }
+                        }
                         for (const auto words : type.children("words")) {
                             if (startsWith(normalizedWords(words.child_value()), "pizz")) {
                                 pendingMarks |= kMarkPizzicato;
@@ -948,9 +1099,22 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
             }
 
             // ── A note or rest ────────────────────────────────────────────
-            // Grace notes carry no duration and would corrupt the timeline.
-            // They are ornaments; the game judges the principal note.
+            // A grace note has no written duration, so it waits for the note it
+            // leans on instead of moving the cursor.
             if (element.child("grace")) {
+                const auto pitch = element.child("pitch");
+                const int  semi  = pitch ? stepToSemitone(pitch.child_value("step")) : -1;
+                if (semi >= 0 && !element.child("chord")) {
+                    RawGrace grace;
+                    const int alter  = pitch.child("alter").text().as_int(0);
+                    const int octave = pitch.child("octave").text().as_int(4);
+                    grace.onsetQuarters   = quarterCursor;
+                    grace.writtenQuarters = graceWrittenQuarters(element);
+                    grace.midi            = (octave + 1) * 12 + semi + alter + transposeSemitones;
+                    grace.slashed = element.child("grace").attribute("slash").as_string() == std::string("yes");
+                    writeNoteName(grace.noteName, pitch.child_value("step"), alter, octave);
+                    graces.push_back(grace);
+                }
                 continue;
             }
 
@@ -990,6 +1154,11 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
             event.marks = readNoteMarks(element);
             for (const auto notations : element.children("notations")) {
                 readDynamic(notations, event.dynamic);
+                for (const auto slur : notations.children("slur")) {
+                    const char* type = slur.attribute("type").as_string();
+                    event.slurStart |= (std::strcmp(type, "start") == 0);
+                    event.slurStop  |= (std::strcmp(type, "stop") == 0);
+                }
             }
             if (!event.isRest) {
                 event.marks |= pendingMarks;
@@ -1049,6 +1218,17 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
             if (options.takeTopNoteOfChord) {
                 // The sort already put the highest note first, but engravers
                 // attach the marks of a chord to whichever note came first.
+                RawEvent& top = merged.back();
+                const bool isNewPitch = !event.isRest && !top.isRest && event.midi != top.midi &&
+                    std::none_of(top.chordMidi, top.chordMidi + top.chordSize,
+                                 [&event](int midi) { return midi == event.midi; });
+                if (isNewPitch && top.chordSize < kMaxChordExtras) {
+                    top.chordMidi[top.chordSize] = event.midi;
+                    std::memcpy(top.chordNames[top.chordSize], event.noteName, sizeof(event.noteName));
+                    ++top.chordSize;
+                }
+                top.slurStart |= event.slurStart;
+                top.slurStop  |= event.slurStop;
                 merged.back().marks |= event.marks;
                 if (merged.back().dynamic[0] == '\0') {
                     std::memcpy(merged.back().dynamic, event.dynamic, sizeof(event.dynamic));
@@ -1079,12 +1259,28 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                     (event.startQuarters + event.durationQuarters) - tied.back().startQuarters;
                 tied.back().tieStart = event.tieStart;
                 tied.back().marks |= event.marks & kMarkFermata;
+                tied.back().slurStop |= event.slurStop;
+                // The dynamic is printed mid-note, so it cannot go on a head.
+                if (event.dynamic[0] != '\0') {
+                    ScoreExpression late;
+                    late.kind = ScoreExpression::Kind::Dynamic;
+                    late.startQuarters = event.startQuarters;
+                    late.endQuarters   = event.startQuarters;
+                    std::memcpy(late.text, event.dynamic, sizeof(late.text));
+                    expressions.push_back(late);
+                }
                 continue;
             }
             tied.push_back(event);
         }
         merged.swap(tied);
     }
+
+    insertGraceNotes(merged, graces);
+
+    std::vector<std::uint8_t> bowSpans;
+    std::vector<std::uint8_t> bowSlots;
+    applySlurs(merged, bowSpans, bowSlots);
 
     // ── Convert to seconds ────────────────────────────────────────────────
     std::stable_sort(score.tempoMap.begin(), score.tempoMap.end(),
@@ -1107,7 +1303,8 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     TempoIntegrator integrator(score.tempoMap, score.beatsPerMinute);
     score.events.reserve(merged.size());
 
-    for (const auto& event : merged) {
+    for (std::size_t eventIndex = 0; eventIndex < merged.size(); ++eventIndex) {
+        const RawEvent& event = merged[eventIndex];
         ScoreEvent out;
         out.startQuarters   = event.startQuarters;
         out.startSeconds    = integrator.toSeconds(event.startQuarters);
@@ -1125,9 +1322,42 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
             std::memcpy(out.noteName, event.noteName, sizeof(out.noteName));
         }
         out.marks = event.marks;
+        out.bowSpan = bowSpans[eventIndex];
+        out.bowSlot = bowSlots[eventIndex];
+        out.isGrace = event.isGrace;
+        out.graceSlashed = event.graceSlashed;
         std::memcpy(out.dynamic, event.dynamic, sizeof(out.dynamic));
+        out.chordSize = event.chordSize;
+        float lowestHz = out.frequencyHz;
+        for (std::size_t i = 0; i < event.chordSize; ++i) {
+            out.chordMidi[i] = event.chordMidi[i];
+            std::memcpy(out.chordNames[i], event.chordNames[i], sizeof(out.chordNames[i]));
+            const float hz = midiToHz(event.chordMidi[i]);
+            out.acceptedHz[out.acceptedCount++] = hz;
+            lowestHz = std::min(lowestHz, hz);
+        }
+        if (event.chordSize > 0) {
+            const float shared = sharedPeriodHz(lowestHz, out.frequencyHz);
+            if (shared > 0.0f) {
+                out.acceptedHz[out.acceptedCount++] = shared;
+            }
+        }
         score.events.push_back(out);
     }
+
+    const double lastQuarter = rawMeasures.empty() ? 0.0 : rawMeasures.back().endQuarters;
+    for (auto& expression : expressions) {
+        if (expression.endQuarters < 0.0) {
+            expression.endQuarters = lastQuarter;
+        }
+        expression.startSeconds = integrator.toSeconds(expression.startQuarters);
+        expression.endSeconds   = integrator.toSeconds(expression.endQuarters);
+    }
+    std::stable_sort(expressions.begin(), expressions.end(),
+                     [](const ScoreExpression& a, const ScoreExpression& b) {
+                         return a.startQuarters < b.startQuarters;
+                     });
+    score.expressions = std::move(expressions);
 
     if (options.trimSilentIntro) {
         score.trimSilentIntro();

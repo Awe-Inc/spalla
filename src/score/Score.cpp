@@ -209,6 +209,27 @@ void Score::applyTempoScale(double scale) {
     tempoScale_ = scale;
 }
 
+std::vector<ScoreExpression> Score::expressionsWithin(double fromQuarters, double toQuarters,
+                                                      double fromSeconds, double toSeconds) const {
+    std::vector<ScoreExpression> kept;
+    for (const auto& expression : expressions) {
+        const bool isPoint = expression.kind == ScoreExpression::Kind::Dynamic;
+        const bool outside = isPoint
+            ? expression.startQuarters < fromQuarters || expression.startQuarters >= toQuarters
+            : expression.endQuarters <= fromQuarters || expression.startQuarters >= toQuarters;
+        if (outside) {
+            continue;
+        }
+        ScoreExpression shifted = expression;
+        shifted.startQuarters = std::max(expression.startQuarters, fromQuarters) - fromQuarters;
+        shifted.endQuarters   = std::min(expression.endQuarters, toQuarters) - fromQuarters;
+        shifted.startSeconds  = std::max(expression.startSeconds, fromSeconds) - fromSeconds;
+        shifted.endSeconds    = std::min(expression.endSeconds, toSeconds) - fromSeconds;
+        kept.push_back(shifted);
+    }
+    return kept;
+}
+
 void Score::trimSilentIntro() {
     const auto firstNote = std::find_if(events.begin(), events.end(),
                                         [](const ScoreEvent& e) { return !e.isRest; });
@@ -220,6 +241,8 @@ void Score::trimSilentIntro() {
     const MeasureMark& cut   = measures[static_cast<std::size_t>(dropped)];
     const double cutSeconds  = cut.startSeconds;
     const double cutQuarters = cut.startQuarters;
+    expressions = expressionsWithin(cutQuarters, measures.back().startQuarters + measures.back().lengthQuarters,
+                                    cutSeconds, measures.back().endSeconds);
     // Same tolerance the parser uses for onsets: anything this close to the
     // cut is on it, not before it.
     constexpr double kEpsilon = 1.0 / 512.0;
