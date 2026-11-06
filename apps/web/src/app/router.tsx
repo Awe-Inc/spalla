@@ -1,18 +1,7 @@
 import { createBrowserRouter, Navigate, useLocation, type RouteObject } from "react-router";
 
-import { BoasVindasPage } from "@/areas/boas-vindas/BoasVindasPage";
-import { ConfiguracoesPage } from "@/areas/configuracoes/ConfiguracoesPage";
-import { AfinadorPage } from "@/areas/ferramentas/AfinadorPage";
-import { FerramentasPage } from "@/areas/ferramentas/FerramentasPage";
-import { LatenciaPage } from "@/areas/ferramentas/LatenciaPage";
-import { MetronomoPage } from "@/areas/ferramentas/MetronomoPage";
-import { PedalPage } from "@/areas/ferramentas/PedalPage";
 import { HojePage } from "@/areas/hoje/HojePage";
-import { MusicasPage } from "@/areas/musicas/MusicasPage";
-import { RotinaPage } from "@/areas/estudar/RotinaPage";
-import { ProgressoPage } from "@/areas/progresso/ProgressoPage";
 import { ErroDeRotaPage, NaoEncontradaPage } from "@/areas/sistema/SistemaPages";
-import { TocarPage } from "@/areas/tocar/TocarPage";
 
 import { devOnlyRoutes } from "./devRoutes";
 import { LEGACY_REDIRECTS, legacyTarget } from "./legacyRoutes";
@@ -32,6 +21,7 @@ const legacyRoutes: RouteObject[] = LEGACY_REDIRECTS.flatMap(([from]) => [
   { path: `${from.slice(1)}/*`, Component: LegacyRedirect },
 ]);
 
+const tocar = async () => ({ Component: (await import("@/areas/tocar/TocarPage")).TocarPage });
 const peca = async () => ({ Component: (await import("@/areas/musicas/PecaPage")).PecaPage });
 
 export const router = createBrowserRouter(
@@ -40,34 +30,35 @@ export const router = createBrowserRouter(
       path: "/",
       Component: Shell,
       errorElement: <ErroDeRotaPage />,
+      hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
       children: [
         { index: true, Component: HojePage },
-        { path: "estudar", Component: RotinaPage },
+        { path: "estudar", lazy: async () => ({ Component: (await import("@/areas/estudar/RotinaPage")).RotinaPage }) },
         { path: "estudar/metodo", lazy: async () => ({ Component: (await import("@/areas/estudar/MetodoPage")).MetodoPage }) },
         { path: "estudar/caderno", lazy: async () => ({ Component: (await import("@/areas/estudar/CadernoPage")).CadernoPage }) },
         { path: "estudar/modulo/:moduleId", lazy: async () => ({ Component: (await import("@/areas/estudar/ModuloPage")).ModuloPage }) },
-        { path: "repertorio", Component: MusicasPage },
+        { path: "repertorio", lazy: async () => ({ Component: (await import("@/areas/musicas/MusicasPage")).MusicasPage }) },
         { path: "repertorio/estante", lazy: async () => ({ Component: (await import("@/areas/estante/EstantePage")).EstantePage }) },
         { path: "repertorio/estante/:sheetId", handle: FULLSCREEN, lazy: async () => ({ Component: (await import("@/areas/estante/LeitorPage")).LeitorPage }) },
         { path: "repertorio/suzuki", lazy: async () => ({ Component: (await import("@/areas/musicas/SuzukiPage")).SuzukiPage }) },
         { path: "repertorio/peca/musica/:pieceId", lazy: peca },
         { path: "repertorio/peca/biblioteca/:librarySlug", lazy: peca },
         { path: "repertorio/peca/:exerciseId", lazy: peca },
-        { path: "ferramentas", Component: FerramentasPage },
-        { path: "ferramentas/afinador", Component: AfinadorPage },
-        { path: "ferramentas/metronomo", Component: MetronomoPage },
-        { path: "ferramentas/pedal", Component: PedalPage },
+        { path: "ferramentas", lazy: async () => ({ Component: (await import("@/areas/ferramentas/FerramentasPage")).FerramentasPage }) },
+        { path: "ferramentas/afinador", lazy: async () => ({ Component: (await import("@/areas/ferramentas/AfinadorPage")).AfinadorPage }) },
+        { path: "ferramentas/metronomo", lazy: async () => ({ Component: (await import("@/areas/ferramentas/MetronomoPage")).MetronomoPage }) },
+        { path: "ferramentas/pedal", lazy: async () => ({ Component: (await import("@/areas/ferramentas/PedalPage")).PedalPage }) },
         { path: "ferramentas/gravador", lazy: async () => ({ Component: (await import("@/areas/ferramentas/GravadorPage")).GravadorPage }) },
-        { path: "voce", Component: ProgressoPage },
-        { path: "voce/ajustes", Component: ConfiguracoesPage },
-        { path: "voce/ajustes/atraso", Component: LatenciaPage },
+        { path: "voce", lazy: async () => ({ Component: (await import("@/areas/progresso/ProgressoPage")).ProgressoPage }) },
+        { path: "voce/ajustes", lazy: async () => ({ Component: (await import("@/areas/configuracoes/ConfiguracoesPage")).ConfiguracoesPage }) },
+        { path: "voce/ajustes/atraso", lazy: async () => ({ Component: (await import("@/areas/ferramentas/LatenciaPage")).LatenciaPage }) },
         { path: "voce/conta", lazy: async () => ({ Component: (await import("@/areas/conta/ContaPage")).ContaPage }) },
         ...legacyRoutes,
         ...devOnlyRoutes(import.meta.env.DEV),
-        { path: "tocar/musica/:pieceId", handle: FULLSCREEN, Component: TocarPage },
-        { path: "tocar/biblioteca/:librarySlug", handle: FULLSCREEN, Component: TocarPage },
-        { path: "tocar/:exerciseId", handle: FULLSCREEN, Component: TocarPage },
-        { path: "boas-vindas", handle: FULLSCREEN, Component: BoasVindasPage },
+        { path: "tocar/musica/:pieceId", handle: FULLSCREEN, lazy: tocar },
+        { path: "tocar/biblioteca/:librarySlug", handle: FULLSCREEN, lazy: tocar },
+        { path: "tocar/:exerciseId", handle: FULLSCREEN, lazy: tocar },
+        { path: "boas-vindas", handle: FULLSCREEN, lazy: async () => ({ Component: (await import("@/areas/boas-vindas/BoasVindasPage")).BoasVindasPage }) },
         { path: "entrar", lazy: async () => ({ Component: (await import("@/areas/conta/EntrarPage")).EntrarPage }) },
         { path: "criar-conta", lazy: async () => ({ Component: (await import("@/areas/conta/CriarContaPage")).CriarContaPage }) },
         { path: "termos", lazy: async () => ({ Component: (await import("@/areas/conta/TermosPage")).TermosPage }) },

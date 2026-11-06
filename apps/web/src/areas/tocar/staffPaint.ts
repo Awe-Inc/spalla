@@ -173,6 +173,21 @@ function drawFlags(ctx: CanvasRenderingContext2D, sx: number, stemY: number, ste
   }
 }
 
+type BeamGroupLayout = ReturnType<typeof layoutBeam>;
+type ScoreBeamGroup = Score["beamGroups"][number];
+
+const beamLayouts = new WeakMap<StaffGeometry, Map<ScoreBeamGroup, BeamGroupLayout>>();
+
+function beamLayoutFor(score: Score, group: ScoreBeamGroup, geometry: StaffGeometry): BeamGroupLayout {
+  const layouts = beamLayouts.get(geometry) ?? new Map<ScoreBeamGroup, BeamGroupLayout>();
+  beamLayouts.set(geometry, layouts);
+  const cached = layouts.get(group);
+  if (cached) return cached;
+  const layout = layoutBeam(score, group, geometry);
+  layouts.set(group, layout);
+  return layout;
+}
+
 export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: number, geometry: StaffGeometry, palette: Palette, tone: NoteTone): void {
   const event = score.events[index];
   if (!event) return;
@@ -195,7 +210,7 @@ export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: num
 
   const group = beamGroupOf(score.beamGroups, index);
   if (group) {
-    const beam = layoutBeam(score, group, geometry);
+    const beam = beamLayoutFor(score, group, geometry);
     const sx = stemX(geometry, event.startSeconds, beam.stemUp);
     const tip = beamYAt(beam, sx);
     fillRect(ctx, sx - 0.75, Math.min(tip, y), 1.5, Math.abs(y - tip), color, alpha);
@@ -230,7 +245,7 @@ export function drawBeams(ctx: CanvasRenderingContext2D, score: Score, visible: 
   for (const group of score.beamGroups) {
     if (group.last < firstVisible) continue;
     if (group.first > lastVisible) break;
-    const beam = layoutBeam(score, group, geometry);
+    const beam = beamLayoutFor(score, group, geometry);
     const inward = beam.stemUp ? 1 : -1;
     const segment = (xa: number, xb: number, level: number) => {
       const offset = inward * (thickness / 2 + level * beamGap(geometry));

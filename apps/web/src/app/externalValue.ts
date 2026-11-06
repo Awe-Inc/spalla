@@ -4,6 +4,7 @@ export interface ExternalValue<T> {
   get: () => T;
   set: (next: T) => void;
   use: () => T;
+  subscribe: (listener: () => void) => () => void;
 }
 
 export function externalValue<T>(initial: T): ExternalValue<T> {
@@ -11,7 +12,9 @@ export function externalValue<T>(initial: T): ExternalValue<T> {
   const listeners = new Set<() => void>();
   const subscribe = (listener: () => void) => {
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   };
   const get = () => value;
   return {
@@ -21,5 +24,6 @@ export function externalValue<T>(initial: T): ExternalValue<T> {
       listeners.forEach((listener) => listener());
     },
     use: () => useSyncExternalStore(subscribe, get, get),
+    subscribe,
   };
 }

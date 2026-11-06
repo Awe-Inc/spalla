@@ -1,17 +1,19 @@
 import type { NoteJudgement, Score } from "@fretless/core";
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, useCallback, useMemo, useRef } from "react";
 
 import { STRING_NAMES } from "@/design/components";
 import { buildHighwayGeometry, HIGHWAY_LANES, laneTop, noteBar, type HighwayGeometry, type NoteBar } from "@/notation/highwayLayout";
 import { barlineTimes, noteX, toneFor, visibleEventIndices, type NoteTone } from "@/notation/staffLayout";
 
-import { fitCanvas, useCanvasSize, type CanvasSize } from "./canvas";
+import { useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
+import type { FrameSource } from "./liveRun";
 
 interface HighwayProps {
   score: Score;
   songTime: number;
   currentNoteIndex: number;
   judgements: NoteJudgement[];
+  live?: FrameSource | undefined;
   className?: string;
   style?: CSSProperties;
 }
@@ -110,7 +112,7 @@ function drawBar(ctx: CanvasRenderingContext2D, bar: NoteBar, tone: NoteTone, pa
   ctx.globalAlpha = 1;
 }
 
-export function drawHighway(ctx: CanvasRenderingContext2D, size: CanvasSize, palette: Palette, props: HighwayProps): void {
+export function drawHighway(ctx: CanvasRenderingContext2D, size: CanvasSize, palette: Palette, props: Pick<HighwayProps, "score" | "songTime" | "currentNoteIndex" | "judgements">): void {
   const geometry = buildHighwayGeometry(size.width, size.height, props.songTime);
   ctx.clearRect(0, 0, size.width, size.height);
   ctx.fillStyle = palette.paper;
@@ -130,16 +132,11 @@ export function drawHighway(ctx: CanvasRenderingContext2D, size: CanvasSize, pal
   ctx.globalAlpha = 1;
 }
 
-export function Highway({ className = "", style, ...props }: HighwayProps) {
+export function Highway({ className = "", style, score, live, songTime, currentNoteIndex, judgements }: HighwayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const size = useCanvasSize(canvasRef);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas ? fitCanvas(canvas, size) : null;
-    if (!canvas || !ctx) return;
-    drawHighway(ctx, size, readPalette(canvas), props);
-  }, [size, props]);
+  const frame = useMemo(() => ({ songTime, currentNoteIndex, judgements }), [songTime, currentNoteIndex, judgements]);
+  const paint = useCallback<FramePaint<Palette>>((ctx, size, palette, current) => drawHighway(ctx, size, palette, { score, ...current }), [score]);
+  useFramePainter({ canvasRef, readPalette, paint, frame, live });
 
   return (
     <canvas

@@ -121,6 +121,16 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: { port: DEV_PORT, strictPort: true },
   preview: { port: PREVIEW_PORT, strictPort: true },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-dom/client", "react-router", "zustand"],
+          "vendor-dexie": ["dexie", "dexie-react-hooks"],
+        },
+      },
+    },
+  },
   worker: { format: "es" },
   optimizeDeps: { exclude: ["@fretless/core"] },
   assetsInclude: ["**/*.wasm"],

@@ -1,10 +1,11 @@
 import type { NoteJudgement, Score } from "@fretless/core";
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, useCallback, useMemo, useRef } from "react";
 
 import { headerOffsets } from "@/notation/pageLayout";
 import { barlineTimes, buildGeometry, noteX, toneFor, visibleEventIndices, type StaffGeometry } from "@/notation/staffLayout";
 
-import { fitCanvas, useCanvasSize, type CanvasSize } from "./canvas";
+import { useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
+import type { FrameSource } from "./liveRun";
 import { drawBeams, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
 
 const STAFF_LEFT = 8;
@@ -14,6 +15,7 @@ interface ScrollingStaffProps {
   songTime: number;
   currentNoteIndex: number;
   judgements: NoteJudgement[];
+  live?: FrameSource | undefined;
   className?: string;
   style?: CSSProperties;
 }
@@ -44,7 +46,7 @@ function drawPlayhead(ctx: CanvasRenderingContext2D, geometry: StaffGeometry, pa
   ctx.fill();
 }
 
-export function drawStaff(ctx: CanvasRenderingContext2D, size: CanvasSize, palette: Palette, props: ScrollingStaffProps): void {
+export function drawStaff(ctx: CanvasRenderingContext2D, size: CanvasSize, palette: Palette, props: Pick<ScrollingStaffProps, "score" | "songTime" | "currentNoteIndex" | "judgements">): void {
   const geometry = buildGeometry(size.width, size.height, props.songTime);
   ctx.clearRect(0, 0, size.width, size.height);
   fillRect(ctx, 0, 0, size.width, size.height, palette.paper);
@@ -60,16 +62,11 @@ export function drawStaff(ctx: CanvasRenderingContext2D, size: CanvasSize, palet
   drawPlayhead(ctx, geometry, palette);
 }
 
-export function ScrollingStaff({ className = "", style, ...props }: ScrollingStaffProps) {
+export function ScrollingStaff({ className = "", style, score, live, songTime, currentNoteIndex, judgements }: ScrollingStaffProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const size = useCanvasSize(canvasRef);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas ? fitCanvas(canvas, size) : null;
-    if (!canvas || !ctx) return;
-    drawStaff(ctx, size, readPalette(canvas), props);
-  }, [size, props]);
+  const frame = useMemo(() => ({ songTime, currentNoteIndex, judgements }), [songTime, currentNoteIndex, judgements]);
+  const paint = useCallback<FramePaint<Palette>>((ctx, size, palette, current) => drawStaff(ctx, size, palette, { score, ...current }), [score]);
+  useFramePainter({ canvasRef, readPalette, paint, frame, live });
 
   return (
     <canvas

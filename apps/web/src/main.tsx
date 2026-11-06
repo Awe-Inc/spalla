@@ -6,6 +6,7 @@ import { registerSW } from "virtual:pwa-register";
 import "@/design/fonts.css";
 import "@/design/tokens.css";
 
+import { retryCore } from "@/core/useCore";
 import { db } from "@/data/db";
 
 import { offerAppUpdate } from "./app/appUpdate";
@@ -18,6 +19,7 @@ const updateServiceWorker = registerSW({
 });
 
 void watchDatabaseOpen(() => db.open());
+retryCore();
 
 const root = document.getElementById("root");
 if (!root) {

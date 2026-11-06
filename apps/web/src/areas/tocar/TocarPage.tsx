@@ -1,10 +1,11 @@
-import type { GameStats, MeasureRange, NoteJudgement, PracticeSession, SessionState } from "@fretless/core";
+import type { MeasureRange, PracticeSession } from "@fretless/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { completeAssignmentsAfterRun } from "@/account/classAssignments";
 import { syncPracticeInBackground } from "@/account/practiceSync";
+import { externalValue } from "@/app/externalValue";
 import { useSettings } from "@/app/settings";
 import { useTodayBlock } from "@/areas/hoje/useTodayPlan";
 import { DRONE_A4_MIDI } from "@/audio/drone";
@@ -15,14 +16,14 @@ import { db, recordSectionRun } from "@/data/db";
 import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
 import { lastCleanBpm } from "@/data/repetitions";
 import { readPracticeRequest } from "@/data/sections";
-import { Button, ConfirmButton, HeadphoneNotice, InlineError, StringChip } from "@/design/components";
-import { Tuner } from "@/design/Tuner";
+import { Button, ConfirmButton, HeadphoneNotice, InlineError } from "@/design/components";
 import { displayNoteName } from "@/music/noteNames";
 
 import { fromState, offersNextBlock, tocarOrigin } from "./origin";
 import { autoSlowdown, slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { ListenSoundPicker } from "./ListenSoundPicker";
-import { ComboBar } from "./ComboBar";
+import { LiveClock, LiveRunPanel } from "./LiveRunPanel";
+import { readLiveRun, type LiveRun } from "./liveRun";
 import { ResultScreen } from "./ResultScreen";
 import { ScoreView } from "./ScoreView";
 import { isTypingTarget, shortcutFor } from "./shortcuts";
@@ -32,34 +33,14 @@ import { useAccompaniment } from "./useAccompaniment";
 import { LEAD_IN_SECONDS, useSession } from "./useSession";
 import { advanceWithSyntheticPlayer, isSyntheticPlayerRequested, useSyntheticPlayer } from "./useSyntheticPlayer";
 
-interface Snapshot {
-  state: SessionState;
-  songTime: number;
-  currentNoteIndex: number;
-  liveCents: number | null;
-  stats: GameStats;
-  judgements: NoteJudgement[];
-}
-
 const LOOP_RESTART_DELAY_MS = 1200;
-
-function readSnapshot(session: PracticeSession): Snapshot {
-  return {
-    state: session.state,
-    songTime: session.songTime,
-    currentNoteIndex: session.currentNoteIndex,
-    liveCents: session.liveCents,
-    stats: session.stats,
-    judgements: session.judgements,
-  };
-}
 
 export function TocarPage() {
   const { exerciseId, pieceId, librarySlug } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { coreStatus, session, exercise, score, error, resultId, limits, bpm, loop, setBpm, setLoop } = useSession(exerciseId, pieceId, librarySlug);
-  const mic = usePitchInput();
+  const mic = usePitchInput({ publishesFrames: false });
   const listen = useListen(score);
   const isHearing = listen.status !== "parado";
   const { takeFrames, stop: stopMic, start: startMic } = mic;
@@ -75,7 +56,8 @@ export function TocarPage() {
   const headphonesConfirmedAt = useSettings((state) => state.headphonesConfirmedAt);
   const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
   const isAutoSlowdownOn = useSettings((state) => state.autoSlowdown);
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [live] = useState(() => externalValue<LiveRun | null>(null));
+  const [snapshot, setSnapshot] = useState<LiveRun | null>(null);
   const [slowdown, setSlowdown] = useState<Slowdown | null>(null);
   const slowedRunRef = useRef(false);
   const [outcome, setOutcome] = useState<RunOutcome | null>(null);
@@ -103,6 +85,15 @@ export function TocarPage() {
     leadInSeconds: LEAD_IN_SECONDS,
     droneMidi: droneOn ? droneMidi : null,
   });
+
+  const publishRun = useCallback(
+    (running: PracticeSession, previous: LiveRun | null) => {
+      const next = readLiveRun(running, previous);
+      live.set(next);
+      setSnapshot((current) => (current?.state === next.state ? current : next));
+    },
+    [live],
+  );
 
   useEffect(() => {
     setDroneOn(exerciseDrone > 0);
@@ -142,12 +133,12 @@ export function TocarPage() {
       }
       const state = session.state;
       if (state === "countdown" || state === "playing") accompaniment.sync(session.songTime);
-      setSnapshot(readSnapshot(session));
+      publishRun(session, live.get());
       handle = requestAnimationFrame(tick);
     };
     handle = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(handle);
-  }, [session, isListening, isSynthetic, takeFrames, accompaniment]);
+  }, [session, isListening, isSynthetic, takeFrames, accompaniment, live, publishRun]);
 
   useEffect(() => {
     if (!score || !limits || snapshot?.state !== "finished" || slowedRunRef.current) return;
@@ -181,10 +172,10 @@ export function TocarPage() {
       session.restart();
       accompaniment.rewind(-LEAD_IN_SECONDS);
       session.start();
-      setSnapshot(readSnapshot(session));
+      publishRun(session, null);
     }, LOOP_RESTART_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [snapshot?.state, session, loop, accompaniment, resultId]);
+  }, [snapshot?.state, session, loop, accompaniment, resultId, publishRun]);
 
   useEffect(() => {
     if (!score || !resultId || !limits || loop || snapshot?.state !== "finished" || savedRunRef.current || startedAtRef.current === null) return;
@@ -229,7 +220,7 @@ export function TocarPage() {
     accompaniment.rewind(-LEAD_IN_SECONDS);
     accompaniment.startDrone();
     session.start();
-    setSnapshot(readSnapshot(session));
+    publishRun(session, null);
   }
 
   function stopRun() {
@@ -237,6 +228,7 @@ export function TocarPage() {
     session.stop();
     accompaniment.stopDrone();
     stopInput();
+    live.set(null);
     setSnapshot(null);
   }
 
@@ -262,7 +254,6 @@ export function TocarPage() {
     void navigate(origin.to);
   }
 
-  const currentEvent = score && snapshot ? score.events[snapshot.currentNoteIndex] : undefined;
   const isRunning = snapshot !== null && snapshot.state !== "finished" && snapshot.state !== "idle";
   const isIdle = score !== null && (!snapshot || snapshot.state === "idle") && !error;
   const fullMeasureCount = session?.measureCount ?? 0;
@@ -337,51 +328,7 @@ export function TocarPage() {
 
         {needsHeadphones ? <HeadphoneNotice onConfirm={confirmHeadphones} /> : null}
 
-        {score && snapshot && isRunning ? (
-          <section className="grid gap-6" aria-label="Nota atual">
-            <ScoreView score={score} songTime={snapshot.songTime} currentNoteIndex={snapshot.currentNoteIndex} judgements={snapshot.judgements} />
-            <div className="grid gap-2">
-              <span className="text-caption text-ink-subtle">
-                {snapshot.state === "countdown" ? "Prepare o arco" : `Compasso ${currentEvent?.measure ?? "—"}`}
-              </span>
-              <span className="font-display text-note">
-                {currentEvent && !currentEvent.isRest ? displayNoteName(currentEvent.noteName, naming) : "pausa"}
-              </span>
-              {currentEvent && !currentEvent.isRest ? <StringChip index={currentEvent.string} /> : null}
-            </div>
-            <Tuner
-              compact
-              noteLabel={snapshot.liveCents === null ? null : displayNoteName(currentEvent?.noteName ?? "", naming)}
-              cents={snapshot.liveCents}
-            />
-            <ComboBar combo={snapshot.stats.combo} />
-            <dl className="grid grid-cols-2 gap-4 text-center md:grid-cols-4">
-              <div>
-                <dt className="text-caption text-ink-subtle">Precisão</dt>
-                <dd className="font-mono text-numeric tabular">{Math.round(snapshot.stats.accuracyPct)}%</dd>
-              </div>
-              <div>
-                <dt className="text-caption text-ink-subtle">Notas</dt>
-                <dd className="font-mono text-numeric tabular">
-                  {snapshot.stats.judgedNotes}/{score.noteCount}
-                </dd>
-              </div>
-              <div className="hidden md:block">
-                <dt className="text-caption text-ink-subtle">Perfeitas</dt>
-                <dd className="font-mono text-numeric tabular text-in-tune">{snapshot.stats.perfect}</dd>
-              </div>
-              <div className="hidden md:block">
-                <dt className="text-caption text-ink-subtle">Erradas</dt>
-                <dd className="font-mono text-numeric tabular text-off">{snapshot.stats.miss}</dd>
-              </div>
-            </dl>
-            {snapshot.stats.unheard > 0 ? (
-              <p className="text-small text-ink-muted">
-                {snapshot.stats.unheard === 1 ? "1 nota não ouvida pelo microfone" : `${snapshot.stats.unheard} notas não ouvidas pelo microfone`}
-              </p>
-            ) : null}
-          </section>
-        ) : null}
+        {score && isRunning ? <LiveRunPanel score={score} live={live} /> : null}
 
         {snapshot?.state === "finished" && score && limits && loop ? (
           <section className="grid justify-items-center gap-3 text-center" aria-label="Trecho concluído">
@@ -460,8 +407,8 @@ export function TocarPage() {
 
       <footer className="flex items-center justify-between text-caption text-ink-subtle">
         <span>{isSynthetic ? "Jogador sintético" : mic.status.status === "listening" ? "Microfone ligado" : "Microfone desligado"}</span>
-        {mic.frame?.clipped ? <span className="text-off">Sinal saturando</span> : null}
-        {snapshot ? <span className="font-mono tabular">{snapshot.songTime.toFixed(1)} s</span> : null}
+        {mic.isClipped ? <span className="text-off">Sinal saturando</span> : null}
+        <LiveClock live={live} />
       </footer>
     </div>
   );

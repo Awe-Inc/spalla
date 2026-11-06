@@ -3,6 +3,7 @@ import type { NoteJudgement, Score } from "@fretless/core";
 import { useSettings } from "@/app/settings";
 
 import { Highway } from "./Highway";
+import type { FrameSource } from "./liveRun";
 import { PageStaff } from "./PageStaff";
 import { ScrollingStaff } from "./ScrollingStaff";
 
@@ -11,6 +12,7 @@ interface ScoreViewProps {
   songTime: number;
   currentNoteIndex: number;
   judgements: NoteJudgement[];
+  live?: FrameSource;
 }
 
 const STAFF_BASE_HEIGHT_PX = 208;

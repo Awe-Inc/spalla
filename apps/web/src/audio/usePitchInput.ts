@@ -14,13 +14,14 @@ export type MicStatus =
 
 const MAX_PENDING_FRAMES = 256;
 
-export function usePitchInput() {
+export function usePitchInput({ publishesFrames = true }: { publishesFrames?: boolean } = {}) {
   const inputRef = useRef<PitchInput | null>(null);
   const pendingRef = useRef<PitchFrame[]>([]);
   const latestRef = useRef<PitchFrame | null>(null);
   const startingRef = useRef<Promise<boolean> | null>(null);
   const [status, setStatus] = useState<MicStatus>({ status: "idle" });
   const [frame, setFrame] = useState<PitchFrame | null>(null);
+  const [isClipped, setIsClipped] = useState(false);
   const deviceId = useSettings((state) => state.inputDeviceId);
   const inputGain = useSettings((state) => state.inputGain);
   const setInputDevice = useSettings((state) => state.setInputDevice);
@@ -39,7 +40,8 @@ export function usePitchInput() {
     const publish = () => {
       if (latestRef.current !== shown) {
         shown = latestRef.current;
-        setFrame(shown);
+        setIsClipped(Boolean(shown?.clipped));
+        if (publishesFrames) setFrame(shown);
       }
       handle = requestAnimationFrame(publish);
     };
@@ -50,7 +52,7 @@ export function usePitchInput() {
       void input.stop();
       inputRef.current = null;
     };
-  }, []);
+  }, [publishesFrames]);
 
   useEffect(() => {
     inputRef.current?.setGain(inputGain);
@@ -98,5 +100,5 @@ export function usePitchInput() {
     return frames;
   }, []);
 
-  return { status, frame, start, stop, takeFrames, input: inputRef };
+  return { status, frame, isClipped, start, stop, takeFrames, input: inputRef };
 }

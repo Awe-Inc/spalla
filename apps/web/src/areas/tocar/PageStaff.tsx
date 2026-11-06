@@ -1,5 +1,5 @@
 import type { NoteJudgement, Score } from "@fretless/core";
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, useCallback, useMemo, useRef } from "react";
 
 import type { PageStyle, ReadingGuide } from "@/app/settings";
 import {
@@ -16,7 +16,8 @@ import {
 } from "@/notation/pageLayout";
 import { positionY, toneFor, type NoteTone, type StaffGeometry } from "@/notation/staffLayout";
 
-import { fitCanvas, useCanvasSize, type CanvasSize } from "./canvas";
+import { useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
+import type { FrameSource } from "./liveRun";
 import { drawBeams, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
 
 interface PageStaffProps {
@@ -24,6 +25,7 @@ interface PageStaffProps {
   songTime: number;
   currentNoteIndex: number;
   judgements: NoteJudgement[];
+  live?: FrameSource | undefined;
   staffScale: number;
   pageStyle: PageStyle;
   readingGuide: ReadingGuide;
@@ -43,6 +45,33 @@ const FOOTER_SPACES = 2;
 const BAND_ALPHA = 0.14;
 const CURSOR_ALPHA = 0.55;
 
+interface CachedLayout {
+  width: number;
+  height: number;
+  staffScale: number;
+  layout: PageLayout;
+}
+
+const layoutByScore = new WeakMap<Score, CachedLayout>();
+const scoreBySystem = new WeakMap<PageSystem, Score>();
+const geometryBySystem = new WeakMap<PageSystem, StaffGeometry>();
+
+export function cachedPageLayout(score: Score, width: number, height: number, staffScale: number): PageLayout {
+  const cached = layoutByScore.get(score);
+  if (cached && cached.width === width && cached.height === height && cached.staffScale === staffScale) return cached.layout;
+  const layout = buildPageLayout(score, width, height, staffScale);
+  layoutByScore.set(score, { width, height, staffScale, layout });
+  return layout;
+}
+
+function scoreOfSystem(score: Score, system: PageSystem): Score {
+  const cached = scoreBySystem.get(system);
+  if (cached) return cached;
+  const systemScore: Score = { ...score, beamGroups: score.beamGroups.filter((group) => group.first >= system.firstEvent && group.last <= system.lastEvent) };
+  scoreBySystem.set(system, systemScore);
+  return systemScore;
+}
+
 function readPagePalette(element: HTMLElement): Palette {
   return { ...readPalette(element), paper: getComputedStyle(element).getPropertyValue("--surface").trim() };
 }
@@ -54,9 +83,11 @@ function guideTone(guide: ReadingGuide, index: number, currentNoteIndex: number,
 }
 
 function systemGeometry(system: PageSystem, layout: PageLayout, size: CanvasSize): StaffGeometry {
+  const cached = geometryBySystem.get(system);
+  if (cached) return cached;
   const { spacing } = layout;
   const headHeight = spacing * 0.92;
-  return {
+  const geometry: StaffGeometry = {
     width: size.width,
     height: size.height,
     spacing,
@@ -69,6 +100,8 @@ function systemGeometry(system: PageSystem, layout: PageLayout, size: CanvasSize
     songTime: 0,
     xAt: (seconds) => xAtSystem(system, seconds),
   };
+  geometryBySystem.set(system, geometry);
+  return geometry;
 }
 
 function drawHeader(ctx: CanvasRenderingContext2D, score: Score, system: PageSystem, geometry: StaffGeometry, palette: Palette): void {
@@ -135,7 +168,7 @@ function drawSystem(ctx: CanvasRenderingContext2D, props: PageDrawProps, system:
   drawHeader(ctx, score, system, geometry, palette);
   if (system.firstEvent < 0) return;
   const indices = Array.from({ length: system.lastEvent - system.firstEvent + 1 }, (_, offset) => system.firstEvent + offset);
-  const systemScore: Score = { ...score, beamGroups: score.beamGroups.filter((group) => group.first >= system.firstEvent && group.last <= system.lastEvent) };
+  const systemScore = scoreOfSystem(score, system);
   for (const index of indices) {
     drawNote(ctx, systemScore, index, geometry, palette, guideTone(props.readingGuide, index, props.currentNoteIndex, props.judgements));
   }
@@ -147,7 +180,7 @@ export function drawPage(ctx: CanvasRenderingContext2D, size: CanvasSize, palett
   ctx.clearRect(0, 0, size.width, size.height);
   fillRect(ctx, 0, 0, size.width, size.height, palette.paper);
   const footer = FOOTER_SPACES * PAGE_SPACING_PX * props.staffScale;
-  const layout = buildPageLayout(props.score, size.width, size.height - footer, props.staffScale);
+  const layout = cachedPageLayout(props.score, size.width, size.height - footer, props.staffScale);
   if (layout.systems.length === 0) return;
   const current = systemIndexAt(layout, props.songTime);
   const page = pageOfSystem(layout, current);
@@ -161,17 +194,15 @@ export function drawPage(ctx: CanvasRenderingContext2D, size: CanvasSize, palett
   ctx.fillText(`Página ${page + 1} de ${layout.pageCount}`, size.width - layout.spacing * 2, size.height - layout.spacing * 0.8);
 }
 
-export function PageStaff({ className = "", style, pageStyle, ...props }: PageStaffProps) {
+export function PageStaff({ className = "", style, pageStyle, score, live, songTime, currentNoteIndex, judgements, staffScale, readingGuide }: PageStaffProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const size = useCanvasSize(canvasRef);
   const theme = PAGE_THEMES[pageStyle];
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas ? fitCanvas(canvas, size) : null;
-    if (!canvas || !ctx) return;
-    drawPage(ctx, size, readPagePalette(canvas), props);
-  }, [size, props, pageStyle]);
+  const frame = useMemo(() => ({ songTime, currentNoteIndex, judgements }), [songTime, currentNoteIndex, judgements]);
+  const paint = useCallback<FramePaint<Palette>>(
+    (ctx, size, palette, current) => drawPage(ctx, size, palette, { score, staffScale, readingGuide, ...current }),
+    [score, staffScale, readingGuide],
+  );
+  useFramePainter({ canvasRef, readPalette: readPagePalette, paletteKey: pageStyle, paint, frame, live });
 
   return (
     <div data-theme={theme.theme} data-accent={theme.accent} className={`overflow-hidden rounded-lg bg-surface shadow-card ${className}`} style={style}>
