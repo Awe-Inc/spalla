@@ -19,7 +19,8 @@ async function seed(): Promise<void> {
   await db.results.bulkAdd([result("scales.1oct.69", 1), result("warmup.open.A", 2)]);
   await db.userStats.put({ ...DEFAULT_USER_STATS, xp: 420 });
   await db.practiceDays.put({ day: "2026-10-30", minutes: 25, xp: 80 } as never);
-  await db.pieces.add({ fileName: "minueto.mxl", title: "Minueto", composer: "Bach", genre: "", level: 3, bytes: new Uint8Array([80, 75, 3, 4, 255]), noteCount: 48, beatsPerMinute: 96, importedAt: 5 });
+  const pieceId = await db.pieces.add({ fileName: "minueto.mxl", title: "Minueto", composer: "Bach", genre: "", level: 3, noteCount: 48, beatsPerMinute: 96, importedAt: 5 });
+  await db.pieceFiles.put({ id: pieceId as number, bytes: new Uint8Array([80, 75, 3, 4, 255]) });
   const sheetId = await db.sheets.add({ fileName: "wohlfahrt.pdf", title: "Wohlfahrt", pageCount: 12, lastPage: 3, importedAt: 6, openedAt: 7 });
   await db.sheetFiles.put({ id: sheetId as number, bytes: new Uint8Array([37, 80, 68, 70]) });
   const recordingId = await db.recordings.add({ name: "Antes", pieceKey: null, pieceTitle: null, mimeType: "audio/webm", durationMs: 1200, sizeBytes: 3, createdAt: 8 });
@@ -61,16 +62,25 @@ describe("backup", () => {
     expect(localStorage.getItem(SETTINGS_KEY)).toContain('"theme":"dark"');
     expect((await db.results.toArray()).map((row) => row.exerciseId).sort()).toEqual(["scales.1oct.69", "warmup.open.A"]);
     expect((await db.userStats.get("me"))?.xp).toBe(420);
-    const piece = (await db.pieces.toArray())[0];
-    expect(Object.prototype.toString.call(piece?.bytes)).toBe("[object Uint8Array]");
-    expect(Array.from(piece?.bytes ?? [])).toEqual([80, 75, 3, 4, 255]);
+    const pieceFile = (await db.pieceFiles.toArray())[0];
+    expect(Object.prototype.toString.call(pieceFile?.bytes)).toBe("[object Uint8Array]");
+    expect(Array.from(pieceFile?.bytes ?? [])).toEqual([80, 75, 3, 4, 255]);
     expect(Array.from((await db.sheetFiles.toArray())[0]?.bytes ?? [])).toEqual([37, 80, 68, 70]);
     expect(Array.from((await db.recordingFiles.toArray())[0]?.bytes ?? [])).toEqual([26, 69, 223]);
     expect(restoreSentence(summary)).toBe(`Backup restaurado: ${summary.rows} registros. As configurações também voltaram.`);
   });
 
+  it("moves the piece bytes of a version 2 backup to their own table", async () => {
+    const legacy = serializeBackup({ version: 2, exportedAt: "", settings: null, pieces: [{ id: 7, fileName: "a.mxl", bytes: new Uint8Array([1, 2]) }] });
+
+    await restoreBackup(parseBackup(legacy));
+
+    expect(await db.pieces.get(7)).not.toHaveProperty("bytes");
+    expect(Array.from((await db.pieceFiles.get(7))?.bytes ?? [])).toEqual([1, 2]);
+  });
+
   it("restores a version 1 backup without touching the tables it never had", async () => {
-    await db.pieces.add({ fileName: "fica.mxl", title: "Fica", composer: "", genre: "", level: 1, bytes: new Uint8Array([1]), noteCount: 1, beatsPerMinute: 60, importedAt: 1 });
+    await db.pieces.add({ fileName: "fica.mxl", title: "Fica", composer: "", genre: "", level: 1, noteCount: 1, beatsPerMinute: 60, importedAt: 1 });
     const legacy = JSON.stringify({ version: 1, exportedAt: "2026-10-01T00:00:00.000Z", results: [result("old", 1)], routines: [], practiceDays: [], userStats: [], achievements: [], lessonTasks: [], suzukiPieces: [], pieceSections: [], pieces: { count: 1 } });
 
     const summary = await restoreBackup(parseBackup(legacy));

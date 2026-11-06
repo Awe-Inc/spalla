@@ -84,10 +84,14 @@ export interface StoredPiece {
   composer: string;
   genre: string;
   level: number;
-  bytes: Uint8Array;
   noteCount: number;
   beatsPerMinute: number;
   importedAt: number;
+}
+
+export interface StoredPieceFile {
+  id: number;
+  bytes: Uint8Array;
 }
 
 export interface StoredScrollPlan {
@@ -183,6 +187,7 @@ export class FretlessDatabase extends Dexie {
   achievements!: EntityTable<Achievement, "id">;
   lessonTasks!: EntityTable<LessonTask, "id">;
   pieces!: EntityTable<StoredPiece, "id">;
+  pieceFiles!: EntityTable<StoredPieceFile, "id">;
   sheets!: EntityTable<StoredSheet, "id">;
   sheetFiles!: EntityTable<StoredSheetFile, "id">;
   suzukiPieces!: EntityTable<StoredSuzukiPiece, "key">;
@@ -240,6 +245,17 @@ export class FretlessDatabase extends Dexie {
     this.version(11).stores({
       sectionRuns: "++id, pieceKey, playedAt",
     });
+    this.version(12)
+      .stores({ pieceFiles: "id" })
+      .upgrade(async (transaction) => {
+        const pieces = transaction.table<StoredPiece & { bytes?: Uint8Array }, number>("pieces");
+        const rows = await pieces.toArray();
+        const files = rows.flatMap((row) => (row.id !== undefined && row.bytes ? [{ id: row.id, bytes: row.bytes }] : []));
+        await transaction.table<StoredPieceFile, number>("pieceFiles").bulkPut(files);
+        await pieces.toCollection().modify((row) => {
+          delete row.bytes;
+        });
+      });
   }
 }
 

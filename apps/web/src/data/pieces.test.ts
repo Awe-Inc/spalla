@@ -53,7 +53,7 @@ describe("catalog", () => {
   });
 
   it("maps stored pieces to the musica route and keeps the file name as result id", () => {
-    const [piece] = catalogFromStored([{ id: 7, fileName: "minueto.mxl", title: "", composer: "", genre: "", level: 2, bytes: new Uint8Array(), noteCount: 10, beatsPerMinute: 90, importedAt: 0 }]);
+    const [piece] = catalogFromStored([{ id: 7, fileName: "minueto.mxl", title: "", composer: "", genre: "", level: 2, noteCount: 10, beatsPerMinute: 90, importedAt: 0 }]);
     expect(piece).toMatchObject({ key: "musica:7", resultId: "musica:minueto.mxl", title: "minueto.mxl", genre: "Importada", playTo: "/tocar/musica/7", storedId: 7 });
   });
 });

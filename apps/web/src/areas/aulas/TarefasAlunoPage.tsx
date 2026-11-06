@@ -1,4 +1,3 @@
-import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 
 import { api, errorMessage } from "@/api/client";
@@ -8,7 +7,8 @@ import { assignmentProgress, refreshClassAssignments, setAssignmentDone } from "
 import { openPdf } from "@/account/files";
 import { formatDate, FormError, LoadState, Notice } from "@/account/ui";
 import { Badge, TextAreaField } from "@/design/fields";
-import { db, type ExerciseResult } from "@/data/db";
+import { type ExerciseResult } from "@/data/db";
+import { useResults } from "@/data/useResults";
 import { Button, ButtonLink, EmptyState, PageHeader } from "@/design/components";
 
 import { formatDueOn, ITEM_KIND_LABELS, todayIso } from "../professor/teaching";
@@ -169,7 +169,7 @@ function AssignmentCard({ assignment, materials, results, onChanged }: Assignmen
 
 export function TarefasAlunoPage() {
   const lessons = useApiData(loadLessons, []);
-  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const results = useResults();
   const [showDone, setShowDone] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 

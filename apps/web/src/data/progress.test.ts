@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 
 import type { GameStats, NoteJudgement } from "@fretless/core";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db, DEFAULT_USER_STATS, localDayKey } from "./db";
 import { SESSION_COMPLETE_XP } from "./gamification";
@@ -50,6 +50,18 @@ describe("progress", () => {
     const day = await db.practiceDays.get(TODAY);
     expect(day).toMatchObject({ exercisesPlayed: 1, minutes: 1.5, xp: outcome.xp });
     expect((await db.userStats.get("me"))?.xp).toBe(outcome.xp);
+  });
+
+  it("saveRun reads the results only once and still counts the run it just saved", async () => {
+    await saveRun(run());
+    const read = vi.spyOn(db.results, "toArray");
+
+    const outcome = await saveRun(run({ playedAt: PLAYED_AT + 60_000 }));
+
+    expect(read).toHaveBeenCalledTimes(1);
+    read.mockRestore();
+    expect(await db.results.count()).toBe(2);
+    expect(outcome.stars).toBe(3);
   });
 
   it("saveRun unlocks an achievement once, not on every run", async () => {

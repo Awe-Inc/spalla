@@ -1,12 +1,12 @@
-import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 import { useLocation, useParams } from "react-router";
 
 import { fromState } from "@/areas/tocar/origin";
 import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
-import { db, type ExerciseResult } from "@/data/db";
+import { type ExerciseResult } from "@/data/db";
 import { moduleSummary, type ExerciseSummary } from "@/data/moduleProgress";
+import { useResults } from "@/data/useResults";
 import { Button, ButtonLink, EmptyState, Stars } from "@/design/components";
 import { List, PageHeader, Section, SkeletonList, Stat, Stats } from "@/design/layout";
 
@@ -56,7 +56,7 @@ function ExerciseLine({ summary, results }: { summary: ExerciseSummary; results:
 export function ModuloPage() {
   const { moduleId } = useParams();
   const core = useCore();
-  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const results = useResults();
 
   if (core.status !== "ready") {
     return (

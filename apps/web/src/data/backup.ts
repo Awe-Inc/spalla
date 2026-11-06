@@ -2,7 +2,7 @@ import type { Table } from "dexie";
 
 import { db, DEFAULT_USER_STATS } from "./db";
 
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
 const SETTINGS_STORAGE_KEY = "fretless-settings";
 const BYTES_MARKER = "$bytes";
@@ -19,6 +19,7 @@ export const BACKUP_TABLES = [
   "pieceSections",
   "sectionRuns",
   "pieces",
+  "pieceFiles",
   "sheets",
   "sheetFiles",
   "recordings",
@@ -119,7 +120,14 @@ export function parseBackup(text: string): Backup {
     if (!Array.isArray(rows) || !rows.every(isRecord)) throw new BackupFormatError("O backup está corrompido: confira se é o arquivo inteiro.");
     backup[name] = rows;
   }
-  return backup;
+  return withPieceBytesInOwnTable(backup);
+}
+
+function withPieceBytesInOwnTable(backup: Backup): Backup {
+  if (backup.pieces === undefined || backup.pieceFiles !== undefined) return backup;
+  const pieces = backup.pieces as Record<string, unknown>[];
+  const pieceFiles = pieces.filter((piece) => isBytes(piece.bytes)).map((piece) => ({ id: piece.id, bytes: piece.bytes }));
+  return { ...backup, pieces: pieces.map(({ bytes: _bytes, ...piece }) => piece), pieceFiles };
 }
 
 export async function restoreBackup(backup: Backup): Promise<RestoreSummary> {

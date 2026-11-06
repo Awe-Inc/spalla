@@ -58,8 +58,11 @@ export async function saveRun(input: RunInput): Promise<RunOutcome> {
   const result = buildResult(input);
   await recordResult(result);
 
-  const [results, days, stats, unlocked] = await Promise.all([db.results.toArray(), db.practiceDays.toArray(), readUserStats(), db.achievements.toArray()]);
-  const streak = currentStreak(days, localDayKey(new Date(input.playedAt)), stats.frozenDays);
+  const day = localDayKey(new Date(input.playedAt));
+  const [today, stats, unlocked] = await Promise.all([db.practiceDays.get(day), readUserStats(), db.achievements.toArray()]);
+  const results = [...resultsBefore, result];
+  const days = today ? [...daysBefore.filter((known) => known.day !== day), today] : daysBefore;
+  const streak = currentStreak(days, day, stats.frozenDays);
   const newAchievements = achievementsEarned(
     { stats: input.stats, judgements: input.judgements, playedAt: new Date(input.playedAt), streak, loopsCompleted: stats.loopsCompleted },
     new Set(unlocked.map((achievement) => achievement.id)),

@@ -1,9 +1,9 @@
 import type { CurriculumModule } from "@fretless/core";
-import { useLiveQuery } from "dexie-react-hooks";
 
 import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
-import { bestResultsByExercise, db, type ExerciseResult } from "@/data/db";
+import { bestResultsByExercise, type ExerciseResult } from "@/data/db";
+import { useResults } from "@/data/useResults";
 import { InlineError } from "@/design/components";
 import { List, ListRow, SkeletonList } from "@/design/layout";
 
@@ -30,7 +30,7 @@ function ModuleProgress({ module, best }: { module: CurriculumModule; best: Map<
 
 export function MetodoPage() {
   const core = useCore();
-  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const results = useResults();
   const best = bestResultsByExercise(results);
 
   return (

@@ -20,6 +20,7 @@ import {
 } from "@/data/pieces";
 import { detailPath } from "@/data/sections";
 import { describeStorageError, isQuotaError } from "@/data/storageErrors";
+import { useResults } from "@/data/useResults";
 import { buttonClass, ButtonLink, EmptyState, InlineError, Menu, Stars } from "@/design/components";
 import { Badge, type BadgeTone } from "@/design/fields";
 import { Icon } from "@/design/icons";
@@ -93,7 +94,7 @@ const LIBRARY_CATALOG = catalogFromLibrary();
 export function MusicasPage() {
   const core = useCore();
   const stored = useLiveQuery(() => db.pieces.orderBy("importedAt").reverse().toArray(), []) ?? [];
-  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const results = useResults();
   const [filters, setFilters] = useState<PieceFilters>(EMPTY_FILTERS);
   const [shown, setShown] = useState(PAGE_SIZE);
   const [error, setError] = useState<string | null>(null);

@@ -8,6 +8,7 @@ import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, latestRes
 import { blockProgress, nextOpenBlock, planSession, sessionProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
 import { runsByExercise, shouldRaiseTempo, type GoalProgress } from "@/data/repetitions";
 import { defaultRoutines, type RoutineItem } from "@/data/routines";
+import { useResults } from "@/data/useResults";
 
 export interface TodayPlan {
   today: string;
@@ -46,7 +47,7 @@ export function useTodayPlan(): TodayPlan {
   const routines = useRoutines();
   const today = localDayKey(new Date());
   const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
-  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const results = useResults();
   const lessonTasks = useLiveQuery(() => db.lessonTasks.toArray(), []) ?? [];
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;
   const classAssignments = useClassAssignments();

@@ -5,6 +5,7 @@ import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, localDayKey } from "@/data/db";
 import { levelForXp } from "@/data/gamification";
 import { medalProgress, medalsEarnedCount, rankOf, rankSentence } from "@/data/medals";
+import { useResults } from "@/data/useResults";
 import { VoceTabs } from "@/areas/voce/VoceTabs";
 import { Card, EmptyState, PageHeader, ProgressRing } from "@/design/components";
 import { Skeleton, Stat, Stats, Tabs } from "@/design/layout";
@@ -32,7 +33,7 @@ export function ProgressoPage() {
   const [params] = useSearchParams();
   const view = viewOf(params.get("ver"));
   const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
-  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const results = useResults();
   const achievements = useLiveQuery(() => db.achievements.toArray(), []) ?? [];
   const recordings = useLiveQuery(() => db.recordings.toArray(), []) ?? [];
   const stats = useLiveQuery(() => db.userStats.get("me"), []) ?? DEFAULT_USER_STATS;

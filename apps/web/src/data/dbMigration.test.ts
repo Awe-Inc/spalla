@@ -44,7 +44,7 @@ describe("Dexie migration", () => {
     const current = new FretlessDatabase(NAME);
     await current.open();
 
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(current.tables.map((table) => table.name)).not.toContain("settings");
     expect(current.tables.map((table) => table.name)).toEqual(
       expect.arrayContaining(["suzukiPieces", "pieceSections", "recordings", "recordingFiles", "classAssignments", "classAnnouncements"]),
@@ -52,7 +52,9 @@ describe("Dexie migration", () => {
     expect(await current.results.where("exerciseId").equals("scales.1oct.69").count()).toBe(1);
     expect(await current.practiceDays.get("2026-09-01")).toMatchObject({ minutes: 12 });
     expect((await current.userStats.get("me"))?.xp).toBe(250);
-    expect(await current.pieces.where("fileName").equals("minueto.mxl").count()).toBe(1);
+    const piece = await current.pieces.where("fileName").equals("minueto.mxl").first();
+    expect(piece).not.toHaveProperty("bytes");
+    expect(Array.from((await current.pieceFiles.get(piece?.id as number))?.bytes ?? [])).toEqual([1, 2]);
     expect(await current.sheetFiles.get(sheetId as number)).toBeDefined();
     expect(await current.recordings.count()).toBe(0);
     current.close();

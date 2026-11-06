@@ -26,16 +26,22 @@ export async function importPieceFile(core: FretlessCore, file: File): Promise<I
     composer: parsed.score.composer,
     genre: IMPORTED_GENRE,
     level: levelFromNoteCount(parsed.score.noteCount, parsed.score.beatsPerMinute),
-    bytes,
     noteCount: parsed.score.noteCount,
     beatsPerMinute: Math.round(parsed.score.beatsPerMinute),
     importedAt: Date.now(),
   };
-  const existing = await db.pieces.where("fileName").equals(file.name).first();
-  const id = existing?.id !== undefined ? ((await db.pieces.put({ ...piece, id: existing.id })) as number) : ((await db.pieces.add(piece)) as number);
+  const id = await db.transaction("rw", db.pieces, db.pieceFiles, async () => {
+    const existing = await db.pieces.where("fileName").equals(file.name).first();
+    const stored = existing?.id !== undefined ? ((await db.pieces.put({ ...piece, id: existing.id })) as number) : ((await db.pieces.add(piece)) as number);
+    await db.pieceFiles.put({ id: stored, bytes });
+    return stored;
+  });
   return { ok: true, piece: { ...piece, id } };
 }
 
 export async function removePiece(id: number): Promise<void> {
-  await db.pieces.delete(id);
+  await db.transaction("rw", db.pieces, db.pieceFiles, async () => {
+    await db.pieces.delete(id);
+    await db.pieceFiles.delete(id);
+  });
 }

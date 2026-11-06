@@ -8,6 +8,7 @@ import { addLessonTask, nextLessonSentence, removeLessonTask, splitTasks, toggle
 import { describeStorageError } from "@/data/storageErrors";
 import { BLOCK_KINDS, BLOCK_LABELS, ROUTINE_ORDER } from "@/data/routines";
 import { weekSummary, weekWindow } from "@/data/weekSummary";
+import { useResults } from "@/data/useResults";
 import { Button, Card, InlineError } from "@/design/components";
 import { COMPACT_FIELD_CLASS, FIELD_CLASS } from "@/design/fields";
 
@@ -47,7 +48,7 @@ export function CadernoDaAula() {
   const core = useCore();
   const tasks = useLiveQuery(() => db.lessonTasks.toArray(), []) ?? [];
   const days = useLiveQuery(() => db.practiceDays.toArray(), []) ?? [];
-  const results = useLiveQuery(() => db.results.toArray(), []) ?? [];
+  const results = useResults();
   const lessonWeekday = useSettings((state) => state.lessonWeekday);
   const setLessonWeekday = useSettings((state) => state.setLessonWeekday);
   const [text, setText] = useState("");

@@ -41,10 +41,16 @@ function useLibraryBytes(slug: string | undefined): Uint8Array | null | undefine
   return loaded?.slug === slug ? loaded.bytes : undefined;
 }
 
+async function readStoredPiece(id: number): Promise<{ fileName: string; bytes: Uint8Array } | null> {
+  if (!Number.isFinite(id)) return null;
+  const [piece, file] = await Promise.all([db.pieces.get(id), db.pieceFiles.get(id)]);
+  return piece && file ? { fileName: piece.fileName, bytes: file.bytes } : null;
+}
+
 export function useSession(exerciseId: string | undefined, pieceId: string | undefined, librarySlug?: string): SessionHandle & { coreStatus: ReturnType<typeof useCore> } {
   const core = useCore();
   const storedId = pieceId === undefined ? Number.NaN : Number(pieceId);
-  const piece = useLiveQuery(async () => (Number.isFinite(storedId) ? ((await db.pieces.get(storedId)) ?? null) : null), [storedId]);
+  const piece = useLiveQuery(() => readStoredPiece(storedId), [storedId]);
   const libraryBytes = useLibraryBytes(librarySlug);
   const isMusicXml = pieceId !== undefined || librarySlug !== undefined;
   const musicXmlBytes = pieceId !== undefined ? (piece === undefined ? undefined : (piece?.bytes ?? null)) : libraryBytes;
