@@ -47,7 +47,7 @@ O que o aluno sente toda vez que pega o violino.
 | E14 E15 | Sessão fechada mantém a lista com o bloco mais fraco e "Repetir"; estrelas não piscam 0 até salvar; "Próximo" também vindo de Estudar | P |
 | E12 Q13 Q14 | Foco e `aria-live` no Tocar e no resultado; alvos de 44px (bpm, Tabs, ChoiceChips, ConfirmButton) | P |
 
-## Fase 3 — Desempenho e offline
+## Fase 3 — Desempenho e offline — feita em 06/11
 
 | # | O quê | Esf. |
 |---|---|---|

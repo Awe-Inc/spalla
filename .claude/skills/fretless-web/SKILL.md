@@ -100,7 +100,7 @@ apps/web/src/audio/              pitch-worklet.ts (runs the WASM YIN inside an A
                                  gravado | sintetizado | suave | puro; só "violino" baixa amostras; escolhido no
                                  ListenSoundPicker da Peça e do Tocar e em Ajustes › Prática)
 apps/web/public/amostras/violino/ <midi>.m4a (6 s, mono AAC) + LICENSE.txt, made by tools/fetch_violin_samples.py;
-                                 outside the precache, cached on first use by the workbox rule "amostras" (CacheFirst)
+                                 outside the precache, cached by the workbox rule "amostras" (CacheFirst) and warmed by app/offlineFiles.ts
 apps/web/src/areas/tocar/        TocarPage (orchestration), useSession (core session + bpm + loop),
                                  useSyntheticPlayer (`?jogador=sintetico` + build flag → the WASM SyntheticPlayer
                                  feeds the session instead of the mic; pure helpers tested; used by e2e/),
@@ -159,7 +159,7 @@ apps/web/src/data/               db.ts (Dexie v11: results, routines, practiceDa
                                  pieces.ts (catálogo: peças do core + importadas, status não iniciada/em
                                  estudo/dominada, filtros), importPiece.ts (MusicXML → `db.pieces`, 8 MB, mesmo
                                  fileName substitui), library.ts (biblioteca CC0: `library.json` + URLs dos
-                                 .mxl de assets/songs/community por import.meta.glob `?url`, precacheados;
+                                 .mxl de assets/songs/community por import.meta.glob `?url`, em runtime cache aquecido na 1ª visita;
                                  `/tocar/biblioteca/:librarySlug`, resultado `biblioteca:<slug>`; o json é
                                  snapshot de library.manifest.test.ts, que lê os arquivos com o core real —
                                  canção nova: `python tools/fetch_library.py --count N`, depois
@@ -463,6 +463,13 @@ send never post the same results twice. The session planner (`planSession`) assi
   outra. Regra: o "já tocado hoje" só vale se o exercício pertence ao tipo do bloco (`belongsToBlock`: revisão exige
   resultado anterior, peça nova exige < 2★). E o plano lê `best`/`latest` só de antes do início do dia, para não se
   reorganizar depois de tocar. Teste em `planner.test` ("peça nova e rodízio").
+- **Regra de cache quebrou todo fetch offline** (06/11, A4, achado na checagem offline). `urlPattern` em função, no
+  `runtimeCaching`, é serializado para o `sw.js`: constante de fora virou `ReferenceError` e nenhum arquivo fora do
+  precache abria offline. Regra: nessas funções, só literais; com constante, usar `new RegExp(...)`.
+- **Start cancelado derrubava o start novo** (06/11, A20, achado no review). Com o `AudioContext` reaproveitado, comparar
+  contexto não separa mais duas tentativas: o `catch` do start antigo limpava o estado e desligava o nó do novo. Regra:
+  no `PitchInput`, um start só mexe em estado compartilhado se `generation` ainda for a dele, e só desliga o nó que ele
+  criou. Teste em `PitchInput.test`.
 - **Série fechada reabria com uma passada ruim** (31/10, P10). `goalProgress` usava `cleanStreak` (conta do fim), então
   uma passada fraca depois de fechar 3 limpas zerava o bloco e tirava o bônus. Meta de repetições fecha pelo
   `longestCleanStreak` do dia. Teste em `repetitions.test`.

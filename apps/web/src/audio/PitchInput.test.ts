@@ -27,6 +27,7 @@ class FakeContext {
 
 class FakeNode {
   static options: { processorOptions: { wasmModule?: unknown; wasmBinary?: unknown } }[] = [];
+  static instances: FakeNode[] = [];
   static refuseModule = false;
   disconnect = vi.fn();
   port = {
@@ -39,6 +40,7 @@ class FakeNode {
   constructor(_context: unknown, _name: string, options: (typeof FakeNode.options)[number]) {
     if (FakeNode.refuseModule && options.processorOptions.wasmModule) throw new DOMException("no", "DataCloneError");
     FakeNode.options.push(options);
+    FakeNode.instances.push(this);
   }
 }
 
@@ -60,6 +62,7 @@ describe("PitchInput", () => {
     vi.useFakeTimers();
     FakeContext.created = [];
     FakeNode.options = [];
+    FakeNode.instances = [];
     FakeNode.refuseModule = false;
     fetchWasm.mockClear();
     forgetCompiledCore();
@@ -134,6 +137,25 @@ describe("PitchInput", () => {
     await started(input);
     expect(FakeContext.created).toHaveLength(2);
     expect(FakeContext.created[1]?.audioWorklet.addModule).toHaveBeenCalledTimes(1);
+  });
+
+  it("a start cancelled by a newer one leaves the newer one alive on the shared context", async () => {
+    const input = new PitchInput();
+    await started(input);
+    await input.stop();
+
+    const cancelled = input.start(null).catch((error: Error) => error);
+    await input.stop();
+    const running = input.start(null);
+    await settle();
+    await running;
+    await cancelled;
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(input.context).toBe(FakeContext.created[0]);
+    expect(FakeContext.created).toHaveLength(1);
+    expect(FakeContext.created[0]?.suspend).not.toHaveBeenCalled();
+    expect(FakeNode.instances.at(-1)?.disconnect).not.toHaveBeenCalled();
   });
 
   it("falls back to the bytes where the browser cannot send a compiled module to the worklet", async () => {

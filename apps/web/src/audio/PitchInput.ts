@@ -105,13 +105,19 @@ export class PitchInput {
         channelCount: 1,
       },
     });
+    if (generation !== this.#generation) {
+      this.#release(stream, null);
+      throw new PitchInputCancelled();
+    }
     const context = this.#takeContext();
     this.#context = context;
     this.#stream = stream;
+    let startedNode: AudioWorkletNode | null = null;
     try {
       const [core] = await Promise.all([compileCoreOnce(), this.#loadWorklet(context)]);
       if (generation !== this.#generation) throw new PitchInputCancelled();
       const node = createPitchNode(context, core, windowSize);
+      startedNode = node;
       this.#node = node;
       context.createMediaStreamSource(stream).connect(node);
 
@@ -145,12 +151,12 @@ export class PitchInput {
         browserProcessing: activeProcessing(stream.getAudioTracks()[0]?.getSettings() ?? {}),
       };
     } catch (error: unknown) {
-      this.#release(stream, this.#node);
-      this.#park(context);
-      if (this.#context === context) {
+      this.#release(stream, startedNode);
+      if (generation === this.#generation) {
         this.#context = null;
         this.#stream = null;
         this.#node = null;
+        this.#park(context);
       }
       throw error;
     }
