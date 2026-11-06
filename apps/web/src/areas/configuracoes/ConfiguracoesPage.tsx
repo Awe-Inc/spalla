@@ -77,7 +77,7 @@ export function ConfiguracoesPage() {
             <SettingRow title="Nome das notas">
               <ChoiceChips name="naming" label="Nome das notas" value={settings.noteNaming} options={NAMING_OPTIONS} onChange={settings.setNoteNaming} />
             </SettingRow>
-            <SettingRow title="Vista ao tocar" hint="Página é a partitura como no papel: uma linha depois da outra, e a página vira sozinha.">
+            <SettingRow title="Vista ao tocar" hint="Página é a partitura como no papel: uma linha depois da outra, rolando sozinha no andamento da música.">
               <ChoiceChips name="view" label="Vista ao tocar" value={settings.playView} options={VIEW_OPTIONS} onChange={settings.setPlayView} />
             </SettingRow>
             <SettingRow title="Papel" hint="Aparência da partitura em página.">

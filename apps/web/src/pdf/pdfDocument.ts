@@ -40,6 +40,14 @@ export async function countPdfPages(bytes: Uint8Array): Promise<number> {
   }
 }
 
+export async function pdfPageSizes(document: PdfDocument): Promise<Box[]> {
+  const pages = await Promise.all(Array.from({ length: document.numPages }, (_, index) => document.getPage(index + 1)));
+  return pages.map((page) => {
+    const { width, height } = page.getViewport({ scale: 1 });
+    return { width, height };
+  });
+}
+
 export interface RenderedPage {
   cssWidth: number;
   cssHeight: number;

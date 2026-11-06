@@ -90,6 +90,12 @@ export interface StoredPiece {
   importedAt: number;
 }
 
+export interface StoredScrollPlan {
+  measures: number;
+  beatsPerMeasure: number;
+  bpm: number;
+}
+
 export interface StoredSheet {
   id?: number;
   fileName: string;
@@ -98,6 +104,7 @@ export interface StoredSheet {
   lastPage: number;
   importedAt: number;
   openedAt: number;
+  scrollPlan?: StoredScrollPlan;
 }
 
 export interface StoredSheetFile {

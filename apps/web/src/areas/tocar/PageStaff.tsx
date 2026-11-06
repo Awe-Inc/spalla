@@ -7,16 +7,16 @@ import {
   headerOffsets,
   PAGE_SPACING_PX,
   measureIndexAt,
-  pageOfSystem,
+  pageScrollAt,
   systemIndexAt,
-  systemsOnPage,
+  systemsInView,
   xAtSystem,
   type PageLayout,
   type PageSystem,
 } from "@/notation/pageLayout";
 import { positionY, toneFor, type NoteTone, type StaffGeometry } from "@/notation/staffLayout";
 
-import { useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
+import { canvasPixelRatio, useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
 import type { FrameSource } from "./liveRun";
 import { drawBeams, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
 
@@ -47,7 +47,6 @@ const CURSOR_ALPHA = 0.55;
 
 interface CachedLayout {
   width: number;
-  height: number;
   staffScale: number;
   layout: PageLayout;
 }
@@ -56,11 +55,11 @@ const layoutByScore = new WeakMap<Score, CachedLayout>();
 const scoreBySystem = new WeakMap<PageSystem, Score>();
 const geometryBySystem = new WeakMap<PageSystem, StaffGeometry>();
 
-export function cachedPageLayout(score: Score, width: number, height: number, staffScale: number): PageLayout {
+export function cachedPageLayout(score: Score, width: number, staffScale: number): PageLayout {
   const cached = layoutByScore.get(score);
-  if (cached && cached.width === width && cached.height === height && cached.staffScale === staffScale) return cached.layout;
-  const layout = buildPageLayout(score, width, height, staffScale);
-  layoutByScore.set(score, { width, height, staffScale, layout });
+  if (cached && cached.width === width && cached.staffScale === staffScale) return cached.layout;
+  const layout = buildPageLayout(score, width, staffScale);
+  layoutByScore.set(score, { width, staffScale, layout });
   return layout;
 }
 
@@ -180,18 +179,24 @@ export function drawPage(ctx: CanvasRenderingContext2D, size: CanvasSize, palett
   ctx.clearRect(0, 0, size.width, size.height);
   fillRect(ctx, 0, 0, size.width, size.height, palette.paper);
   const footer = FOOTER_SPACES * PAGE_SPACING_PX * props.staffScale;
-  const layout = cachedPageLayout(props.score, size.width, size.height - footer, props.staffScale);
+  const viewHeight = size.height - footer;
+  const layout = cachedPageLayout(props.score, size.width, props.staffScale);
   if (layout.systems.length === 0) return;
   const current = systemIndexAt(layout, props.songTime);
-  const page = pageOfSystem(layout, current);
-  for (const system of systemsOnPage(layout, page)) {
+  const pixelRatio = canvasPixelRatio(window.devicePixelRatio);
+  const scrollTop = Math.round(pageScrollAt(layout, props.songTime, viewHeight) * pixelRatio) / pixelRatio;
+  ctx.save();
+  ctx.translate(0, -scrollTop);
+  for (const system of systemsInView(layout, scrollTop, viewHeight)) {
     drawSystem(ctx, props, system, systemGeometry(system, layout, size), palette, system.index === current);
   }
+  ctx.restore();
+  fillRect(ctx, 0, viewHeight, size.width, footer, palette.paper);
   ctx.fillStyle = palette.inkSubtle;
   ctx.font = `${Math.round(layout.spacing * 1.1)}px ${palette.sans}`;
   ctx.textAlign = "right";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`Página ${page + 1} de ${layout.pageCount}`, size.width - layout.spacing * 2, size.height - layout.spacing * 0.8);
+  ctx.fillText(`Linha ${current + 1} de ${layout.systems.length}`, size.width - layout.spacing * 2, size.height - layout.spacing * 0.8);
 }
 
 export function PageStaff({ className = "", style, pageStyle, score, live, songTime, currentNoteIndex, judgements, staffScale, readingGuide }: PageStaffProps) {
@@ -209,7 +214,7 @@ export function PageStaff({ className = "", style, pageStyle, score, live, songT
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label="Partitura em página: leia linha por linha, a página vira sozinha"
+        aria-label="Partitura em página: leia linha por linha, ela rola sozinha no andamento da música"
         className="block h-full w-full"
       />
     </div>

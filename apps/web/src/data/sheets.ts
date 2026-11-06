@@ -1,4 +1,4 @@
-import { db, type StoredSheet } from "./db";
+import { db, type StoredScrollPlan, type StoredSheet } from "./db";
 import { describeStorageError } from "./storageErrors";
 
 export const MAX_SHEET_FILE_BYTES = 64 * 1024 * 1024;
@@ -66,6 +66,7 @@ export async function importSheetFile(file: File, countPages: (bytes: Uint8Array
       lastPage: clampPage(existing?.lastPage ?? 1, pageCount),
       importedAt: now,
       openedAt: existing?.openedAt ?? now,
+      ...(existing?.scrollPlan ? { scrollPlan: existing.scrollPlan } : {}),
     };
     const id = existing?.id !== undefined ? ((await db.sheets.put({ ...next, id: existing.id })) as number) : ((await db.sheets.add(next)) as number);
     await db.sheetFiles.put({ id, bytes });
@@ -83,6 +84,10 @@ export async function removeSheet(id: number): Promise<void> {
 
 export async function rememberSheetPage(id: number, lastPage: number): Promise<void> {
   await db.sheets.update(id, { lastPage, openedAt: Date.now() });
+}
+
+export async function rememberSheetScrollPlan(id: number, scrollPlan: StoredScrollPlan): Promise<void> {
+  await db.sheets.update(id, { scrollPlan });
 }
 
 export async function touchSheet(id: number): Promise<void> {

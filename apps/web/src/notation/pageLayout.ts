@@ -1,5 +1,6 @@
 import type { Score } from "@fretless/core";
 
+import { scrollForReading, readingAnchor } from "./readingScroll";
 import { durationQuarters } from "./staffLayout";
 
 export const PAGE_SPACING_PX = 10;
@@ -13,6 +14,8 @@ const KEY_ACCIDENTAL_SPACES = 1;
 const TIME_SIGNATURE_SPACES = 2.4;
 const HEADER_GAP_SPACES = 0.8;
 const SHORT_LAST_SYSTEM = 0.7;
+const STAFF_LINES_SPACES = 4;
+const SCROLL_SMOOTHING_SECONDS = 1.5;
 
 export interface NoteAnchor {
   seconds: number;
@@ -38,8 +41,7 @@ export interface PageSystem {
 export interface PageLayout {
   spacing: number;
   systemHeight: number;
-  systemsPerPage: number;
-  pageCount: number;
+  contentHeight: number;
   systems: PageSystem[];
 }
 
@@ -79,10 +81,9 @@ function breakIntoLines(widths: number[], availableFor: (lineIndex: number) => n
   return lines;
 }
 
-export function buildPageLayout(score: Score, width: number, height: number, scale = 1): PageLayout {
+export function buildPageLayout(score: Score, width: number, scale = 1): PageLayout {
   const spacing = PAGE_SPACING_PX * scale;
   const systemHeight = spacing * SYSTEM_HEIGHT_SPACES;
-  const systemsPerPage = Math.max(1, Math.floor(height / systemHeight));
   const left = spacing * PAGE_MARGIN_SPACES;
   const right = Math.max(left + spacing, width - spacing * PAGE_MARGIN_SPACES);
   const padding = spacing * MEASURE_PADDING_SPACES;
@@ -126,7 +127,7 @@ export function buildPageLayout(score: Score, width: number, height: number, sca
       lastMeasure,
       firstEvent: eventIndices[0] ?? -1,
       lastEvent: eventIndices[eventIndices.length - 1] ?? -1,
-      staffTop: (lineIndex % systemsPerPage) * systemHeight + spacing * STAFF_TOP_SPACES,
+      staffTop: lineIndex * systemHeight + spacing * STAFF_TOP_SPACES,
       left,
       right,
       barXs,
@@ -137,7 +138,7 @@ export function buildPageLayout(score: Score, width: number, height: number, sca
     };
   });
 
-  return { spacing, systemHeight, systemsPerPage, pageCount: Math.max(1, Math.ceil(systems.length / systemsPerPage)), systems };
+  return { spacing, systemHeight, contentHeight: systems.length * systemHeight, systems };
 }
 
 export function xAtSystem(system: PageSystem, seconds: number): number {
@@ -162,13 +163,32 @@ export function systemIndexAt(layout: PageLayout, seconds: number): number {
   return found;
 }
 
-export function pageOfSystem(layout: PageLayout, systemIndex: number): number {
-  return Math.floor(systemIndex / layout.systemsPerPage);
+export function readingYAt(layout: PageLayout, seconds: number): number {
+  const index = systemIndexAt(layout, seconds);
+  const system = layout.systems[index];
+  if (!system) return 0;
+  const span = system.endSeconds - system.startSeconds;
+  const progress = span > 0 ? (seconds - system.startSeconds) / span : 0;
+  return (index + Math.min(1, Math.max(0, progress))) * layout.systemHeight;
 }
 
-export function systemsOnPage(layout: PageLayout, page: number): PageSystem[] {
-  const start = page * layout.systemsPerPage;
-  return layout.systems.slice(start, start + layout.systemsPerPage);
+function keepsStaffVisibleAnchor(layout: PageLayout, viewHeight: number): number {
+  const { spacing, systemHeight } = layout;
+  const staffStart = spacing * STAFF_TOP_SPACES;
+  const staffEnd = staffStart + spacing * STAFF_LINES_SPACES;
+  const anchor = Math.max(readingAnchor(viewHeight), systemHeight - staffStart);
+  return Math.max(0, Math.min(anchor, viewHeight - staffEnd));
+}
+
+export function pageScrollAt(layout: PageLayout, seconds: number, viewHeight: number): number {
+  const readingY = (readingYAt(layout, seconds - SCROLL_SMOOTHING_SECONDS) + readingYAt(layout, seconds) + readingYAt(layout, seconds + SCROLL_SMOOTHING_SECONDS)) / 3;
+  return scrollForReading(readingY, viewHeight, layout.contentHeight, keepsStaffVisibleAnchor(layout, viewHeight));
+}
+
+export function systemsInView(layout: PageLayout, scrollTop: number, viewHeight: number): PageSystem[] {
+  const first = Math.floor(scrollTop / layout.systemHeight);
+  const last = Math.ceil((scrollTop + viewHeight) / layout.systemHeight);
+  return layout.systems.slice(Math.max(0, first), Math.max(0, last));
 }
 
 export function measureIndexAt(score: Score, seconds: number): number {

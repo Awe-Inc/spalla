@@ -10,6 +10,8 @@ import { closePdf, openPdf, type PdfDocument } from "@/pdf/pdfDocument";
 
 import { PaginaPdf } from "./PaginaPdf";
 import { PainelFerramentas } from "./PainelFerramentas";
+import { PartituraRolante } from "./PartituraRolante";
+import { shouldLeaveKeyToTarget } from "./teclas";
 
 const FIT_LABEL: Record<PageFit, string> = { pagina: "Página inteira", largura: "Largura" };
 const PANEL_ID = "leitor-ferramentas";
@@ -19,13 +21,6 @@ export function keyToPageDelta(event: Pick<KeyboardEvent, "key" | "altKey" | "ct
   if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") return 1;
   if (event.key === "ArrowLeft" || event.key === "PageUp") return -1;
   return 0;
-}
-
-function shouldLeaveKeyToTarget(event: KeyboardEvent): boolean {
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return true;
-  return event.key === " " && target.tagName === "BUTTON";
 }
 
 function useSheetDocument(sheetId: number) {
@@ -76,6 +71,7 @@ function Leitor({ sheetId }: { sheetId: number }) {
   const [page, setPage] = useState<number | null>(null);
   const [fit, setFit] = useState<PageFit>("pagina");
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isRolling, setIsRolling] = useState(false);
   const pageCount = sheet?.pageCount ?? 0;
   const currentPage = page ?? sheet?.lastPage ?? 1;
   const error = openError ?? renderError;
@@ -100,7 +96,7 @@ function Leitor({ sheetId }: { sheetId: number }) {
         setIsPanelOpen(false);
         return;
       }
-      if (shouldLeaveKeyToTarget(event)) return;
+      if (isRolling || shouldLeaveKeyToTarget(event)) return;
       const delta = keyToPageDelta(event);
       if (delta === 0) return;
       event.preventDefault();
@@ -108,7 +104,7 @@ function Leitor({ sheetId }: { sheetId: number }) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goTo, currentPage]);
+  }, [goTo, currentPage, isRolling]);
 
   if (sheet === null) return <NaoEncontrada />;
 
@@ -119,9 +115,14 @@ function Leitor({ sheetId }: { sheetId: number }) {
           ← Estante
         </Link>
         <h1 className="min-w-0 flex-1 truncate font-semibold">{sheet?.title ?? "…"}</h1>
-        <Button variant="ghost" onClick={() => setFit((current) => nextFit(current))} aria-label="Trocar o ajuste da página">
-          {FIT_LABEL[fit]}
+        <Button variant="ghost" onClick={() => setIsRolling((current) => !current)} aria-pressed={isRolling}>
+          {isRolling ? "Virar páginas" : "Rolagem automática"}
         </Button>
+        {isRolling ? null : (
+          <Button variant="ghost" onClick={() => setFit((current) => nextFit(current))} aria-label="Trocar o ajuste da página">
+            {FIT_LABEL[fit]}
+          </Button>
+        )}
         <Button variant="ghost" className="lg:hidden" onClick={() => setIsPanelOpen((open) => !open)} aria-expanded={isPanelOpen} aria-controls={PANEL_ID}>
           Ferramentas
         </Button>
@@ -134,6 +135,10 @@ function Leitor({ sheetId }: { sheetId: number }) {
               <InlineError title="O PDF não abriu direito." nextStep={error} />
             </div>
           ) : null}
+          {isRolling && document && sheet ? (
+            <PartituraRolante document={document} sheetId={sheetId} startPage={clampPage(currentPage, pageCount)} savedPlan={sheet.scrollPlan} onPage={goTo} onError={setRenderError} />
+          ) : (
+            <>
           <div className="min-h-0 flex-1 p-2">
             {document && pageCount > 0 ? (
               <PaginaPdf document={document} page={clampPage(currentPage, pageCount)} fit={fit} onTap={(xRatio) => goTo(pageFromTap(xRatio, currentPage, pageCount))} onRendered={clearRenderError} onError={setRenderError} />
@@ -152,6 +157,8 @@ function Leitor({ sheetId }: { sheetId: number }) {
               Próxima
             </Button>
           </nav>
+            </>
+          )}
         </main>
 
         <aside id={PANEL_ID} className={`${isPanelOpen ? "absolute inset-y-0 right-0 z-10 flex w-full max-w-sm" : "hidden"} flex-col gap-4 overflow-y-auto border-l border-hairline bg-surface p-4 lg:static lg:flex lg:w-80 lg:max-w-none lg:shrink-0`} aria-label="Ferramentas">

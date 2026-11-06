@@ -1,7 +1,7 @@
 import type { Measure, Score, ScoreEvent } from "@fretless/core";
 import { describe, expect, it } from "vitest";
 
-import { buildPageLayout, measureIndexAt, pageOfSystem, systemIndexAt, systemsOnPage, xAtSystem } from "./pageLayout";
+import { buildPageLayout, measureIndexAt, pageScrollAt, readingYAt, systemIndexAt, systemsInView, xAtSystem } from "./pageLayout";
 
 function note(measureIndex: number, startSeconds: number, durationSeconds = 1): ScoreEvent {
   return {
@@ -52,14 +52,14 @@ function quarterScore(measureCount: number, notesPerMeasure = 4): Score {
 
 describe("buildPageLayout", () => {
   it("puts every measure on exactly one line, in reading order", () => {
-    const layout = buildPageLayout(quarterScore(24), 800, 400);
+    const layout = buildPageLayout(quarterScore(24), 800);
     expect(layout.systems.length).toBeGreaterThan(1);
     const measures = layout.systems.flatMap((system) => Array.from({ length: system.lastMeasure - system.firstMeasure + 1 }, (_, i) => system.firstMeasure + i));
     expect(measures).toEqual(Array.from({ length: 24 }, (_, i) => i));
   });
 
   it("justifies full lines to the right margin and leaves a short last line alone", () => {
-    const layout = buildPageLayout(quarterScore(9), 800, 400);
+    const layout = buildPageLayout(quarterScore(9), 800);
     const full = layout.systems[0]!;
     const last = layout.systems[layout.systems.length - 1]!;
     expect(full.barXs[full.barXs.length - 1]).toBeCloseTo(full.right, 5);
@@ -68,7 +68,7 @@ describe("buildPageLayout", () => {
   });
 
   it("keeps notes between their barlines, left to right", () => {
-    const layout = buildPageLayout(quarterScore(6), 900, 400);
+    const layout = buildPageLayout(quarterScore(6), 900);
     for (const system of layout.systems) {
       const xs = system.anchors.map((anchor) => anchor.x);
       expect([...xs].sort((a, b) => a - b)).toEqual(xs);
@@ -77,7 +77,7 @@ describe("buildPageLayout", () => {
   });
 
   it("gives the clef, key and time signature room only where they are printed", () => {
-    const layout = buildPageLayout(quarterScore(24), 800, 400);
+    const layout = buildPageLayout(quarterScore(24), 800);
     const [first, second] = layout.systems;
     expect(first!.showsTimeSignature).toBe(true);
     expect(second!.showsTimeSignature).toBe(false);
@@ -85,8 +85,8 @@ describe("buildPageLayout", () => {
   });
 
   it("gives a long note more room than a short one", () => {
-    const layout = buildPageLayout(quarterScore(1, 8), 2000, 400);
-    const sparse = buildPageLayout(quarterScore(1, 2), 2000, 400);
+    const layout = buildPageLayout(quarterScore(1, 8), 2000);
+    const sparse = buildPageLayout(quarterScore(1, 2), 2000);
     const width = (s: typeof layout) => s.systems[0]!.barXs[1]! - s.systems[0]!.barXs[0]!;
     expect(width(layout)).toBeGreaterThan(width(sparse));
     const gapShort = layout.systems[0]!.anchors[1]!.x - layout.systems[0]!.anchors[0]!.x;
@@ -94,32 +94,103 @@ describe("buildPageLayout", () => {
     expect(gapLong).toBeGreaterThan(gapShort);
   });
 
-  it("splits lines into pages by height and scales with the staff size", () => {
-    const layout = buildPageLayout(quarterScore(40), 800, 350);
-    expect(layout.systemsPerPage).toBe(3);
-    expect(layout.pageCount).toBe(Math.ceil(layout.systems.length / 3));
-    expect(systemsOnPage(layout, 1)[0]!.index).toBe(3);
-    expect(systemsOnPage(layout, 1)[0]!.staffTop).toBe(layout.systems[0]!.staffTop);
-    expect(buildPageLayout(quarterScore(40), 800, 350, 1.5).systemsPerPage).toBe(2);
+  it("stacks the lines in one continuous column that scales with the staff size", () => {
+    const layout = buildPageLayout(quarterScore(40), 800);
+    const [first, second] = layout.systems;
+    expect(second!.staffTop - first!.staffTop).toBe(layout.systemHeight);
+    expect(layout.contentHeight).toBe(layout.systems.length * layout.systemHeight);
+    expect(buildPageLayout(quarterScore(40), 800, 1.5).systemHeight).toBe(layout.systemHeight * 1.5);
   });
 
   it("returns an empty page for a score without measures", () => {
     const empty = { ...quarterScore(0), measures: [], events: [] };
-    expect(buildPageLayout(empty, 800, 400).systems).toEqual([]);
+    expect(buildPageLayout(empty, 800).systems).toEqual([]);
+  });
+});
+
+describe("automatic scroll", () => {
+  const VIEW = 330;
+
+  function scoreAt(bpmFactor: number) {
+    const base = quarterScore(60);
+    return {
+      ...base,
+      durationSeconds: base.durationSeconds / bpmFactor,
+      events: base.events.map((event) => ({ ...event, startSeconds: event.startSeconds / bpmFactor, durationSeconds: event.durationSeconds / bpmFactor })),
+      measures: base.measures.map((measure) => ({ ...measure, startSeconds: measure.startSeconds / bpmFactor, endSeconds: measure.endSeconds / bpmFactor })),
+    };
+  }
+
+  const score = scoreAt(1);
+  const layout = buildPageLayout(score, 800);
+  const samples = Array.from({ length: 400 }, (_, i) => (i / 399) * score.durationSeconds);
+  const furthest = layout.contentHeight - VIEW;
+
+  it("stays still at the start and begins before the reader reaches the bottom of the screen", () => {
+    expect(pageScrollAt(layout, 0, VIEW)).toBe(0);
+    const firstMoving = samples.find((seconds) => pageScrollAt(layout, seconds, VIEW) > 0)!;
+    expect(readingYAt(layout, firstMoving)).toBeLessThan(VIEW * 0.5);
+  });
+
+  it("never goes backwards and ends exactly at the last line", () => {
+    const offsets = samples.map((seconds) => pageScrollAt(layout, seconds, VIEW));
+    offsets.slice(1).forEach((offset, index) => expect(offset).toBeGreaterThanOrEqual(offsets[index]!));
+    expect(offsets[offsets.length - 1]).toBe(furthest);
+  });
+
+  it("moves without jumps: no frame moves more than a small part of a line", () => {
+    const secondsPerLine = (layout.systems[0]!.endSeconds - layout.systems[0]!.startSeconds);
+    const frame = secondsPerLine / 60;
+    for (let seconds = 0; seconds < score.durationSeconds; seconds += frame) {
+      const step = pageScrollAt(layout, seconds + frame, VIEW) - pageScrollAt(layout, seconds, VIEW);
+      expect(step).toBeLessThan(layout.systemHeight / 20);
+    }
+  });
+
+  it("keeps the staff being read on screen with the next line visible", () => {
+    for (const seconds of samples) {
+      const system = layout.systems[systemIndexAt(layout, seconds)]!;
+      const top = system.staffTop - pageScrollAt(layout, seconds, VIEW);
+      expect(top).toBeGreaterThanOrEqual(0);
+      expect(top + layout.spacing * 4).toBeLessThanOrEqual(VIEW);
+    }
+  });
+
+  it("keeps the staff on screen on a screen barely taller than a line", () => {
+    const short = layout.systemHeight * 1.4;
+    for (const seconds of samples) {
+      const system = layout.systems[systemIndexAt(layout, seconds)]!;
+      const top = system.staffTop - pageScrollAt(layout, seconds, short);
+      expect(top).toBeGreaterThan(-layout.spacing);
+      expect(top + layout.spacing * 4).toBeLessThan(short + layout.spacing);
+    }
+  });
+
+  it("follows the tempo: twice as fast, the same scroll in half the time", () => {
+    const fast = scoreAt(2);
+    const fastLayout = buildPageLayout(fast, 800);
+    for (const seconds of [10, 40, 90, 130]) {
+      expect(pageScrollAt(fastLayout, seconds / 2, VIEW)).toBeCloseTo(pageScrollAt(layout, seconds, VIEW), -1);
+    }
+  });
+
+  it("draws only the lines inside the window", () => {
+    const visible = systemsInView(layout, layout.systemHeight * 2.5, VIEW);
+    expect(visible[0]!.index).toBe(2);
+    expect(visible.length).toBeLessThanOrEqual(Math.ceil(VIEW / layout.systemHeight) + 1);
   });
 });
 
 describe("reading position", () => {
   const score = quarterScore(24);
-  const layout = buildPageLayout(score, 800, 250);
+  const layout = buildPageLayout(score, 800);
 
-  it("finds the line and the page that hold the current time", () => {
+  it("finds the line that holds the current time", () => {
     const second = layout.systems[1]!;
     expect(systemIndexAt(layout, -1)).toBe(0);
     expect(systemIndexAt(layout, second.startSeconds + 0.5)).toBe(1);
     const lastIndex = systemIndexAt(layout, 1000);
     expect(lastIndex).toBe(layout.systems.length - 1);
-    expect(pageOfSystem(layout, lastIndex)).toBe(layout.pageCount - 1);
   });
 
   it("moves the reading x along the notes and stops at the line's ends", () => {

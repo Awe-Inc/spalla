@@ -89,14 +89,19 @@ function draw(songTime: number, readingGuide: "nota" | "compasso" | "nenhum" = "
 }
 
 describe("drawPage", () => {
-  it("prints the clef and turns to the page that holds the current time", () => {
+  it("prints the clef and says which line is being read", () => {
     const first = draw(0);
     expect(first.texts).toContain("𝄞");
-    const firstLabel = first.texts.find((text) => text.startsWith("Página"));
-    expect(firstLabel).toMatch(/^Página 1 de \d+$/);
+    const firstLabel = first.texts.find((text) => text.startsWith("Linha"));
+    expect(firstLabel).toMatch(/^Linha 1 de \d+$/);
     const last = draw(1000);
     const total = firstLabel!.split(" de ")[1];
-    expect(last.texts).toContain(`Página ${total} de ${total}`);
+    expect(last.texts).toContain(`Linha ${total} de ${total}`);
+  });
+
+  it("keeps the same drawing cost along the piece, only the lines in view", () => {
+    expect(draw(0).texts.filter((text) => text === "𝄞").length).toBeLessThanOrEqual(5);
+    expect(draw(80).texts.filter((text) => text === "𝄞").length).toBeLessThanOrEqual(5);
   });
 
   it("marks where the reader is only when a guide is chosen", () => {
