@@ -3,15 +3,14 @@ import { createWorker, OEM, PSM, type Worker } from "tesseract.js";
 import { ocrAssetUrls } from "../ocrAssets";
 
 import type { PageText } from "./marks";
-import type { InkImage } from "./raster";
-import { ocrImageOf, pageTextsFromOcr, type OcrImage, type OcrPage } from "./scanWords";
+import { pageTextsFromOcr, type OcrImage, type OcrPage } from "./scanWords";
 
 const OCR_LANGUAGE = "eng";
 const CHANNELS = 4;
 const OPAQUE = 255;
 
 export interface ScanReader {
-  read(ink: InkImage): Promise<readonly PageText[]>;
+  read(image: OcrImage): Promise<readonly PageText[]>;
   close(): Promise<void>;
 }
 
@@ -43,10 +42,10 @@ function canvasOf({ gray, width, height }: OcrImage): HTMLCanvasElement {
 export function openScanReader(): ScanReader {
   let opened: Promise<Worker> | null = null;
   return {
-    async read(ink) {
+    async read(image) {
       opened ??= openReader();
       const worker = await opened;
-      const canvas = canvasOf(ocrImageOf(ink));
+      const canvas = canvasOf(image);
       try {
         const { data } = await worker.recognize(canvas, {}, { blocks: true });
         return pageTextsFromOcr(data as OcrPage);

@@ -189,6 +189,8 @@ apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/
                                  aplica a correção manual; `performancePath` calcula a ordem tocada. Notas: `staffHeader`,
                                  `noteHeads`, `readMeasure`, `readPage`; `meter`, `timing`, `tempoText` tiram compasso e
                                  andamento; `noteEdits` corrige; `musicXmlWriter` escreve). Tela: `areas/estante/ConversaoPartitura`.
+                                 `pageWork` leva o cálculo de cada página para `pageWorker` (`pageSession` guarda a página aberta) e
+                                 cai para a thread principal se o worker falhar; pdf.js e tesseract seguem fora dele.
 apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage em `/voce` (hero com nível + Stats; abas `?ver=geral|conquistas|

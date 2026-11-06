@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { blankSketch } from "./omrFixtures";
 import { openScanReader } from "./scanText";
+import { ocrImageOf } from "./scanWords";
 
 interface FakeWorker {
   isTerminated: boolean;
@@ -34,7 +35,7 @@ vi.mock("tesseract.js", () => ({
   },
 }));
 
-const page = blankSketch(40, 40);
+const page = ocrImageOf(blankSketch(40, 40));
 
 describe("leitor de OCR", () => {
   beforeEach(() => {

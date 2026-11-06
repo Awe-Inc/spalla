@@ -86,6 +86,11 @@ test("PDF sem texto passa pelo OCR, vira peça tocável e o compasso errado é c
     [SETTINGS_STORAGE_KEY, ONBOARDED_SETTINGS] as const,
   );
 
+  const pageWorkers: string[] = [];
+  page.on("worker", (worker) => {
+    if (worker.url().includes("pageWorker")) pageWorkers.push(worker.url());
+  });
+
   await page.goto("/repertorio/estante");
   await page.locator('input[type="file"]').setInputFiles({ name: "Estudo lido.pdf", mimeType: "application/pdf", buffer: imageOnlyPdf() });
   await page.getByRole("link", { name: "Abrir Estudo lido" }).click();
@@ -93,6 +98,7 @@ test("PDF sem texto passa pelo OCR, vira peça tocável e o compasso errado é c
 
   await expect(page.getByTestId("percurso")).toContainText("8 compassos lidos", { timeout: 120_000 });
   await expect(page.getByText("foram lidos por OCR")).toBeVisible();
+  expect(pageWorkers.length).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "Converter em partitura tocável" }).click();
   const summary = page.getByTestId("conversao-resumo");
@@ -107,4 +113,20 @@ test("PDF sem texto passa pelo OCR, vira peça tocável e o compasso errado é c
   await page.getByRole("link", { name: "Abrir a peça" }).click();
   await expect(page).toHaveURL(/\/repertorio\/peca\/musica\/\d+/);
   await expect(page.getByRole("heading", { name: "Estudo lido" })).toBeVisible();
+});
+
+test("worker de leitura que não carrega não impede a leitura: segue na thread principal", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key, value),
+    [SETTINGS_STORAGE_KEY, ONBOARDED_SETTINGS] as const,
+  );
+  await page.route(/pageWorker/, (route) => route.abort());
+
+  await page.goto("/repertorio/estante");
+  await page.locator('input[type="file"]').setInputFiles({ name: "Estudo lido.pdf", mimeType: "application/pdf", buffer: imageOnlyPdf() });
+  await page.getByRole("link", { name: "Abrir Estudo lido" }).click();
+  await page.getByRole("button", { name: "Rolagem automática" }).click();
+
+  await expect(page.getByTestId("percurso")).toContainText("8 compassos lidos", { timeout: 120_000 });
 });
