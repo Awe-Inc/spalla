@@ -1,3 +1,4 @@
+import type { ScoreStructure } from "@/pdf/omr/structure";
 import { db, type StoredScrollPlan, type StoredSheet } from "./db";
 import { describeStorageError } from "./storageErrors";
 
@@ -59,6 +60,8 @@ export async function importSheetFile(file: File, countPages: (bytes: Uint8Array
   const sheet = await db.transaction("rw", db.sheets, db.sheetFiles, async () => {
     const now = Date.now();
     const existing = await db.sheets.where("fileName").equals(file.name).first();
+    const previousFile = existing?.id !== undefined ? await db.sheetFiles.get(existing.id) : undefined;
+    const keepsStructure = existing?.structure && previousFile && sameBytes(previousFile.bytes, bytes);
     const next: StoredSheet = {
       fileName: file.name,
       title: existing?.title ?? sheetTitle(file.name),
@@ -67,12 +70,17 @@ export async function importSheetFile(file: File, countPages: (bytes: Uint8Array
       importedAt: now,
       openedAt: existing?.openedAt ?? now,
       ...(existing?.scrollPlan ? { scrollPlan: existing.scrollPlan } : {}),
+      ...(keepsStructure ? { structure: existing.structure } : {}),
     };
     const id = existing?.id !== undefined ? ((await db.sheets.put({ ...next, id: existing.id })) as number) : ((await db.sheets.add(next)) as number);
     await db.sheetFiles.put({ id, bytes });
     return { ...next, id };
   });
   return { ok: true, sheet };
+}
+
+function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 export async function removeSheet(id: number): Promise<void> {
@@ -88,6 +96,10 @@ export async function rememberSheetPage(id: number, lastPage: number): Promise<v
 
 export async function rememberSheetScrollPlan(id: number, scrollPlan: StoredScrollPlan): Promise<void> {
   await db.sheets.update(id, { scrollPlan });
+}
+
+export async function rememberSheetStructure(id: number, structure: ScoreStructure): Promise<void> {
+  await db.sheets.update(id, { structure });
 }
 
 export async function touchSheet(id: number): Promise<void> {

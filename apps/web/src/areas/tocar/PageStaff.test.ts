@@ -17,7 +17,7 @@ function note(measureIndex: number, startSeconds: number): ScoreEvent {
     isTiedFrom: false,
     string: 2,
     bowSpan: 1,
-    bowSlot: 0,
+    bowSlot: 0, marks: "", dynamic: "",
     noteName: "A4",
     latinName: "Lá4",
   };

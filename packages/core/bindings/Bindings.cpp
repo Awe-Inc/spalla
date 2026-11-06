@@ -37,6 +37,34 @@ std::string latinName(int midi, int fifths) {
     return buffer;
 }
 
+std::string noteMarkNames(std::uint16_t marks) {
+    static constexpr std::pair<std::uint16_t, const char*> kNames[] = {
+        {score::kMarkStaccato, "staccato"},
+        {score::kMarkStaccatissimo, "staccatissimo"},
+        {score::kMarkTenuto, "tenuto"},
+        {score::kMarkAccent, "accent"},
+        {score::kMarkMarcato, "marcato"},
+        {score::kMarkFermata, "fermata"},
+        {score::kMarkTrill, "trill"},
+        {score::kMarkMordent, "mordent"},
+        {score::kMarkTurn, "turn"},
+        {score::kMarkUpBow, "up-bow"},
+        {score::kMarkDownBow, "down-bow"},
+        {score::kMarkPizzicato, "pizzicato"},
+        {score::kMarkHarmonic, "harmonic"},
+    };
+    std::string names;
+    for (const auto& [mark, name] : kNames) {
+        if ((marks & mark) != 0) {
+            if (!names.empty()) {
+                names += ' ';
+            }
+            names += name;
+        }
+    }
+    return names;
+}
+
 val eventToVal(const score::ScoreEvent& e, int fifths) {
     val o = val::object();
     o.set("startSeconds", e.startSeconds);
@@ -52,6 +80,8 @@ val eventToVal(const score::ScoreEvent& e, int fifths) {
     o.set("string", static_cast<int>(e.suggestedString));
     o.set("bowSpan", static_cast<int>(e.bowSpan));
     o.set("bowSlot", static_cast<int>(e.bowSlot));
+    o.set("marks", noteMarkNames(e.marks));
+    o.set("dynamic", std::string(e.dynamic));
     o.set("noteName", std::string(e.noteName));
     o.set("latinName", e.isRest ? std::string() : latinName(e.midi, fifths));
     return o;
@@ -572,16 +602,20 @@ private:
 
         std::vector<score::TempoMark> tempos;
         double tempoAtCut = full.beatsPerMinute;
+        bool holdAtCut = false;
+        double writtenAtCut = full.beatsPerMinute;
         for (const auto& t : full.tempoMap) {
             if (t.quarterPosition <= fromQuarters + kEpsilon) {
                 tempoAtCut = t.beatsPerMinute;
+                holdAtCut = t.isHold;
+                if (!t.isHold) writtenAtCut = t.beatsPerMinute;
             } else if (t.quarterPosition < toQuarters) {
-                tempos.push_back({t.quarterPosition - fromQuarters, t.beatsPerMinute});
+                tempos.push_back({t.quarterPosition - fromQuarters, t.beatsPerMinute, t.isHold});
             }
         }
-        tempos.insert(tempos.begin(), score::TempoMark{0.0, tempoAtCut});
+        tempos.insert(tempos.begin(), score::TempoMark{0.0, tempoAtCut, holdAtCut});
         cut.tempoMap       = std::move(tempos);
-        cut.beatsPerMinute = tempoAtCut;
+        cut.beatsPerMinute = writtenAtCut;
         return cut;
     }
 

@@ -229,16 +229,20 @@ void Score::trimSilentIntro() {
 
     std::vector<TempoMark> tempos;
     double tempoAtCut = beatsPerMinute;
+    bool holdAtCut = false;
+    double writtenAtCut = beatsPerMinute;
     for (const auto& t : tempoMap) {
         if (t.quarterPosition <= cutQuarters + kEpsilon) {
             tempoAtCut = t.beatsPerMinute;
+            holdAtCut = t.isHold;
+            if (!t.isHold) writtenAtCut = t.beatsPerMinute;
         } else {
-            tempos.push_back({t.quarterPosition - cutQuarters, t.beatsPerMinute});
+            tempos.push_back({t.quarterPosition - cutQuarters, t.beatsPerMinute, t.isHold});
         }
     }
-    tempos.insert(tempos.begin(), TempoMark{0.0, tempoAtCut});
+    tempos.insert(tempos.begin(), TempoMark{0.0, tempoAtCut, holdAtCut});
     tempoMap       = std::move(tempos);
-    beatsPerMinute = tempoAtCut;
+    beatsPerMinute = writtenAtCut;
 
     measures.erase(measures.begin(), measures.begin() + dropped);
     for (auto& m : measures) {

@@ -136,7 +136,7 @@ function Leitor({ sheetId }: { sheetId: number }) {
             </div>
           ) : null}
           {isRolling && document && sheet ? (
-            <PartituraRolante document={document} sheetId={sheetId} startPage={clampPage(currentPage, pageCount)} savedPlan={sheet.scrollPlan} onPage={goTo} onError={setRenderError} />
+            <PartituraRolante document={document} sheetId={sheetId} startPage={clampPage(currentPage, pageCount)} savedPlan={sheet.scrollPlan} savedStructure={sheet.structure} onPage={goTo} onError={setRenderError} />
           ) : (
             <>
           <div className="min-h-0 flex-1 p-2">

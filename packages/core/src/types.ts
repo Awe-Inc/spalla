@@ -14,6 +14,8 @@ export interface ScoreEvent {
   string: number;
   bowSpan: number;
   bowSlot: number;
+  marks: string;
+  dynamic: string;
   noteName: string;
   latinName: string;
 }

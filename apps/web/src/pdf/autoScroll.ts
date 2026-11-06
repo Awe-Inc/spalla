@@ -43,13 +43,25 @@ export function nudgeProgress(progress: number, measures: number, plan: ScrollPl
   return clampProgress(progress + measures / plan.measures);
 }
 
-export function scrollTopAt(progress: number, viewHeight: number, contentHeight: number): number {
-  return scrollForReading(progress * contentHeight, viewHeight, contentHeight);
+export interface ReadingMap {
+  yAt: (progress: number) => number;
+  progressAt: (readingY: number, currentProgress: number) => number;
 }
 
-export function progressAtScrollTop(scrollTop: number, viewHeight: number, contentHeight: number): number {
+export function linearReading(contentHeight: number): ReadingMap {
+  return {
+    yAt: (progress) => progress * contentHeight,
+    progressAt: (readingY) => (contentHeight > 0 ? clampProgress(readingY / contentHeight) : 0),
+  };
+}
+
+export function scrollTopAt(progress: number, viewHeight: number, contentHeight: number, reading: ReadingMap = linearReading(contentHeight)): number {
+  return scrollForReading(reading.yAt(progress), viewHeight, contentHeight);
+}
+
+export function progressAtScrollTop(scrollTop: number, viewHeight: number, contentHeight: number, reading: ReadingMap = linearReading(contentHeight), currentProgress = 0): number {
   if (scrollTop <= 0 || contentHeight <= 0) return 0;
-  return clampProgress((scrollTop + readingAnchor(viewHeight)) / contentHeight);
+  return reading.progressAt(scrollTop + readingAnchor(viewHeight), currentProgress);
 }
 
 export function bumpBpm(plan: ScrollPlan, delta: number): ScrollPlan {

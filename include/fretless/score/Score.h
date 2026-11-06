@@ -72,6 +72,24 @@ void writeLatinName(char* out, std::size_t outSize, int midi, int fifths) noexce
 /// The pitch class alone, with no octave: "Lá", "Sib". For naming a key.
 void writeLatinPitchClass(char* out, std::size_t outSize, int midi, int fifths) noexcept;
 
+/// What the page prints on a note beyond its pitch and length. The game judges
+/// none of it, but a player reads the staff to know how to play the note.
+enum NoteMark : std::uint16_t {
+    kMarkStaccato      = 1u << 0,
+    kMarkStaccatissimo = 1u << 1,
+    kMarkTenuto        = 1u << 2,
+    kMarkAccent        = 1u << 3,
+    kMarkMarcato       = 1u << 4,
+    kMarkFermata       = 1u << 5,
+    kMarkTrill         = 1u << 6,
+    kMarkMordent       = 1u << 7,
+    kMarkTurn          = 1u << 8,
+    kMarkUpBow         = 1u << 9,
+    kMarkDownBow       = 1u << 10,
+    kMarkPizzicato     = 1u << 11,
+    kMarkHarmonic      = 1u << 12,
+};
+
 /// One note or rest on the flattened timeline.
 struct ScoreEvent {
     double       startSeconds    = 0.0;
@@ -93,6 +111,8 @@ struct ScoreEvent {
     /// is half of violin technique and the score had no way to say it.
     std::uint8_t bowSpan         = 1;
     std::uint8_t bowSlot         = 0;     ///< index of this note within its bow
+    std::uint16_t marks          = 0;     ///< `NoteMark` bits
+    char         dynamic[6]      = {};    ///< "mf", "sfz", … as printed under this note
     char         noteName[5]     = {};    ///< "A4", "C#5", …
 
     [[nodiscard]] double endSeconds() const noexcept {
@@ -104,6 +124,8 @@ struct ScoreEvent {
 struct TempoMark {
     double quarterPosition = 0.0;
     double beatsPerMinute  = 120.0;
+    /// A fermata's slowdown: it shapes the timing but is not the piece's tempo.
+    bool   isHold          = false;
 };
 
 /// One bar as it is played. Barlines and the metronome used to be derived

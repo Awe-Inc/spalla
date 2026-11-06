@@ -53,6 +53,97 @@ void writeNoteName(char* out, const char* step, int alter, int octave) noexcept 
     }
 }
 
+/// Lowercased with spaces removed, so "D. C. al Fine" and "d.c. al fine" read alike.
+[[nodiscard]] std::string normalizedWords(const char* text) {
+    std::string out;
+    for (const char* c = text; *c != '\0'; ++c) {
+        const auto byte = static_cast<unsigned char>(*c);
+        if (std::isspace(byte) == 0) {
+            out += static_cast<char>(std::tolower(byte));
+        }
+    }
+    return out;
+}
+
+[[nodiscard]] bool startsWith(const std::string& text, const char* prefix) {
+    return text.rfind(prefix, 0) == 0;
+}
+
+/// Beats per minute a tempo word implies, or 0. Used only when the file states
+/// no number anywhere, so a guess never overrides what the editor wrote.
+[[nodiscard]] std::uint16_t noteMarkNamed(const char* name) {
+    static constexpr std::pair<const char*, std::uint16_t> kMarks[] = {
+        {"fermata", kMarkFermata},
+        {"staccato", kMarkStaccato},
+        {"staccatissimo", kMarkStaccatissimo},
+        {"spiccato", kMarkStaccatissimo},
+        {"tenuto", kMarkTenuto},
+        {"accent", kMarkAccent},
+        {"strong-accent", kMarkMarcato},
+        {"trill-mark", kMarkTrill},
+        {"mordent", kMarkMordent},
+        {"inverted-mordent", kMarkMordent},
+        {"turn", kMarkTurn},
+        {"inverted-turn", kMarkTurn},
+        {"delayed-turn", kMarkTurn},
+        {"up-bow", kMarkUpBow},
+        {"down-bow", kMarkDownBow},
+        {"snap-pizzicato", kMarkPizzicato},
+        {"harmonic", kMarkHarmonic},
+    };
+    for (const auto& [markName, mark] : kMarks) {
+        if (std::strcmp(markName, name) == 0) {
+            return mark;
+        }
+    }
+    return 0;
+}
+
+[[nodiscard]] std::uint16_t readNoteMarks(const pugi::xml_node& note) {
+    std::uint16_t marks = 0;
+    for (const auto notations : note.children("notations")) {
+        for (const auto item : notations.children()) {
+            marks |= noteMarkNamed(item.name());
+            for (const auto inner : item.children()) {
+                marks |= noteMarkNamed(inner.name());
+            }
+        }
+    }
+    return marks;
+}
+
+void readDynamic(const pugi::xml_node& parent, char (&out)[6]) {
+    for (const auto mark : parent.child("dynamics").children()) {
+        const std::string_view name = mark.name();
+        // <other-dynamics> holds free text, which is not a printed sign we know.
+        if (!name.empty() && name.size() < sizeof(out)) {
+            std::memcpy(out, name.data(), name.size());
+            out[name.size()] = '\0';
+            return;
+        }
+    }
+}
+
+[[nodiscard]] double tempoFromWords(const pugi::xml_node& direction) {
+    static constexpr std::pair<const char*, double> kWords[] = {
+        {"larghetto", 60.0}, {"largo", 50.0},   {"grave", 44.0},     {"lento", 56.0},
+        {"adagietto", 72.0}, {"adagio", 66.0},  {"andantino", 84.0}, {"andante", 76.0},
+        {"moderato", 100.0}, {"allegretto", 112.0}, {"allegro", 132.0},
+        {"vivace", 160.0},   {"presto", 180.0},
+    };
+    for (const auto type : direction.children("direction-type")) {
+        for (const auto words : type.children("words")) {
+            const std::string text = normalizedWords(words.child_value());
+            for (const auto& [word, bpm] : kWords) {
+                if (startsWith(text, word)) {
+                    return bpm;
+                }
+            }
+        }
+    }
+    return 0.0;
+}
+
 /// Reads a <sound tempo> or <metronome> block, returning 0 if neither is present.
 [[nodiscard]] double readTempo(const pugi::xml_node& direction) noexcept {
     if (const auto sound = direction.child("sound")) {
@@ -92,14 +183,15 @@ void writeNoteName(char* out, const char* step, int alter, int octave) noexcept 
 // every timing rule it has (divisions, backup, pickups) applies unchanged to a
 // measure heard for the second time.
 
-/// What a measure's barlines and <sound> attributes say about navigation.
-/// Only the playback attributes are read: the printed "D.C." words and the
-/// segno glyph are for the eye, and editions disagree on how to spell them,
-/// while <sound dacapo/dalsegno/fine/tocoda> is what every notation program
-/// writes for exactly this purpose.
+/// What a measure's barlines, <sound> attributes and printed marks say about
+/// navigation. <sound> is what notation programs write for playback, so it wins
+/// wherever it exists; the printed words and glyphs fill in only the kinds of
+/// mark the file gives no <sound> for, because plenty of exports and hand-made
+/// files carry just the "D.S. al Coda" a reader sees.
 struct MeasureFlow {
     bool             forwardRepeat = false;
     int              backwardTimes = 0;      ///< 0 = no backward repeat
+    bool             repeatsAfterJump = false;  ///< <repeat after-jump="yes">
     std::vector<int> endings;                ///< volta numbers this measure belongs to
     bool             endingCloses  = false;  ///< the volta ends with this measure
     bool             finalEnding   = false;  ///< belongs to the last volta of its block
@@ -136,6 +228,79 @@ constexpr int kMaxEndingNumber = 999;
     return numbers;
 }
 
+struct PrintedMarks {
+    bool segno    = false;
+    bool coda     = false;
+    bool codaWord = false;
+    bool toCoda   = false;
+    bool dalSegno = false;
+    bool daCapo   = false;
+    bool fine     = false;
+};
+
+[[nodiscard]] PrintedMarks readPrintedMarks(const pugi::xml_node& measure) {
+    PrintedMarks marks;
+    for (const auto direction : measure.children("direction")) {
+        for (const auto type : direction.children("direction-type")) {
+            marks.segno |= static_cast<bool>(type.child("segno"));
+            marks.coda  |= static_cast<bool>(type.child("coda"));
+            for (const auto words : type.children("words")) {
+                const std::string text = normalizedWords(words.child_value());
+                // The dots are required for the short forms: bare "dc" and "ds"
+                // begin too many ordinary expression marks.
+                marks.daCapo   |= startsWith(text, "d.c") || startsWith(text, "dc.") ||
+                                  text == "dc" || startsWith(text, "dacapo");
+                marks.dalSegno |= startsWith(text, "d.s") || startsWith(text, "ds.") ||
+                                  text == "ds" || startsWith(text, "dalsegno");
+                marks.toCoda   |= startsWith(text, "tocoda") || startsWith(text, "alcoda");
+                marks.codaWord |= text == "coda" || text == "coda.";
+                marks.fine     |= text == "fine" || text == "fine.";
+            }
+        }
+    }
+    return marks;
+}
+
+/// Applies printed marks to the kinds of navigation no <sound> described. Two
+/// coda glyphs and no "To Coda" words is how a printed score writes the jump:
+/// the first glyph leaves, the last one is where it lands.
+void fillFromPrintedMarks(std::vector<MeasureFlow>& flow,
+                          const std::vector<pugi::xml_node>& measures) {
+    const auto anyHas = [&flow](auto field) {
+        return std::any_of(flow.begin(), flow.end(),
+                           [field](const MeasureFlow& m) { return !(m.*field).empty(); });
+    };
+    const bool soundSegno    = anyHas(&MeasureFlow::segno);
+    const bool soundCoda     = anyHas(&MeasureFlow::coda);
+    const bool soundToCoda   = anyHas(&MeasureFlow::toCoda);
+    const bool soundDalSegno = anyHas(&MeasureFlow::dalSegno);
+    const bool soundDaCapo   = std::any_of(flow.begin(), flow.end(),
+                                           [](const MeasureFlow& m) { return m.daCapo; });
+    const bool soundFine     = std::any_of(flow.begin(), flow.end(),
+                                           [](const MeasureFlow& m) { return m.fine; });
+
+    std::vector<std::size_t> codaGlyphs;
+    bool hasToCodaWords = false;
+    for (std::size_t i = 0; i < flow.size(); ++i) {
+        const PrintedMarks marks = readPrintedMarks(measures[i]);
+        if (marks.segno && !soundSegno)       { flow[i].segno = "yes"; }
+        if (marks.dalSegno && !soundDalSegno) { flow[i].dalSegno = "yes"; }
+        if (marks.daCapo && !soundDaCapo)     { flow[i].daCapo = true; }
+        if (marks.fine && !soundFine)         { flow[i].fine = true; }
+        if (marks.toCoda && !soundToCoda)     { flow[i].toCoda = "yes"; hasToCodaWords = true; }
+        if ((marks.coda || marks.codaWord) && !soundCoda) { codaGlyphs.push_back(i); }
+    }
+    if (codaGlyphs.empty()) {
+        return;
+    }
+    if (!hasToCodaWords && !soundToCoda && codaGlyphs.size() >= 2) {
+        flow[codaGlyphs.front()].toCoda = "yes";
+        flow[codaGlyphs.back()].coda    = "yes";
+        return;
+    }
+    flow[codaGlyphs.back()].coda = "yes";
+}
+
 [[nodiscard]] std::vector<MeasureFlow> readFlow(const std::vector<pugi::xml_node>& measures) {
     std::vector<MeasureFlow> flow(measures.size());
     std::vector<int>         openEnding;
@@ -148,6 +313,7 @@ constexpr int kMaxEndingNumber = 999;
                     m.forwardRepeat = true;
                 } else {
                     m.backwardTimes = std::max(repeat.attribute("times").as_int(2), 2);
+                    m.repeatsAfterJump |= repeat.attribute("after-jump").as_bool(false);
                 }
             }
             if (const auto ending = barline.child("ending")) {
@@ -177,6 +343,8 @@ constexpr int kMaxEndingNumber = 999;
             m.fine   |= static_cast<bool>(sound.attribute("fine"));
         }
     }
+
+    fillFromPrintedMarks(flow, measures);
 
     // After a D.C. or D.S. the convention is to take the last ending of each
     // volta block, so each block needs to know which of its measures that is.
@@ -265,7 +433,7 @@ template <typename Field>
                 continue;
             }
         }
-        if (m.backwardTimes > 0 && !jumped) {
+        if (m.backwardTimes > 0 && (!jumped || m.repeatsAfterJump)) {
             if (pass < m.backwardTimes) {
                 ++pass;
                 i = repeatStart;
@@ -278,14 +446,18 @@ template <typename Field>
             repeatStart = i + 1;
         }
         if (!jumped && m.daCapo) {
-            jumped = true;
-            i      = 0;
+            jumped      = true;
+            i           = 0;
+            repeatStart = 0;
+            pass        = 1;
             continue;
         }
         if (!jumped && !m.dalSegno.empty()) {
             if (const auto segno = findMarker(flow, &MeasureFlow::segno, m.dalSegno)) {
-                jumped = true;
-                i      = *segno;
+                jumped      = true;
+                i           = *segno;
+                repeatStart = i;
+                pass        = 1;
                 continue;
             }
         }
@@ -297,6 +469,11 @@ template <typename Field>
 // ── Intermediate representation ────────────────────────────────────────────
 // Positions stay in quarter notes until the very end, because tempo can change
 // mid-piece and seconds are only meaningful once the tempo map is complete.
+struct HeldNote {
+    double startQuarters = 0.0;
+    double endQuarters   = 0.0;
+};
+
 struct RawEvent {
     double startQuarters    = 0.0;
     double durationQuarters = 0.0;
@@ -306,6 +483,8 @@ struct RawEvent {
     bool   isRest           = false;
     bool   tieStart         = false;
     bool   tieStop          = false;
+    std::uint16_t marks     = 0;
+    char   dynamic[6]       = {};
     char   noteName[5]      = {};
 };
 
@@ -319,6 +498,43 @@ struct RawMeasure {
     int    beats         = 4;
     int    beatUnit      = 4;
 };
+
+/// A fermata has no written length, so it is expressed as half the tempo over
+/// the note: the note lasts twice as long and everything after it stays where
+/// the meter says. Twice is the conventional reading; the player's own hold can
+/// only be known while listening.
+void holdFermatas(Score& score, std::vector<HeldNote> held) {
+    if (held.empty()) {
+        return;
+    }
+    std::stable_sort(held.begin(), held.end(), [](const HeldNote& a, const HeldNote& b) {
+        return a.startQuarters < b.startQuarters;
+    });
+    const std::vector<TempoMark> written = score.tempoMap;
+    const auto bpmAt = [&](double quarters) {
+        double bpm = score.beatsPerMinute;
+        for (const auto& mark : written) {
+            if (mark.quarterPosition > quarters + kOnsetEpsilon) {
+                break;
+            }
+            bpm = mark.beatsPerMinute;
+        }
+        return bpm;
+    };
+    double lastStart = -1.0;
+    for (const auto& note : held) {
+        if (note.startQuarters <= lastStart + kOnsetEpsilon) {
+            continue;
+        }
+        lastStart = note.startQuarters;
+        score.tempoMap.push_back({note.startQuarters, bpmAt(note.startQuarters) * 0.5, true});
+        score.tempoMap.push_back({note.endQuarters, bpmAt(note.endQuarters)});
+    }
+    std::stable_sort(score.tempoMap.begin(), score.tempoMap.end(),
+                     [](const TempoMark& a, const TempoMark& b) {
+                         return a.quarterPosition < b.quarterPosition;
+                     });
+}
 
 /// Integrates the tempo map to convert a quarter-note position into seconds.
 class TempoIntegrator {
@@ -536,12 +752,12 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     }
 
     pugi::xml_node root = doc.child("score-partwise");
+    const bool timewise = !root && static_cast<bool>(doc.child("score-timewise"));
+    if (timewise) {
+        root = doc.child("score-timewise");
+    }
     if (!root) {
-        if (doc.child("score-timewise")) {
-            if (error != nullptr) {
-                *error = "score-timewise is not supported. Re-export as score-partwise.";
-            }
-        } else if (error != nullptr) {
+        if (error != nullptr) {
             *error = "Not a MusicXML document (no <score-partwise> root).";
         }
         return std::nullopt;
@@ -575,15 +791,32 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
         ++partCursor;
     }
 
-    pugi::xml_node part;
-    for (const auto candidate : root.children("part")) {
-        if (partId.empty() || std::strcmp(candidate.attribute("id").as_string(),
-                                          partId.c_str()) == 0) {
-            part = candidate;
-            break;
+    // Timewise files nest the other way round: each <measure> holds a <part>
+    // per instrument. Those <part> nodes have the children the walk below reads,
+    // so the walk treats them as the measures.
+    std::vector<pugi::xml_node> measures;
+    if (timewise) {
+        for (const auto measure : root.children("measure")) {
+            for (const auto candidate : measure.children("part")) {
+                if (partId.empty() || std::strcmp(candidate.attribute("id").as_string(),
+                                                  partId.c_str()) == 0) {
+                    measures.push_back(candidate);
+                    break;
+                }
+            }
+        }
+    } else {
+        for (const auto candidate : root.children("part")) {
+            if (partId.empty() || std::strcmp(candidate.attribute("id").as_string(),
+                                              partId.c_str()) == 0) {
+                for (const auto measure : candidate.children("measure")) {
+                    measures.push_back(measure);
+                }
+                break;
+            }
         }
     }
-    if (!part) {
+    if (measures.empty()) {
         if (error != nullptr) {
             *error = "Part " + std::to_string(options.partIndex) + " not found.";
         }
@@ -603,12 +836,19 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
     bool   sawKey              = false;
     int    currentBeats        = 4;
     int    currentBeatUnit     = 4;
+    int    transposeSemitones  = 0;
     std::vector<RawMeasure> rawMeasures;
+    std::vector<HeldNote>   heldNotes;
+    // A dynamic or "pizz." sits between notes on the page and belongs to the
+    // note that follows it; a rest cannot show it, so it waits for a real note.
+    char          pendingDynamic[6] = {};
+    std::uint16_t pendingMarks      = 0;
 
-    std::vector<pugi::xml_node> measures;
-    for (const auto measure : part.children("measure")) {
-        measures.push_back(measure);
-    }
+    const bool statesTempo = std::any_of(measures.begin(), measures.end(), [](const pugi::xml_node& m) {
+        return static_cast<bool>(m.select_node(".//sound[@tempo]")) ||
+               static_cast<bool>(m.select_node(".//metronome"));
+    });
+
     std::vector<std::size_t> order;
     if (options.expandRepeats) {
         order = performanceOrder(readFlow(measures));
@@ -625,7 +865,8 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
         ++playedMeasure;
         // The number attribute is the printed one, which is what a player
         // looks for on the page; a measure heard twice reports it twice.
-        measureNumber = measure.attribute("number").as_int(static_cast<int>(measureIndex) + 1);
+        const pugi::xml_node numbered = timewise ? measure.parent() : measure;
+        measureNumber = numbered.attribute("number").as_int(static_cast<int>(measureIndex) + 1);
         const double measureStart = quarterCursor;
         // A bar lasts as long as its longest voice. The cursor after the
         // last element is wherever the last voice stopped, which for a
@@ -653,6 +894,10 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                         sawTimeSignature      = true;
                     }
                 }
+                if (const auto transpose = element.child("transpose")) {
+                    transposeSemitones = transpose.child("chromatic").text().as_int(0) +
+                                         transpose.child("octave-change").text().as_int(0) * 12;
+                }
                 if (const auto key = element.child("key"); key && !sawKey) {
                     score.keyFifths = key.child("fifths").text().as_int(0);
                     sawKey          = true;
@@ -661,9 +906,25 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
             }
 
             if (std::strcmp(name, "direction") == 0 || std::strcmp(name, "sound") == 0) {
-                const double bpm = (std::strcmp(name, "sound") == 0)
+                if (std::strcmp(name, "direction") == 0) {
+                    for (const auto type : element.children("direction-type")) {
+                        readDynamic(type, pendingDynamic);
+                        for (const auto words : type.children("words")) {
+                            if (startsWith(normalizedWords(words.child_value()), "pizz")) {
+                                pendingMarks |= kMarkPizzicato;
+                            }
+                        }
+                    }
+                    if (element.child("sound").attribute("pizzicato").as_bool()) {
+                        pendingMarks |= kMarkPizzicato;
+                    }
+                }
+                double bpm = (std::strcmp(name, "sound") == 0)
                     ? element.attribute("tempo").as_double(0.0)
                     : readTempo(element);
+                if (bpm <= 0.0 && !statesTempo && std::strcmp(name, "direction") == 0) {
+                    bpm = tempoFromWords(element);
+                }
                 if (bpm > 0.0) {
                     score.tempoMap.push_back({quarterCursor, bpm});
                 }
@@ -712,7 +973,9 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                 if (semi < 0) {
                     continue;
                 }
-                event.midi = (octave + 1) * 12 + semi + alter;
+                // The midi value is what the instrument must sound, which is what
+                // the pitch detector will hear; the name stays as printed.
+                event.midi = (octave + 1) * 12 + semi + alter + transposeSemitones;
                 writeNoteName(event.noteName, step, alter, octave);
             } else {
                 continue;   // <unpitched> — percussion, not our instrument
@@ -724,7 +987,24 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                 event.tieStop  |= (std::strcmp(type, "stop") == 0);
             }
 
+            event.marks = readNoteMarks(element);
+            for (const auto notations : element.children("notations")) {
+                readDynamic(notations, event.dynamic);
+            }
+            if (!event.isRest) {
+                event.marks |= pendingMarks;
+                pendingMarks = 0;
+                if (pendingDynamic[0] != '\0' && event.dynamic[0] == '\0') {
+                    std::memcpy(event.dynamic, pendingDynamic, sizeof(event.dynamic));
+                }
+                pendingDynamic[0] = '\0';
+            }
+
             raw.push_back(event);
+
+            if (!isChord && durQuarters > 0.0 && element.child("notations").child("fermata")) {
+                heldNotes.push_back({quarterCursor, quarterCursor + durQuarters});
+            }
 
             if (!isChord) {
                 lastOnsetQuarters    = quarterCursor;
@@ -767,7 +1047,13 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
         if (!merged.empty() &&
             std::abs(merged.back().startQuarters - event.startQuarters) <= kOnsetEpsilon) {
             if (options.takeTopNoteOfChord) {
-                continue;   // the sort already put the highest note first
+                // The sort already put the highest note first, but engravers
+                // attach the marks of a chord to whichever note came first.
+                merged.back().marks |= event.marks;
+                if (merged.back().dynamic[0] == '\0') {
+                    std::memcpy(merged.back().dynamic, event.dynamic, sizeof(event.dynamic));
+                }
+                continue;
             }
         }
         merged.push_back(event);
@@ -792,6 +1078,7 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
                 tied.back().durationQuarters =
                     (event.startQuarters + event.durationQuarters) - tied.back().startQuarters;
                 tied.back().tieStart = event.tieStart;
+                tied.back().marks |= event.marks & kMarkFermata;
                 continue;
             }
             tied.push_back(event);
@@ -807,6 +1094,8 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
 
     score.beatsPerMinute = score.tempoMap.empty() ? 120.0
                                                   : score.tempoMap.front().beatsPerMinute;
+
+    holdFermatas(score, heldNotes);
 
     buildMeasureMap(rawMeasures, score);
     std::vector<int> measureOfPlayed(static_cast<std::size_t>(playedMeasure) + 1, -1);
@@ -835,6 +1124,8 @@ std::optional<Score> parseMusicXmlBuffer(const char* data, std::size_t size,
             out.suggestedString = stringForMidi(event.midi);
             std::memcpy(out.noteName, event.noteName, sizeof(out.noteName));
         }
+        out.marks = event.marks;
+        std::memcpy(out.dynamic, event.dynamic, sizeof(out.dynamic));
         score.events.push_back(out);
     }
 

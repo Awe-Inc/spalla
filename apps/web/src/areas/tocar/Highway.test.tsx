@@ -28,7 +28,7 @@ function note(overrides: Partial<ScoreEvent>): ScoreEvent {
     isTiedFrom: false,
     string: 3,
     bowSpan: 1,
-    bowSlot: 0,
+    bowSlot: 0, marks: "", dynamic: "",
     noteName: "E5",
     latinName: "Mi5",
     ...overrides,

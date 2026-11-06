@@ -9,8 +9,10 @@ import {
   durationQuarters,
   keySignaturePositions,
   layoutBeam,
+  layoutNoteMarks,
   ledgerLinePositions,
   noteX,
+  positionY,
   slurSpans,
   staffPosition,
   stemUpFor,
@@ -32,7 +34,7 @@ function event(overrides: Partial<ScoreEvent>): ScoreEvent {
     isTiedFrom: false,
     string: 2,
     bowSpan: 1,
-    bowSlot: 0,
+    bowSlot: 0, marks: "", dynamic: "",
     noteName: "A4",
     latinName: "Lá4",
     ...overrides,
@@ -192,7 +194,7 @@ describe("slurSpans", () => {
       event({ bowSpan: 2, bowSlot: 0 }),
       event({ bowSpan: 2, bowSlot: 1 }),
       event({ bowSpan: 3, bowSlot: 0 }),
-      event({ bowSpan: 1, bowSlot: 0, isRest: true }),
+      event({ bowSpan: 1, bowSlot: 0, marks: "", dynamic: "", isRest: true }),
     ];
     expect(slurSpans(score(events), [0, 1, 2, 3])).toEqual([{ firstIndex: 0, lastIndex: 1 }]);
   });
@@ -211,5 +213,47 @@ describe("restShape", () => {
     expect(restShape(0.5, 4)).toEqual({ kind: "eighth", dotted: false });
     expect(restShape(0.25, 4)).toEqual({ kind: "sixteenth", dotted: false });
     expect(restShape(3, 4)).toEqual({ kind: "half", dotted: true });
+  });
+});
+
+describe("marcas da nota", () => {
+  const geometry = buildGeometry(800, 200, 0);
+  const yOf = (position: number) => positionY(geometry, position);
+  const placed = (marks: string, position: number, stemUp: boolean, tip: number) => layoutNoteMarks(marks, position, stemUp, tip, geometry).marks;
+
+  it("põe a articulação do lado da cabeça, oposto à haste", () => {
+    expect(placed("staccato", 1, true, yOf(1) - 40)[0]?.y).toBeCloseTo(yOf(-1));
+    expect(placed("staccato", 7, false, yOf(7) + 40)[0]?.y).toBeCloseTo(yOf(9));
+  });
+
+  it("dentro da pauta, a articulação cai no espaço, nunca sobre a linha", () => {
+    expect(placed("staccato", 2, true, yOf(2) - 40)[0]?.y).toBeCloseTo(yOf(-1));
+    expect(placed("staccato", 4, false, yOf(4) + 40)[0]?.y).toBeCloseTo(yOf(7));
+  });
+
+  it("empilha articulações para longe da cabeça", () => {
+    const [first, second] = placed("accent staccato", 7, false, yOf(7) + 40);
+    expect(first?.mark).toBe("staccato");
+    expect(second?.mark).toBe("accent");
+    expect(second?.y ?? 0).toBeLessThan(first?.y ?? 0);
+  });
+
+  it("fermata e arcada ficam acima da pauta e da haste, sem se sobrepor", () => {
+    const tip = geometry.staffTop - 30;
+    const [fermata, bow] = placed("fermata up-bow", 6, true, tip);
+    expect(fermata?.y ?? 0).toBeLessThan(tip);
+    expect(bow?.y ?? 0).toBeLessThan(fermata?.y ?? 0);
+  });
+
+  it("a dinâmica fica abaixo da pauta e abaixo de uma haste para baixo", () => {
+    const inside = layoutNoteMarks("", 8, false, yOf(2), geometry);
+    expect(inside.dynamicY).toBeGreaterThan(geometry.bottomY);
+    const tip = geometry.bottomY + 20;
+    expect(layoutNoteMarks("", 1, false, tip, geometry).dynamicY).toBeGreaterThan(tip);
+  });
+
+  it("nada desenhado fora do quadro numa nota muito aguda", () => {
+    const high = layoutNoteMarks("fermata", 20, true, yOf(26), geometry);
+    expect(high.marks[0]?.y ?? -1).toBeGreaterThanOrEqual(0);
   });
 });

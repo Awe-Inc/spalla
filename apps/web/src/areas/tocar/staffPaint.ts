@@ -1,4 +1,4 @@
-import type { Score } from "@fretless/core";
+import type { Score, ScoreEvent } from "@fretless/core";
 
 import {
   accidentalOf,
@@ -14,7 +14,9 @@ import {
   isHollowHead,
   keySignaturePositions,
   layoutBeam,
+  layoutNoteMarks,
   ledgerLinePositions,
+  MIDDLE_LINE_POSITION,
   noteX,
   positionY,
   slurSpans,
@@ -188,6 +190,97 @@ function beamLayoutFor(score: Score, group: ScoreBeamGroup, geometry: StaffGeome
   return layout;
 }
 
+function drawOneMark(ctx: CanvasRenderingContext2D, mark: string, x: number, y: number, geometry: StaffGeometry, palette: Palette, color: string, alpha: number): void {
+  const size = geometry.spacing;
+  const line = (xa: number, ya: number, xb: number, yb: number, width = 1.4) => strokeLine(ctx, x + xa * size, y + ya * size, x + xb * size, y + yb * size, width, color, alpha);
+  const word = (text: string, font: string) => {
+    ctx.font = font;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, x, y);
+  };
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.4;
+  switch (mark) {
+    case "staccato":
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.17, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "staccatissimo":
+      line(-0.14, -0.4, 0, 0.4);
+      line(0.14, -0.4, 0, 0.4);
+      break;
+    case "tenuto":
+      line(-0.6, 0, 0.6, 0, 1.6);
+      break;
+    case "accent":
+      line(-0.55, -0.32, 0.55, 0);
+      line(0.55, 0, -0.55, 0.32);
+      break;
+    case "marcato":
+      line(-0.4, 0.4, 0, -0.4, 1.8);
+      line(0, -0.4, 0.4, 0.4);
+      break;
+    case "fermata":
+      ctx.beginPath();
+      ctx.arc(x, y + size * 0.3, size * 0.7, Math.PI, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, y + size * 0.15, size * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "up-bow":
+      line(-0.4, -0.45, 0, 0.45);
+      line(0.4, -0.45, 0, 0.45);
+      break;
+    case "down-bow":
+      line(-0.45, -0.4, -0.45, 0.4);
+      line(0.45, -0.4, 0.45, 0.4);
+      line(-0.45, -0.4, 0.45, -0.4, 2.4);
+      break;
+    case "trill":
+      word("tr", `italic 700 ${Math.round(size * 1.3)}px ${palette.music}`);
+      break;
+    case "mordent":
+      line(-0.7, 0.2, -0.35, -0.25);
+      line(-0.35, -0.25, 0, 0.2);
+      line(0, 0.2, 0.35, -0.25);
+      line(0.35, -0.25, 0.7, 0.2);
+      break;
+    case "turn":
+      word("~", `700 ${Math.round(size * 1.8)}px ${palette.music}`);
+      break;
+    case "harmonic":
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.28, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case "pizzicato":
+      word("pizz.", `italic ${Math.round(size * 1.1)}px ${palette.music}`);
+      break;
+    default:
+      break;
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawNoteMarks(ctx: CanvasRenderingContext2D, event: ScoreEvent, x: number, position: number, stemUp: boolean, stemTipY: number, geometry: StaffGeometry, palette: Palette, color: string, alpha: number): void {
+  if (!event.marks && !event.dynamic) return;
+  const layout = layoutNoteMarks(event.marks, position, stemUp, stemTipY, geometry);
+  for (const { mark, y } of layout.marks) drawOneMark(ctx, mark, x, y, geometry, palette, color, alpha);
+  if (!event.dynamic) return;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.font = `italic 700 ${Math.round(geometry.spacing * 1.4)}px ${palette.music}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(event.dynamic, x, layout.dynamicY);
+  ctx.globalAlpha = 1;
+}
+
 export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: number, geometry: StaffGeometry, palette: Palette, tone: NoteTone): void {
   const event = score.events[index];
   if (!event) return;
@@ -195,6 +288,8 @@ export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: num
   if (x < -OFFSCREEN_MARGIN || x > geometry.width + OFFSCREEN_MARGIN) return;
   if (event.isRest) {
     drawRest(ctx, score, index, x, geometry, palette, tone);
+    const rest = toneColor(tone, palette);
+    drawNoteMarks(ctx, event, x, MIDDLE_LINE_POSITION, true, positionY(geometry, MIDDLE_LINE_POSITION), geometry, palette, rest.color, rest.alpha);
     return;
   }
   const position = staffPosition(event.noteName);
@@ -208,15 +303,20 @@ export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: num
   const quarters = durationQuarters(score, index);
   fillHead(ctx, x, y, geometry, color, alpha, isHollowHead(quarters), palette.paper);
 
+  let markStemUp = stemUpFor(position);
+  let stemTipY = y;
   const group = beamGroupOf(score.beamGroups, index);
   if (group) {
     const beam = beamLayoutFor(score, group, geometry);
     const sx = stemX(geometry, event.startSeconds, beam.stemUp);
     const tip = beamYAt(beam, sx);
+    markStemUp = beam.stemUp;
+    stemTipY = tip;
     fillRect(ctx, sx - 0.75, Math.min(tip, y), 1.5, Math.abs(y - tip), color, alpha);
   } else if (hasStem(quarters)) {
     const stemUp = stemUpFor(position);
     const length = stemLength(geometry);
+    stemTipY = stemUp ? y - length : y + length;
     const sx = stemX(geometry, event.startSeconds, stemUp);
     const stemY = stemUp ? y - length : y;
     fillRect(ctx, sx - 0.75, stemY, 1.5, length, color, alpha);
@@ -233,6 +333,8 @@ export function drawNote(ctx: CanvasRenderingContext2D, score: Score, index: num
     ctx.fillText(accidental, x - geometry.headWidth * 0.8, y);
     ctx.globalAlpha = 1;
   }
+
+  drawNoteMarks(ctx, event, x, position, markStemUp, stemTipY, geometry, palette, color, alpha);
 }
 
 export function drawBeams(ctx: CanvasRenderingContext2D, score: Score, visible: number[], geometry: StaffGeometry, palette: Palette): void {

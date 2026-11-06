@@ -154,8 +154,15 @@ onboarding existe (Boas-vindas, 5 passos).
   (`Recipe`/`Generator`), ids como `warmup.longtone.G`, `scales.G.major.1oct`.
 - **Plano de prática** (`PracticePlan.cpp`): monta a sessão de hoje por slots com módulo de fallback; o nível
   (1–7) escala as receitas.
-- **Parser MusicXML** (`.musicxml` e `.mxl`, repetições expandidas, ligaduras fundidas, introdução silenciosa
-  cortada), com beaming e armadura.
+- **Parser MusicXML** (`.musicxml` e `.mxl`, partwise e timewise, repetições, casas, D.S., D.C., Coda e Fine seguidos
+  mesmo quando só estão impressos, instrumento transpositor, fermata no tempo, palavra de andamento quando o arquivo
+  não dá bpm, ligaduras fundidas, introdução silenciosa cortada), com beaming e armadura. A pauta desenha articulações,
+  arcadas, ornamentos, pizz., harmônico e dinâmicas; ficam de fora notas de enfeite e crescendo/decrescendo em cunha.
+  Cordas duplas viram a nota de cima.
+- **Leitura de estrutura no PDF** (`apps/web/src/pdf/omr`, só no aparelho): acha pautas, compassos, repetições, casas,
+  segno e coda na imagem, e D.S., D.C., Fine e To Coda na camada de texto. A rolagem segue o percurso tocado, com aviso
+  antes de cada salto, e o músico corrige qualquer marcação em "Corrigir marcações". Não lê notas, não lê texto de
+  scan (o app avisa), e anacruse e mudança de compasso não entram no cálculo: tempos e bpm vêm do músico.
 - **Pedagogia escrita** (`violin-pedagogy` e `pedagogia-e-rotina.md`): trilha N1–N7, modelo de rotina (blocos
   intercalados e espaçados), o que cada bloco mede, Suzuki "com os limites certos" (só melodias de domínio
   público tocáveis; o resto como referência e "aprendi na aula"), três ferramentas de afinação com uma regra.

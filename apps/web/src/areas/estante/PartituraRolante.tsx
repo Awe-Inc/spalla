@@ -3,12 +3,16 @@ import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } fro
 import { rememberSheetScrollPlan } from "@/data/sheets";
 import { Button } from "@/design/components";
 import { COMPACT_FIELD_CLASS } from "@/design/fields";
-import { bumpBpm, DEFAULT_SCROLL_PLAN, formatPieceDuration, isFieldValid, isPlanReady, keyToRollAction, pageAtY, pieceSeconds, PLAN_LIMITS, stackPages, type ScrollPlan } from "@/pdf/autoScroll";
+import { bumpBpm, DEFAULT_SCROLL_PLAN, formatPieceDuration, isFieldValid, isPlanReady, keyToRollAction, linearReading, pageAtY, pieceSeconds, PLAN_LIMITS, stackPages, type ScrollPlan } from "@/pdf/autoScroll";
 import type { Box } from "@/pdf/fit";
+import type { ScoreStructure } from "@/pdf/omr/structure";
 import { cancelRender, isRenderCancelled, pdfPageSizes, renderPdfPage, type PdfDocument } from "@/pdf/pdfDocument";
+import { buildTimeline, currentMeasure, pathRanges, readingMapOf, upcomingNotice, type PathNotice, type PlacedMeasure } from "@/pdf/scorePath";
 
+import { MeasureEditor, MeasureOverlay, type MeasureSelection } from "./CorrecaoEstrutura";
 import { shouldLeaveKeyToTarget } from "./teclas";
 import { useAutoScroll } from "./useAutoScroll";
+import { useScoreStructure } from "./useScoreStructure";
 
 const PAGE_GAP_PX = 8;
 const BPM_STEP = 2;
@@ -19,6 +23,7 @@ interface PartituraRolanteProps {
   sheetId: number;
   startPage: number;
   savedPlan: ScrollPlan | undefined;
+  savedStructure: ScoreStructure | undefined;
   onPage: (page: number) => void;
   onError: (message: string) => void;
 }
@@ -136,9 +141,25 @@ function PlanField({ field, label, value, onCommit }: PlanFieldProps) {
 
 const STATUS_ACTION = { parada: "Começar", contando: "Cancelar", rolando: "Pausar" } as const;
 
-export function PartituraRolante({ document, sheetId, startPage, savedPlan, onPage, onError }: PartituraRolanteProps) {
+function placeBox(element: HTMLElement | null, box: PlacedMeasure | undefined): void {
+  if (!element) return;
+  element.style.display = box ? "block" : "none";
+  if (!box) return;
+  element.style.transform = `translate(${box.left}px, ${box.top}px)`;
+  element.style.width = `${box.right - box.left}px`;
+  element.style.height = `${box.bottom - box.top}px`;
+}
+
+export function PartituraRolante({ document, sheetId, startPage, savedPlan, savedStructure, onPage, onError }: PartituraRolanteProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markerRef = useRef<HTMLDivElement | null>(null);
+  const currentBoxRef = useRef<HTMLDivElement | null>(null);
+  const targetBoxRef = useRef<HTMLDivElement | null>(null);
+  const noticeTextRef = useRef<string | null>(null);
+  const [notice, setNotice] = useState<PathNotice | null>(null);
+  const [isCorrecting, setIsCorrecting] = useState(false);
+  const [selection, setSelection] = useState<MeasureSelection | null>(null);
+  const { reading: structureReading, correct } = useScoreStructure(document, sheetId, savedStructure);
   const seededRef = useRef(false);
   const [plan, setPlan] = useState<ScrollPlan>(savedPlan ?? DEFAULT_SCROLL_PLAN);
   const sizes = usePageSizes(document, onError);
@@ -147,10 +168,28 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, onPa
   const stackRef = useRef(stack);
   stackRef.current = stack;
   const lastPageRef = useRef(startPage);
-  const isReady = isPlanReady(plan);
+  const measures = structureReading.status === "pronta" ? structureReading.structure.measures : [];
+  const timeline = useMemo(() => (measures.length > 0 && box.width > 0 ? buildTimeline(measures, stack, box.width) : null), [measures, stack, box.width]);
+  const effectivePlan = useMemo(() => (timeline ? { ...plan, measures: timeline.order.length } : plan), [timeline, plan]);
+  const readingMap = useMemo(() => (timeline ? readingMapOf(timeline, plan.beatsPerMeasure) : linearReading(stack.contentHeight)), [timeline, plan.beatsPerMeasure, stack.contentHeight]);
+  const isReadingScore = structureReading.status === "lendo";
+  const isReady = isPlanReady(effectivePlan) && !isReadingScore;
+  const timelineRef = useRef(timeline);
+  timelineRef.current = timeline;
 
   const onReadingY = useCallback(
-    (readingY: number) => {
+    (readingY: number, progress: number) => {
+      const path = timelineRef.current;
+      const next = path ? upcomingNotice(path, progress) : null;
+      if (path) {
+        placeBox(currentBoxRef.current, path.placed[currentMeasure(path, progress)]);
+        placeBox(targetBoxRef.current, next?.target !== null && next?.target !== undefined ? path.placed[next.target] : undefined);
+      }
+      const nextText = next?.text ?? null;
+      if (nextText !== noticeTextRef.current) {
+        noticeTextRef.current = nextText;
+        setNotice(next);
+      }
       if (!seededRef.current) return;
       const page = pageAtY(stackRef.current, readingY);
       if (page === lastPageRef.current) return;
@@ -160,31 +199,35 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, onPa
     [onPage],
   );
 
-  const roll = useAutoScroll({ containerRef, markerRef, viewHeight: box.height, contentHeight: stack.contentHeight, plan, onReadingY });
+  const roll = useAutoScroll({ containerRef, markerRef, viewHeight: box.height, contentHeight: stack.contentHeight, plan: effectivePlan, reading: readingMap, onReadingY });
   const { seek, toggle, nudge, status, countdown } = roll;
 
   useEffect(() => {
-    if (seededRef.current || stack.contentHeight === 0 || box.height === 0) return;
+    if (seededRef.current || stack.contentHeight === 0 || box.height === 0 || isReadingScore) return;
     seek(stack.tops[startPage - 1] ?? 0);
     seededRef.current = true;
-  }, [stack, box.height, startPage, seek]);
+  }, [stack, box.height, startPage, seek, isReadingScore]);
 
   const changePlan = useCallback(
     (next: ScrollPlan) => {
       setPlan(next);
-      if (isPlanReady(next)) rememberSheetScrollPlan(sheetId, next).catch(() => undefined);
+      const pathLength = timelineRef.current?.order.length;
+      const toKeep = pathLength ? { ...next, measures: pathLength } : next;
+      if (isPlanReady(toKeep)) rememberSheetScrollPlan(sheetId, toKeep).catch(() => undefined);
     },
     [sheetId],
   );
 
   const planRef = useRef(plan);
   planRef.current = plan;
+  const isReadyRef = useRef(isReady);
+  isReadyRef.current = isReady;
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (shouldLeaveKeyToTarget(event)) return;
       const action = keyToRollAction(event);
-      if (!action || !isPlanReady(planRef.current)) return;
+      if (!action || !isReadyRef.current) return;
       event.preventDefault();
       if (action === "toggle") toggle();
       else if (action === "faster") changePlan(bumpBpm(planRef.current, BPM_STEP));
@@ -203,16 +246,28 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, onPa
           data-testid="partitura-rolante"
           className="h-full overflow-y-auto"
           onClick={() => {
-            if (isReady) toggle();
+            if (isReady && !isCorrecting) toggle();
           }}
         >
-          <div className="flex flex-col" style={{ gap: PAGE_GAP_PX }}>
+          <div className="relative flex flex-col" style={{ gap: PAGE_GAP_PX }}>
             {stack.heights.map((height, index) => (
               <PaginaEmpilhada key={index} document={document} page={index + 1} width={box.width} height={height} rootRef={containerRef} onError={onError} />
             ))}
+            {timeline ? (
+              <div className={isCorrecting ? "hidden" : "contents"}>
+                <div ref={currentBoxRef} data-testid="compasso-atual" aria-hidden="true" className="pointer-events-none absolute left-0 top-0 hidden rounded-sm border-2 border-primary bg-primary/10" />
+                <div ref={targetBoxRef} data-testid="compasso-destino" aria-hidden="true" className="pointer-events-none absolute left-0 top-0 hidden rounded-sm border-2 border-dashed border-primary" />
+              </div>
+            ) : null}
+            {timeline && isCorrecting ? <MeasureOverlay measures={timeline.measures} placed={timeline.placed} selected={selection?.index ?? null} pageWidth={box.width} onSelect={setSelection} /> : null}
           </div>
         </div>
-        <div ref={markerRef} aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-primary/40" />
+        {timeline ? null : <div ref={markerRef} aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-primary/40" />}
+        {notice && !isCorrecting ? (
+          <p role="status" className="pointer-events-none absolute inset-x-0 top-2 mx-auto w-fit rounded-pill bg-primary px-4 py-2 font-semibold text-on-primary shadow-card">
+            {notice.text}
+          </p>
+        ) : null}
         {status === "contando" ? (
           <p role="status" className="pointer-events-none absolute inset-x-0 top-1/3 text-center font-display text-note text-ink">
             Começa em {countdown}
@@ -224,7 +279,7 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, onPa
           <Button variant="primary" onClick={toggle} disabled={!isReady}>
             {STATUS_ACTION[status]}
           </Button>
-          <PlanField field="measures" label="Compassos" value={plan.measures} onCommit={(measures) => changePlan({ ...plan, measures })} />
+          {timeline ? null : <PlanField field="measures" label="Compassos" value={plan.measures} onCommit={(typed) => changePlan({ ...plan, measures: typed })} />}
           <PlanField field="beatsPerMeasure" label="Tempos por compasso" value={plan.beatsPerMeasure} onCommit={(beatsPerMeasure) => changePlan({ ...plan, beatsPerMeasure })} />
           <PlanField field="bpm" label="Bpm" value={plan.bpm} onCommit={(bpm) => changePlan({ ...plan, bpm })} />
           <Button variant="secondary" onClick={() => changePlan(bumpBpm(plan, -BPM_STEP))} aria-label={`Diminuir ${BPM_STEP} bpm`}>
@@ -233,10 +288,40 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, onPa
           <Button variant="secondary" onClick={() => changePlan(bumpBpm(plan, BPM_STEP))} aria-label={`Aumentar ${BPM_STEP} bpm`}>
             +
           </Button>
-          {isReady ? <p className="tabular-nums text-ink-muted">Duração {formatPieceDuration(pieceSeconds(plan))}</p> : null}
+          {isReady ? <p className="tabular-nums text-ink-muted">Duração {formatPieceDuration(pieceSeconds(effectivePlan))}</p> : null}
+          {timeline ? (
+            <Button
+              variant="ghost"
+              aria-pressed={isCorrecting}
+              onClick={() => {
+                if (status !== "parada") toggle();
+                setSelection(null);
+                setIsCorrecting((current) => !current);
+              }}
+            >
+              {isCorrecting ? "Terminar a correção" : "Corrigir marcações"}
+            </Button>
+          ) : null}
         </div>
+        {structureReading.status === "lendo" ? (
+          <p role="status" className="text-small text-ink-muted">
+            Lendo a partitura… página {Math.min(structureReading.done + 1, structureReading.total)} de {structureReading.total}
+          </p>
+        ) : null}
+        {structureReading.status === "falhou" ? <p className="text-small text-ink-muted">Não consegui ler os compassos deste PDF. Diga quantos são e a rolagem segue em linha reta.</p> : null}
+        {structureReading.status === "pronta" && !timeline ? <p className="text-small text-ink-muted">Não achei pautas neste PDF. Diga quantos compassos ele tem e a rolagem segue em linha reta.</p> : null}
+        {timeline ? (
+          <p data-testid="percurso" className="text-small text-ink-muted">
+            {timeline.measures.length} compassos lidos, {timeline.order.length} tocados. Percurso: {pathRanges(timeline.order)}.
+          </p>
+        ) : null}
+        {timeline && structureReading.status === "pronta" && !structureReading.structure.hasTextLayer ? (
+          <p className="text-small text-ink-muted">Este PDF é uma imagem: D.S., D.C. e Fine escritos não são lidos. Confira o percurso e marque o que faltar em “Corrigir marcações”.</p>
+        ) : null}
+        {isCorrecting && !selection ? <p className="text-small text-ink-muted">Toque em um compasso para corrigir as marcações dele.</p> : null}
+        {isCorrecting && selection ? <MeasureEditor measures={measures} selection={selection} onChange={correct} onClose={() => setSelection(null)} /> : null}
         <p className="text-caption text-ink-subtle">
-          {isReady ? "Espaço começa e pausa. ↑ ↓ mudam o andamento. ← → ou o pedal andam um compasso. Rolar com o dedo reposiciona a leitura." : "Diga quantos compassos a peça tem para calcular a velocidade."}
+          {isReady || isReadingScore ? "Espaço começa e pausa. ↑ ↓ mudam o andamento. ← → ou o pedal andam um compasso. Rolar com o dedo reposiciona a leitura." : "Diga quantos compassos a peça tem para calcular a velocidade."}
         </p>
       </section>
     </>

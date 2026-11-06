@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { advanceProgress, leadInSeconds, nudgeProgress, progressAtScrollTop, scrollTopAt, type ScrollPlan } from "@/pdf/autoScroll";
+import { advanceProgress, leadInSeconds, nudgeProgress, progressAtScrollTop, scrollTopAt, type ReadingMap, type ScrollPlan } from "@/pdf/autoScroll";
 
 export type RollStatus = "parada" | "contando" | "rolando";
 
@@ -13,7 +13,8 @@ interface AutoScrollOptions {
   viewHeight: number;
   contentHeight: number;
   plan: ScrollPlan;
-  onReadingY: (readingY: number) => void;
+  reading: ReadingMap;
+  onReadingY: (readingY: number, progress: number) => void;
 }
 
 export interface AutoScroll {
@@ -51,20 +52,20 @@ function useScreenAwake(isWanted: boolean): void {
   }, [isWanted]);
 }
 
-export function useAutoScroll({ containerRef, markerRef, viewHeight, contentHeight, plan, onReadingY }: AutoScrollOptions): AutoScroll {
+export function useAutoScroll({ containerRef, markerRef, viewHeight, contentHeight, plan, reading, onReadingY }: AutoScrollOptions): AutoScroll {
   const [status, setStatus] = useState<RollStatus>("parada");
   const [countdown, setCountdown] = useState(0);
   const progressRef = useRef(0);
   const lastScrollTopRef = useRef(0);
-  const latestRef = useRef({ viewHeight, contentHeight, plan, onReadingY });
+  const latestRef = useRef({ viewHeight, contentHeight, plan, reading, onReadingY });
 
   const publish = useCallback(
     (element: HTMLElement) => {
       const latest = latestRef.current;
-      const readingY = progressRef.current * latest.contentHeight;
+      const readingY = latest.reading.yAt(progressRef.current);
       const marker = markerRef.current;
       if (marker) marker.style.transform = `translateY(${readingY - element.scrollTop}px)`;
-      latest.onReadingY(readingY);
+      latest.onReadingY(readingY, progressRef.current);
     },
     [markerRef],
   );
@@ -73,18 +74,18 @@ export function useAutoScroll({ containerRef, markerRef, viewHeight, contentHeig
     const element = containerRef.current;
     if (!element) return;
     const latest = latestRef.current;
-    element.scrollTop = scrollTopAt(progressRef.current, latest.viewHeight, latest.contentHeight);
+    element.scrollTop = scrollTopAt(progressRef.current, latest.viewHeight, latest.contentHeight, latest.reading);
     lastScrollTopRef.current = element.scrollTop;
     publish(element);
   }, [containerRef, publish]);
 
   useLayoutEffect(() => {
-    latestRef.current = { viewHeight, contentHeight, plan, onReadingY };
-  }, [viewHeight, contentHeight, plan, onReadingY]);
+    latestRef.current = { viewHeight, contentHeight, plan, reading, onReadingY };
+  }, [viewHeight, contentHeight, plan, reading, onReadingY]);
 
   useLayoutEffect(() => {
     if (contentHeight > 0 && viewHeight > 0) applyProgress();
-  }, [contentHeight, viewHeight, applyProgress]);
+  }, [contentHeight, viewHeight, reading, applyProgress]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -92,7 +93,7 @@ export function useAutoScroll({ containerRef, markerRef, viewHeight, contentHeig
     const onScroll = () => {
       if (Math.abs(element.scrollTop - lastScrollTopRef.current) <= MANUAL_SCROLL_TOLERANCE_PX) return;
       const latest = latestRef.current;
-      progressRef.current = progressAtScrollTop(element.scrollTop, latest.viewHeight, latest.contentHeight);
+      progressRef.current = progressAtScrollTop(element.scrollTop, latest.viewHeight, latest.contentHeight, latest.reading, progressRef.current);
       lastScrollTopRef.current = element.scrollTop;
       publish(element);
     };
@@ -154,7 +155,7 @@ export function useAutoScroll({ containerRef, markerRef, viewHeight, contentHeig
   const seek = useCallback(
     (scrollTop: number) => {
       const latest = latestRef.current;
-      progressRef.current = progressAtScrollTop(scrollTop, latest.viewHeight, latest.contentHeight);
+      progressRef.current = progressAtScrollTop(scrollTop, latest.viewHeight, latest.contentHeight, latest.reading, progressRef.current);
       applyProgress();
     },
     [applyProgress],

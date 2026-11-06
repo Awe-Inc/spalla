@@ -253,3 +253,9 @@ up to a bar.
 - Optional subsystems (Steam, the tone engine) compile and link whether or not
   they are present, and report "not connected" rather than failing — so game
   code needs no `#ifdef` and a fresh checkout runs.
+- **A fermata não pode virar o andamento da peça.** A fermata entra em `tempoMap`
+  como um trecho mais lento (`TempoMark.isHold`). Quando a introdução silenciosa era
+  cortada logo depois dela, o corte herdava o tempo reduzido e o Score inteiro saía
+  pela metade (92 → 46 bpm numa peça da biblioteca). `trimSilentIntro` e o corte de
+  trecho no binding guardam o último tempo escrito à parte (`writtenAtCut`). Teste em
+  `test_repeats` (`fermata_after_a_trimmed_intro_is_not_the_tempo_of_the_piece`).

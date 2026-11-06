@@ -138,6 +138,45 @@ export function stemX(geometry: StaffGeometry, startSeconds: number, stemUp: boo
   return noteX(geometry, startSeconds) + (stemUp ? geometry.headWidth * 0.44 : -geometry.headWidth * 0.44);
 }
 
+export interface PlacedMark {
+  mark: string;
+  y: number;
+}
+
+export interface NoteMarkLayout {
+  marks: PlacedMark[];
+  dynamicY: number;
+}
+
+const HEAD_SIDE_MARKS = ["staccato", "staccatissimo", "tenuto", "accent", "marcato"];
+const ABOVE_STAFF_MARKS = ["fermata", "up-bow", "down-bow", "trill", "mordent", "turn", "harmonic", "pizzicato"];
+const LINE_STEP = 2;
+
+function headSidePositions(position: number, stemUp: boolean, count: number): number[] {
+  const away = stemUp ? -1 : 1;
+  const first = position + away * LINE_STEP;
+  const onStaffLine = first % LINE_STEP === 0 && first >= 0 && first <= MIDDLE_LINE_POSITION * LINE_STEP;
+  const start = onStaffLine ? first + away : first;
+  return Array.from({ length: count }, (_, level) => start + away * level * LINE_STEP);
+}
+
+export function layoutNoteMarks(marks: string, position: number, stemUp: boolean, stemTipY: number, geometry: StaffGeometry): NoteMarkLayout {
+  const names = marks.split(" ");
+  const headY = positionY(geometry, position);
+  const headSide = HEAD_SIDE_MARKS.filter((mark) => names.includes(mark));
+  const headSideYs = headSidePositions(position, stemUp, headSide.length).map((at) => positionY(geometry, at));
+  const reached = [geometry.staffTop, geometry.bottomY, headY, stemTipY, ...headSideYs];
+  const margin = geometry.spacing * 1.1;
+  const firstAboveY = Math.min(...reached) - margin;
+  const placedHeadSide = headSide.map((mark, level) => ({ mark, y: headSideYs[level] ?? headY }));
+  const placedAbove = ABOVE_STAFF_MARKS.filter((mark) => names.includes(mark)).map((mark, level) => ({
+    mark,
+    y: Math.max(geometry.spacing * 0.6, firstAboveY - level * geometry.spacing * 1.4),
+  }));
+  const dynamicY = Math.min(geometry.height - geometry.spacing * 0.6, Math.max(...reached) + geometry.spacing * 1.6);
+  return { marks: [...placedHeadSide, ...placedAbove], dynamicY };
+}
+
 export function stemLength(geometry: StaffGeometry): number {
   return geometry.spacing * 3.3;
 }

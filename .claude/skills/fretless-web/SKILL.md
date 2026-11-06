@@ -181,7 +181,11 @@ apps/web/src/areas/estante/      modo estante, sem nota nem XP: EstantePage (lis
 apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/countPdfPages/renderPdfPage, worker
                                  via `?url`), fit.ts (escala por ajuste, toque → página; testado), assets.ts (URLs
                                  de cMaps, fontes padrão, wasm e ICC em `<base>/pdfjs/`, servidos pelo plugin
-                                 `fretless:pdfjs-assets` do vite.config; testado)
+                                 `fretless:pdfjs-assets` do vite.config; testado), autoScroll.ts (rolagem por
+                                 progresso, com `ReadingMap` opcional), scorePath.ts (progresso ↔ posição no
+                                 percurso, aviso antes do salto), omr/ (lê a imagem da página: pautas, barras,
+                                 pontos de repetição, casas, segno, coda; o texto vem da camada do PDF; `corrections`
+                                 aplica a correção manual; `performancePath` calcula a ordem tocada). Não lê notas.
 apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage em `/voce` (hero com nível + Stats; abas `?ver=geral|conquistas|
@@ -473,3 +477,16 @@ send never post the same results twice. The session planner (`planSession`) assi
 - **Série fechada reabria com uma passada ruim** (31/10, P10). `goalProgress` usava `cleanStreak` (conta do fim), então
   uma passada fraca depois de fechar 3 limpas zerava o bloco e tirava o bônus. Meta de repetições fecha pelo
   `longestCleanStreak` do dia. Teste em `repetitions.test`.
+- **Rolagem do PDF ignorava repetição, D.S. e Coda** (06/11, pedido do dono). A velocidade vinha de "compassos ÷ altura"
+  e a tela só descia. Regra: com compassos lidos, o tempo anda em `timeline.order` (compassos tocados) e a posição sai
+  de `readingYAt`; `linearReading` é só a queda quando o PDF não tem pautas. O salto desliza no último tempo e é
+  avisado um compasso antes. Testes em `scorePath.test`, `performancePath.test` e `e2e/percurso-pdf`.
+- **Sistema final curto saía com largura zero** (06/11). `staffExtent` devolvia esquerda igual a direita quando o sistema
+  não ocupava a página, e os compassos dele sumiam. Regra: a extensão é o maior trecho contínuo na linha do meio da
+  pauta. Teste em `structure.test` ("conta o sistema final mais curto que a página").
+- **Casa sem número repetia o 1** (06/11). Duas casas sem dígito legível viravam `[[1],[1]]` e a segunda nunca tocava.
+  Um fim de repetição fecha a casa, e a seguinte é a próxima (`numberUnnamedVoltas`). Teste em `structure.test`.
+- **Raio do ponto de repetição é uma troca, não um ajuste fino** (06/11). `barlines` aceita a partir de `spacing * 0.17`;
+  com 0.13, o scan simulado foi de 28 para 45 fins de repetição achados, mais do que os 37 do corpus. Regra:
+  mudou o limiar, medir no corpus limpo e no scan simulado antes de aceitar. O ponto de 2 pt num PDF de teste é pequeno
+  demais para esse limite; o e2e usa 3 pt.

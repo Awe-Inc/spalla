@@ -1,3 +1,4 @@
+import type { ScoreStructure } from "@/pdf/omr/structure";
 import Dexie, { type EntityTable } from "dexie";
 
 import type { StudentAnnouncement, StudentAssignment } from "@/api/types";
@@ -109,6 +110,7 @@ export interface StoredSheet {
   importedAt: number;
   openedAt: number;
   scrollPlan?: StoredScrollPlan;
+  structure?: ScoreStructure;
 }
 
 export interface StoredSheetFile {

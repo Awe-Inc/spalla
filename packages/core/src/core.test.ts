@@ -60,6 +60,16 @@ describe("musicxml", () => {
     }
   });
 
+  it("hands the printed marks and the dynamic of a note to the interface", () => {
+    const xml = `<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>V</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes><direction><direction-type><dynamics><mf/></dynamics></direction-type></direction><note><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><notations><fermata/><articulations><staccato/></articulations><technical><up-bow/></technical></notations></note></measure></part></score-partwise>`;
+    const result = core.parseMusicXml(new TextEncoder().encode(xml));
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.score.events[0]?.marks).toBe("staccato fermata up-bow");
+      expect(result.score.events[0]?.dynamic).toBe("mf");
+    }
+  });
+
   it("rejects garbage with a message instead of throwing", () => {
     const result = core.parseMusicXml(new Uint8Array([1, 2, 3, 4]));
     expect(result.ok).toBe(false);
