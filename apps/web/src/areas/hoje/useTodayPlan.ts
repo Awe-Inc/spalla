@@ -5,6 +5,7 @@ import { openClassTasks, useClassAssignments } from "@/account/classAssignments"
 import { useSettings } from "@/app/settings";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, currentStreak, db, DEFAULT_USER_STATS, latestResultsByExercise, localDayKey, type ExerciseResult, type Routine, type RoutineBlock, type UserStats } from "@/data/db";
+import { LIBRARY } from "@/data/library";
 import { blockProgress, nextOpenBlock, planSession, sessionProgress, type PlannedBlock, type RunsByExercise } from "@/data/planner";
 import { runsByExercise, shouldRaiseTempo, type GoalProgress } from "@/data/repetitions";
 import { defaultRoutines, type RoutineItem } from "@/data/routines";
@@ -68,7 +69,7 @@ export function useTodayPlan(): TodayPlan {
     const before = results.filter((result) => result.playedAt < startOfDay);
     const best = bestResultsByExercise(before);
     const latest = latestResultsByExercise(before);
-    return planSession({ routine, exercises, best, latest, lessonTasks, classTasks, playedToday: doneToday, triedDays: triedDaysByExercise(before), skipped, now: startOfDay, day: today });
+    return planSession({ routine, exercises, library: LIBRARY, best, latest, lessonTasks, classTasks, playedToday: doneToday, triedDays: triedDaysByExercise(before), skipped, now: startOfDay, day: today });
   }, [exercises, results, routine, lessonTasks, classTasks, doneToday, skipped, startOfDay, today]);
   const todayRecord = days.find((day) => day.day === today);
 

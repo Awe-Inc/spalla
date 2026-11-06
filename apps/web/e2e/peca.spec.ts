@@ -12,6 +12,7 @@ test("um trecho marcado no detalhe da peça fica guardado e abre o Tocar em loop
   );
 
   await page.goto("/repertorio");
+  await page.getByRole("searchbox", { name: "Buscar por título ou compositor" }).fill(LIBRARY_TITLE);
   await page.getByRole("link", { name: LIBRARY_TITLE, exact: true }).click();
   await expect(page.getByRole("heading", { name: LIBRARY_TITLE })).toBeVisible();
 

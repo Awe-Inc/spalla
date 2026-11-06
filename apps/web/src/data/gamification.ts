@@ -1,6 +1,7 @@
 import type { GameStats, NoteJudgement } from "@fretless/core";
 
-import type { ExerciseResult } from "./db";
+import { TWO_STARS_ACCURACY_PCT, type ExerciseResult } from "./db";
+import { CLEAN_RUN_ACCURACY_PCT } from "./repetitions";
 
 export const XP_PERFECT = 3;
 export const XP_GREAT = 1;
@@ -45,13 +46,15 @@ export const MASTERY_LEVELS = [
 
 export type MasteryLevel = 0 | 1 | 2 | 3 | 4 | 5;
 
+const FIRST_MASTERY_ACCURACY_PCT = 60;
+
 export function masteryOfRun(result: Pick<ExerciseResult, "accuracyPct" | "bpm" | "withDrone" | "fromMemory">, writtenBpm: number): MasteryLevel {
-  const clean = result.accuracyPct >= 90;
+  const clean = result.accuracyPct >= CLEAN_RUN_ACCURACY_PCT;
   if (clean && result.fromMemory && result.bpm >= writtenBpm) return 5;
   if (clean && result.withDrone) return 4;
   if (clean && result.bpm >= writtenBpm) return 3;
-  if (result.accuracyPct >= 80) return 2;
-  if (result.accuracyPct >= 60) return 1;
+  if (result.accuracyPct >= TWO_STARS_ACCURACY_PCT) return 2;
+  if (result.accuracyPct >= FIRST_MASTERY_ACCURACY_PCT) return 1;
   return 0;
 }
 

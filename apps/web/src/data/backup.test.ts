@@ -79,6 +79,18 @@ describe("backup", () => {
     expect(Array.from((await db.pieceFiles.get(7))?.bytes ?? [])).toEqual([1, 2]);
   });
 
+  it("joins a concerto that an older backup still holds split at its commas", async () => {
+    const piece = (name: string, reviewCount: number) => ({ key: `9:${name}`, book: 9, name, learnedAt: 1, lastReviewedAt: 2, reviewCount });
+    await db.suzukiPieces.bulkPut([piece("Concerto para violino nº 5 em Lá maior", 1), piece("K. 219", 3), piece("de Mozart", 0)]);
+    const text = serializeBackup(await buildBackup());
+
+    await restoreBackup(parseBackup(text));
+
+    const stored = await db.suzukiPieces.toArray();
+    expect(stored.map((row) => row.name)).toEqual(["Concerto para violino nº 5 em Lá maior, K. 219, de Mozart"]);
+    expect(stored[0]?.reviewCount).toBe(3);
+  });
+
   it("restores a version 1 backup without touching the tables it never had", async () => {
     await db.pieces.add({ fileName: "fica.mxl", title: "Fica", composer: "", genre: "", level: 1, noteCount: 1, beatsPerMinute: 60, importedAt: 1 });
     const legacy = JSON.stringify({ version: 1, exportedAt: "2026-10-01T00:00:00.000Z", results: [result("old", 1)], routines: [], practiceDays: [], userStats: [], achievements: [], lessonTasks: [], suzukiPieces: [], pieceSections: [], pieces: { count: 1 } });

@@ -8,6 +8,7 @@
 //  These cases are the tripwire.
 // ═══════════════════════════════════════════════════════════════════════════
 #include <algorithm>
+#include <cstdlib>
 #include <filesystem>
 #include <set>
 #include <string>
@@ -660,4 +661,204 @@ TEST(a_played_exercise_loses_its_place_to_one_that_has_waited) {
     if (!after.items.empty()) {
         CHECK(after.items.front().exerciseId != first);
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Content that has to match what it claims
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST(a_module_level_band_is_the_band_its_exercises_really_cover) {
+    for (const auto& module : shipped().modules) {
+        int lowest = 99;
+        int highest = 0;
+        for (const auto& exercise : module.exercises) {
+            lowest = std::min(lowest, exercise.level);
+            highest = std::max(highest, exercise.level);
+        }
+        if (module.levelFrom != lowest || module.levelTo != highest) {
+            ::testing::reportFailure(__FILE__, __LINE__,
+                                     module.id + " says " + std::to_string(module.levelFrom) + "-" +
+                                         std::to_string(module.levelTo) + " but holds " +
+                                         std::to_string(lowest) + "-" + std::to_string(highest));
+        }
+    }
+}
+
+TEST(au_clair_de_la_lune_descends_without_an_octave_leap_and_ends_on_its_tonic) {
+    const Exercise* exercise = shipped().findExercise("repertoire.6");
+    CHECK(exercise != nullptr);
+    if (exercise == nullptr) {
+        return;
+    }
+    const auto pitches = pitchesOf(buildScore(*exercise));
+    constexpr int kWidestLeapInTheTune = 7;
+    for (std::size_t i = 1; i < pitches.size(); ++i) {
+        CHECK(std::abs(pitches[i] - pitches[i - 1]) <= kWidestLeapInTheTune);
+    }
+    CHECK_EQ(pitches.back(), 62);
+}
+
+TEST(the_repertoire_reaches_levels_four_and_six) {
+    const Module* module = shipped().findModule("repertoire");
+    CHECK(module != nullptr);
+    if (module == nullptr) {
+        return;
+    }
+    std::set<int> levels;
+    for (const auto& exercise : module->exercises) {
+        levels.insert(exercise.level);
+    }
+    CHECK(levels.count(4) == 1);
+    CHECK(levels.count(6) == 1);
+}
+
+TEST(a_piece_with_a_pickup_waits_for_it_and_still_fills_whole_bars) {
+    for (const char* id : {"repertoire.9", "repertoire.10"}) {
+        const Exercise* exercise = shipped().findExercise(id);
+        CHECK(exercise != nullptr);
+        if (exercise == nullptr) {
+            continue;
+        }
+        const auto score = buildScore(*exercise);
+        CHECK(!score.events.empty());
+        CHECK(!score.measures.empty());
+        const auto firstPlayed = std::find_if(score.events.begin(), score.events.end(),
+                                               [](const score::ScoreEvent& event) { return !event.isRest; });
+        CHECK(firstPlayed != score.events.end());
+        const double firstNote = firstPlayed == score.events.end() ? 0.0 : firstPlayed->startSeconds;
+        CHECK(firstNote > 0.0);
+        CHECK(firstNote < score.measures.front().endSeconds);
+        const double bar = score.measures.front().endSeconds - score.measures.front().startSeconds;
+        const double bars = score.durationSeconds() / bar;
+        CHECK_NEAR(bars - std::floor(bars + 0.5), 0.0, 1e-6);
+    }
+}
+
+TEST(tonalization_is_not_the_ring_tone_drill_under_another_name) {
+    for (const auto& module : shipped().modules) {
+        for (const auto& tonalize : module.exercises) {
+            if (tonalize.id.rfind("warmup.tonalize.", 0) != 0) {
+                continue;
+            }
+            const std::string string = tonalize.id.substr(tonalize.id.rfind('.') + 1);
+            const Exercise* ring = shipped().findExercise("intonation.ring." + string);
+            CHECK(ring != nullptr);
+            if (ring != nullptr) {
+                CHECK(ring->droneMidi >= 0);
+                CHECK(tonalize.droneMidi != ring->droneMidi);
+                CHECK(tonalize.recipe.repeats != ring->recipe.repeats);
+            }
+        }
+    }
+}
+
+TEST(a_bow_stroke_study_is_not_the_rhythm_drill_on_the_same_string) {
+    for (const int pattern : {0, 1, 4, 7}) {
+        const Exercise* stroke = shipped().findExercise("bowing.stroke." + std::to_string(pattern));
+        const Exercise* rhythm = shipped().findExercise("rhythm." + std::to_string(pattern));
+        CHECK(stroke != nullptr);
+        CHECK(rhythm != nullptr);
+        if (stroke != nullptr && rhythm != nullptr) {
+            CHECK(stroke->recipe.tonicMidi != rhythm->recipe.tonicMidi);
+        }
+    }
+}
+
+TEST(the_repertoire_twinkle_is_not_the_suzuki_theme_again) {
+    const Exercise* repertoire = shipped().findExercise("repertoire.0");
+    const Exercise* suzuki = shipped().findExercise("suzuki.twinkle.0");
+    CHECK(repertoire != nullptr);
+    CHECK(suzuki != nullptr);
+    if (repertoire == nullptr || suzuki == nullptr) {
+        return;
+    }
+    CHECK_EQ(pitchesOf(buildScore(*repertoire)).front(), 62);
+    CHECK_EQ(pitchesOf(buildScore(*suzuki)).front(), 69);
+}
+
+TEST(note_naming_stays_on_the_string_its_title_names) {
+    struct Range { const char* id; int low; int high; };
+    constexpr Range kRanges[] = {
+        {"reading.name.g", 55, 62}, {"reading.name.d", 62, 69},
+        {"reading.name.a", 69, 76}, {"reading.name.e", 76, 83},
+    };
+    for (const auto& range : kRanges) {
+        const Exercise* exercise = shipped().findExercise(range.id);
+        CHECK(exercise != nullptr);
+        if (exercise != nullptr) {
+            CHECK_EQ(exercise->recipe.lowMidi, range.low);
+            CHECK_EQ(exercise->recipe.highMidi, range.high);
+        }
+    }
+}
+
+TEST(a_third_position_reading_exercise_stays_in_third_position) {
+    const Exercise* exercise = shipped().findExercise("reading.full.6");
+    CHECK(exercise != nullptr);
+    if (exercise != nullptr) {
+        constexpr int kFourthFingerInThirdPositionOnE = 88;
+        CHECK(exercise->recipe.highMidi <= kFourthFingerInThirdPositionOnE);
+    }
+}
+
+TEST(a_two_octave_scale_only_promises_a_shift_when_it_needs_one) {
+    const Module* module = shipped().findModule("scales");
+    CHECK(module != nullptr);
+    if (module == nullptr) {
+        return;
+    }
+    constexpr int kFirstPositionTop = 83;
+    for (const auto& exercise : module->exercises) {
+        if (exercise.id.rfind("scales.2oct.", 0) != 0) {
+            continue;
+        }
+        const bool needsShift = exercise.recipe.tonicMidi + 24 > kFirstPositionTop;
+        const bool promisesShift = exercise.subtitle.find("mudança") != std::string::npos;
+        CHECK(promisesShift == needsShift);
+    }
+}
+
+TEST(sixteenth_note_tempos_never_fall_as_the_level_rises) {
+    constexpr const char* kSixteenthStudies[] = {
+        "suzuki.twinkle.1", "rhythm.8", "rhythm.9", "rhythm.4",
+        "bowing.stroke.4", "rhythm.7", "bowing.stroke.7",
+    };
+    int previousLevel = 0;
+    int previousBpm = 0;
+    for (const char* id : kSixteenthStudies) {
+        const Exercise* exercise = shipped().findExercise(id);
+        CHECK(exercise != nullptr);
+        if (exercise == nullptr) {
+            continue;
+        }
+        CHECK(exercise->level >= previousLevel);
+        CHECK(exercise->defaultBpm >= previousBpm);
+        previousLevel = exercise->level;
+        previousBpm = exercise->defaultBpm;
+    }
+}
+
+TEST(one_good_pass_does_not_move_a_player_up_a_level) {
+    constexpr float kCleanAccuracy = 95.0f;
+    constexpr float kSteadyCents = 5.0f;
+    constexpr int kScore = 1000;
+    std::vector<const Exercise*> levelOne;
+    for (const auto& module : shipped().modules) {
+        for (const auto& exercise : module.exercises) {
+            if (isPlayable(exercise.kind) && exercise.level == 1) {
+                levelOne.push_back(&exercise);
+            }
+        }
+    }
+    CHECK(levelOne.size() >= 3);
+
+    Progress progress;
+    const Exercise* first = levelOne.front();
+    progress.record(first->id, kScore, kCleanAccuracy, kSteadyCents, first->defaultBpm);
+    CHECK_EQ(estimateLevel(shipped(), progress), 1);
+
+    for (const Exercise* exercise : levelOne) {
+        progress.record(exercise->id, kScore, kCleanAccuracy, kSteadyCents, exercise->defaultBpm);
+    }
+    CHECK_EQ(estimateLevel(shipped(), progress), 2);
 }

@@ -26,6 +26,7 @@ test("duas gravações da mesma peça ficam guardadas, aparecem no detalhe e se 
   );
 
   await page.goto("/repertorio");
+  await page.getByRole("searchbox", { name: "Buscar por título ou compositor" }).fill(LIBRARY_TITLE);
   await page.getByRole("link", { name: LIBRARY_TITLE, exact: true }).click();
   await page.waitForURL(/\/repertorio\/peca\/biblioteca\//);
   const detailUrl = page.url();

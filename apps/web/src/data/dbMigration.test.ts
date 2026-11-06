@@ -44,7 +44,7 @@ describe("Dexie migration", () => {
     const current = new FretlessDatabase(NAME);
     await current.open();
 
-    expect(current.verno).toBe(12);
+    expect(current.verno).toBe(13);
     expect(current.tables.map((table) => table.name)).not.toContain("settings");
     expect(current.tables.map((table) => table.name)).toEqual(
       expect.arrayContaining(["suzukiPieces", "pieceSections", "recordings", "recordingFiles", "classAssignments", "classAnnouncements"]),
@@ -58,5 +58,22 @@ describe("Dexie migration", () => {
     expect(await current.sheetFiles.get(sheetId as number)).toBeDefined();
     expect(await current.recordings.count()).toBe(0);
     current.close();
+  });
+
+  it("joins a concerto that was split at its commas, keeping the most reviewed fragment", async () => {
+    const legacy = new Dexie(NAME);
+    legacy.version(12).stores({ suzukiPieces: "key, book, learnedAt" });
+    await legacy.open();
+    const piece = (book: number, name: string, reviewCount: number) => ({ key: `${book}:${name}`, book, name, learnedAt: 1, lastReviewedAt: 2, reviewCount });
+    await legacy.table("suzukiPieces").bulkPut([piece(9, "Concerto para violino nº 5 em Lá maior", 1), piece(9, "K. 219", 3), piece(9, "de Mozart", 0), piece(1, "Minueto 1", 2)]);
+    legacy.close();
+
+    const database = new FretlessDatabase(NAME);
+    await database.open();
+    const stored = await database.suzukiPieces.orderBy("key").toArray();
+    database.close();
+
+    expect(stored.map((item) => item.key)).toEqual(["1:Minueto 1", "9:Concerto para violino nº 5 em Lá maior, K. 219, de Mozart"]);
+    expect(stored[1]?.reviewCount).toBe(3);
   });
 });

@@ -5,6 +5,9 @@ export const LIBRARY_GENRE = "Biblioteca CC0";
 export const LIBRARY_SOURCE_URL = "https://github.com/OpenScore/Lieder";
 export const LIBRARY_FOLDER = "../../../../assets/songs/community";
 
+const LIBRARY_RESULT_PREFIX = "biblioteca:";
+const SECONDS_PER_MINUTE = 60;
+
 export interface LibraryPiece {
   slug: string;
   file: string;
@@ -24,7 +27,15 @@ export function libraryFileUrls(): string[] {
 }
 
 export function libraryResultId(slug: string): string {
-  return `biblioteca:${slug}`;
+  return `${LIBRARY_RESULT_PREFIX}${slug}`;
+}
+
+export function libraryPlayPath(resultId: string): string | null {
+  return resultId.startsWith(LIBRARY_RESULT_PREFIX) ? `/tocar/biblioteca/${resultId.slice(LIBRARY_RESULT_PREFIX.length)}` : null;
+}
+
+export function estimatedPieceSeconds(piece: Pick<LibraryPiece, "noteCount" | "beatsPerMinute">): number {
+  return (piece.noteCount * SECONDS_PER_MINUTE) / piece.beatsPerMinute;
 }
 
 export function findLibraryPiece(slug: string, pieces: readonly LibraryPiece[] = LIBRARY): LibraryPiece | null {

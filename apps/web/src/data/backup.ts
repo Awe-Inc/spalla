@@ -1,6 +1,6 @@
 import type { Table } from "dexie";
 
-import { db, DEFAULT_USER_STATS } from "./db";
+import { db, DEFAULT_USER_STATS, joinSplitConcertos, type StoredSuzukiPiece } from "./db";
 
 export const BACKUP_VERSION = 3;
 
@@ -139,6 +139,7 @@ export async function restoreBackup(backup: Backup): Promise<RestoreSummary> {
         await table.clear();
         await table.bulkPut(backup[name] ?? []);
       }
+      if (present.includes("suzukiPieces")) await joinSplitConcertos(db.table<StoredSuzukiPiece, string>("suzukiPieces"));
     });
   }
   const hasSettings = backup.settings !== null && restoreSettings(backup.settings);

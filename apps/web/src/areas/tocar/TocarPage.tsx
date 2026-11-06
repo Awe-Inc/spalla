@@ -66,6 +66,7 @@ export function TocarPage() {
   const origin = tocarOrigin(useLocation().state, Boolean(exercise));
   const [saveError, setSaveError] = useState<string | null>(null);
   const [droneOn, setDroneOn] = useState(false);
+  const [fromMemory, setFromMemory] = useState(false);
   const startedAtRef = useRef<number | null>(null);
   const savedRunRef = useRef(false);
   const savedLoopRef = useRef(false);
@@ -189,7 +190,7 @@ export function TocarPage() {
       writtenBpm: limits.writtenBpm,
       durationSeconds,
       withDrone: droneOn,
-      fromMemory: false,
+      fromMemory,
       playedAt: Date.now(),
     })
       .then((saved) => {
@@ -202,7 +203,7 @@ export function TocarPage() {
       .catch(() => setSaveError("O resultado não foi salvo neste aparelho. As estrelas valem só por agora."));
     accompaniment.stopDrone();
     stopInput();
-  }, [snapshot, score, resultId, limits, bpm, loop, droneOn, stopInput, accompaniment]);
+  }, [snapshot, score, resultId, limits, bpm, loop, droneOn, fromMemory, stopInput, accompaniment]);
 
   async function begin() {
     if (!session) return;
@@ -328,7 +329,7 @@ export function TocarPage() {
 
         {needsHeadphones ? <HeadphoneNotice onConfirm={confirmHeadphones} /> : null}
 
-        {score && isRunning ? <LiveRunPanel score={score} live={live} /> : null}
+        {score && isRunning ? <LiveRunPanel score={score} live={live} fromMemory={fromMemory} /> : null}
 
         {snapshot?.state === "finished" && score && limits && loop ? (
           <section className="grid justify-items-center gap-3 text-center" aria-label="Trecho concluído">
@@ -398,9 +399,11 @@ export function TocarPage() {
             loop={loop}
             droneOn={droneOn}
             droneLabel={droneLabel}
+            fromMemory={fromMemory}
             onBpm={setBpm}
             onLoop={setLoop}
             onDrone={setDroneOn}
+            onFromMemory={setFromMemory}
           />
         ) : null}
       </main>

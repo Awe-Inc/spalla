@@ -129,6 +129,8 @@ struct Recipe {
     // ── Repertoire ────────────────────────────────────────────────────────
     /// Index into the embedded melody table. -1 for generated exercises.
     int pieceIndex = -1;
+    /// Moves a melody's theme to another key without storing it twice.
+    int transposeSemitones = 0;
 
     // ── Sight reading ─────────────────────────────────────────────────────
     int  lowMidi      = 69;

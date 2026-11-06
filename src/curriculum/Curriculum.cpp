@@ -77,7 +77,7 @@ Module buildWarmUp() {
         "que é o que a maioria dos músicos de orquestra dedica a isso.";
     module.accent    = 0;
     module.levelFrom = 1;
-    module.levelTo   = 4;
+    module.levelTo   = 2;
 
     // ── Long tones ────────────────────────────────────────────────────────
     for (int string = 0; string < 4; ++string) {
@@ -188,13 +188,13 @@ Module buildWarmUp() {
         Recipe recipe;
         recipe.string       = string;
         recipe.noteQuarters = 4.0;
-        recipe.repeats      = 2;
+        recipe.repeats      = 1;
         recipe.fifths       = 0;
 
         auto exercise = make(
             std::string("warmup.tonalize.") + kStringId[string],
             "Tonalização - corda " + stringName(string),
-            "Corda solta, depois as notas que ressoam com ela",
+            "Sem bordão: a corda solta é a referência",
             "Ressonância, som bonito",
             "Suzuki chamava isto de tonalização e colocava antes de toda aula. "
             "Toque a corda solta, escute, e depois iguale aquele som na nota "
@@ -203,7 +203,6 @@ Module buildWarmUp() {
             2, 48, ExerciseKind::RingTone, recipe);
         exercise.source =
             "Tonalização, Shinichi Suzuki - o estudo diário de som do método.";
-        exercise.droneMidi = score::kOpenStringMidi[string];
         module.exercises.push_back(std::move(exercise));
     }
 
@@ -268,7 +267,7 @@ Module buildBowing() {
          "anterior ainda está soando.",
          BowPattern::Slur8, 0.5, 5, 60},
 
-        {"slur12", "Doze por arcada", "Uma arcada por oitava",
+        {"slur12", "Doze por arcada", "Doze notas numa arcada só",
          "Economia de arco no limite",
          "Não tem arco suficiente, e essa é a lição. Diminua a velocidade do "
          "arco e leve-o para perto do cavalete para o som não morrer no fim.",
@@ -301,32 +300,39 @@ Module buildBowing() {
         module.exercises.push_back(std::move(exercise));
     }
 
-    // Repeated-note studies on one pitch, so only the bow can be wrong.
-    static constexpr int kRhythmStudies[] = {0, 1, 7, 4};
-    static constexpr const char* kRhythmHow[] = {
-        "Arcadas inteiras, uma por nota. A coisa mais simples do instrumento e "
-        "a que mais vale a pena ser chato.",
-        "Colcheias no meio do arco. Mantenha o golpe curto o bastante para o "
-        "braço nunca ter que correr.",
-        "Semicolcheias. Vá para a metade superior e deixe o pulso trabalhar; "
-        "se o braço inteiro se mexe, as notas não ficam iguais.",
-        "Ritmo pontuado. A nota curta é um piparote, não uma arcada - ela toma "
-        "tempo emprestado da longa e não devolve nada.",
+    // Repeated-note studies on one pitch, so only the bow can be wrong. Each
+    // sits on its own string and part of the bow, because the Rhythm module
+    // already drills the same patterns on the open A.
+    struct StrokeEntry { int pattern; int tonicMidi; int level; int bpm;
+                         const char* subtitle; const char* howTo; };
+    static constexpr StrokeEntry kStrokes[] = {
+        {0, 62, 1, 60, "Ré solto, o arco inteiro",
+         "Arcadas inteiras, uma por nota. A coisa mais simples do instrumento e "
+         "a que mais vale a pena ser chato."},
+        {1, 55, 2, 72, "Sol solto, no meio do arco",
+         "Colcheias no meio do arco. Mantenha o golpe curto o bastante para o "
+         "braço nunca ter que correr."},
+        {4, 62, 4, 60, "Ré solto, nota longa e piparote",
+         "Ritmo pontuado. A nota curta é um piparote, não uma arcada - ela toma "
+         "tempo emprestado da longa e não devolve nada."},
+        {7, 76, 5, 66, "Mi solto, na metade superior",
+         "Semicolcheias. Vá para a metade superior e deixe o pulso trabalhar; "
+         "se o braço inteiro se mexe, as notas não ficam iguais."},
     };
 
-    for (std::size_t i = 0; i < std::size(kRhythmStudies); ++i) {
+    for (const auto& stroke : kStrokes) {
         Recipe recipe;
-        recipe.tonicMidi = 69;
-        recipe.pattern   = kRhythmStudies[i];
+        recipe.tonicMidi = stroke.tonicMidi;
+        recipe.pattern   = stroke.pattern;
         recipe.repeats   = 4;
         recipe.fifths    = 0;
 
         auto exercise = make(
-            std::string("bowing.stroke.") + std::to_string(kRhythmStudies[i]),
-            std::string("Estudo de golpe - ") + rhythmName(kRhythmStudies[i]),
-            "Lá solto, para nada além do arco poder estar errado",
+            std::string("bowing.stroke.") + std::to_string(stroke.pattern),
+            std::string("Estudo de golpe - ") + rhythmName(stroke.pattern),
+            stroke.subtitle,
             "Divisão do arco, regularidade",
-            kRhythmHow[i], static_cast<int>(i) + 1, 72,
+            stroke.howTo, stroke.level, stroke.bpm,
             ExerciseKind::Rhythm, recipe);
         exercise.source = "Estudos de arco em cordas soltas.";
         exercise.metronome = true;
@@ -474,6 +480,7 @@ Module buildScales() {
     }
 
     // ── Two octaves ───────────────────────────────────────────────────────
+    static constexpr int kFirstPositionTopMidi = 83;
     static constexpr KeyEntry kTwoOctave[] = {
         {55, 3}, {57, 4}, {58, 4}, {60, 4}, {62, 5}, {63, 5}, {64, 5}, {65, 6},
     };
@@ -487,15 +494,25 @@ Module buildScales() {
         recipe.noteQuarters = 0.5;
         recipe.bow          = BowPattern::Slur4;
 
+        const bool staysInFirstPosition = entry.midi + 24 <= kFirstPositionTopMidi;
+
         auto exercise = make(
             std::string("scales.2oct.") + std::to_string(entry.midi),
             keyLabel(entry.midi, recipe.fifths) + " maior - duas oitavas",
-            "Quatro por arcada, uma mudança de posição em cada sentido",
-            "Mudar de posição dentro de uma ligadura",
-            "A mudança acontece embaixo de uma ligadura, então ela não pode "
-            "ser encoberta por uma troca de arco. Estude a mudança sozinha "
-            "primeiro: dedo antigo até a nota nova, mesma corda, sem arco, até "
-            "cair sem escorregão.",
+            staysInFirstPosition
+                ? "Quatro por arcada, tudo na primeira posição"
+                : "Quatro por arcada, com mudança de posição na subida e na descida",
+            staysInFirstPosition
+                ? "Trocar de corda dentro de uma ligadura"
+                : "Mudar de posição dentro de uma ligadura",
+            staysInFirstPosition
+                ? "As quatro cordas sem sair da primeira posição. A troca de corda "
+                  "acontece embaixo de uma ligadura: leve o braço para o novo "
+                  "nível um pouco antes da nota, sem acento na passagem."
+                : "A mudança acontece embaixo de uma ligadura, então ela não pode "
+                  "ser encoberta por uma troca de arco. Estude a mudança sozinha "
+                  "primeiro: dedo antigo até a nota nova, mesma corda, sem arco, até "
+                  "cair sem escorregão.",
             entry.level, 60, ExerciseKind::Scale, recipe);
         exercise.source = "Escalas de duas oitavas, a partir do Flesch, Scale System.";
         exercise.droneMidi = entry.midi - 12;
@@ -643,7 +660,7 @@ Module buildIntonation() {
         "rápidos e mais transferíveis do que ler um ponteiro.";
     module.accent    = 0;
     module.levelFrom = 1;
-    module.levelTo   = 8;
+    module.levelTo   = 6;
 
     // ── Ring tones, per string ────────────────────────────────────────────
     for (int string = 0; string < 4; ++string) {
@@ -793,7 +810,7 @@ Module buildReading() {
          "Velocidade com precisão"},
         {"full.5", "Três bemóis, saltos largos",   -3, 55, 86, 3, 16, 8, 72,
          "Tonalidades com bemol em velocidade"},
-        {"full.6", "Quatro sustenidos, terceira posição", 4, 62, 91, 3, 16, 9, 76,
+        {"full.6", "Quatro sustenidos, terceira posição", 4, 62, 88, 3, 16, 9, 76,
          "Ler acima da primeira posição"},
     };
 
@@ -829,11 +846,11 @@ Module buildReading() {
     struct NamingEntry { const char* id; const char* title; int fifths;
                          int low; int high; int level; };
     static constexpr NamingEntry kNaming[] = {
-        {"name.a", "Nomeie a nota - corda Lá",  3, 69, 78, 1},
-        {"name.d", "Nomeie a nota - corda Ré",  2, 62, 71, 1},
-        {"name.g", "Nomeie a nota - corda Sol", 1, 55, 64, 2},
-        {"name.e", "Nomeie a nota - corda Mi",  4, 76, 88, 2},
-        {"name.all", "Nomeie a nota - em qualquer lugar", 0, 55, 88, 3},
+        {"name.a", "Nomeie a nota - corda Lá",  3, 69, 76, 1},
+        {"name.d", "Nomeie a nota - corda Ré",  2, 62, 69, 1},
+        {"name.g", "Nomeie a nota - corda Sol", 1, 55, 62, 2},
+        {"name.e", "Nomeie a nota - corda Mi",  4, 76, 83, 2},
+        {"name.all", "Nomeie a nota - em qualquer lugar", 0, 55, 83, 3},
     };
 
     for (const auto& entry : kNaming) {
@@ -877,7 +894,7 @@ Module buildRhythm() {
         "não só que está errado.";
     module.accent    = 1;
     module.levelFrom = 1;
-    module.levelTo   = 6;
+    module.levelTo   = 5;
 
     struct RhythmEntry { int pattern; int level; int bpm; const char* focus;
                          const char* howTo; };
@@ -905,14 +922,14 @@ Module buildRhythm() {
          "Três notas iguais por tempo. Alterne com o exercício de colcheias "
          "para sentir o quanto são diferentes; sozinhas, elas derivam para um "
          "ritmo pontuado."},
-        {7, 5, 60, "Semicolcheias",
+        {7, 5, 66, "Semicolcheias",
          "Quatro por tempo, metade superior do arco. Regularidade primeiro, "
          "velocidade depois."},
-        {8, 2, 72, "O primeiro ritmo de Suzuki",
+        {8, 2, 60, "O primeiro ritmo de Suzuki",
          "Quatro semicolcheias e duas colcheias - o padrão que Suzuki põe na "
          "frente de todo iniciante antes de qualquer melodia. Semicolcheias "
          "destacadas, colcheias em staccato."},
-        {9, 3, 72, "Longa, curta-curta",
+        {9, 3, 60, "Longa, curta-curta",
          "A terceira variação do Twinkle. A longa vale meio tempo inteiro e as "
          "duas curtas dividem a outra metade; quase todo mundo dá pouco tempo "
          "para a longa."},
@@ -990,7 +1007,7 @@ Module buildSuzuki() {
                        "tocar o tema."
                      : " As notas são as que você já conhece, então toda a "
                        "atenção fica livre para o arco."),
-            isTheme ? 2 : 1, isTheme ? 84 : 76, ExerciseKind::Piece, recipe);
+            isTheme ? 2 : 1, isTheme ? 84 : 60, ExerciseKind::Piece, recipe);
         exercise.source =
             "Ritmo conforme as variações do Livro 1 de Suzuki; a melodia é "
             "'Ah! vous dirai-je, maman', francesa, 1761, domínio público.";
@@ -1137,12 +1154,15 @@ Module buildRepertoire() {
         "CC0 para assets/songs, e abra pela Biblioteca.";
     module.accent    = 2;
     module.levelFrom = 1;
-    module.levelTo   = 5;
+    module.levelTo   = 6;
 
-    static constexpr int kLevels[] = {2, 3, 3, 2, 1, 1, 2, 3, 5};
+    static constexpr int kTwinklePieceIndex        = 0;
+    static constexpr int kTwinkleToDMajorSemitones = -7;
+    static constexpr int kDMajorFifths             = 2;
+    static constexpr int kLevels[] = {2, 3, 3, 2, 1, 1, 2, 3, 5, 4, 6};
     static const char* kHowTo[] = {
-        "A melodia inteira fica nas cordas Lá e Mi. Toque uma vez escutando "
-        "apenas as mudanças de corda.",
+        "Aqui em Ré maior, nas cordas Ré e Lá; no Método Suzuki ela aparece em "
+        "Lá maior. Toque uma vez escutando apenas as mudanças de corda.",
         "A primeira melodia que sobe até a corda Mi e volta. Mantenha o nível "
         "do braço andando à frente do arco.",
         "Quase tudo por graus conjuntos, então qualquer nota errada é um dedo "
@@ -1154,12 +1174,16 @@ Module buildRepertoire() {
         "repetidas soarem idênticas.",
         "A primeira melodia que qualquer um toca. A troca de semínimas para "
         "colcheias no terceiro compasso é o exercício inteiro.",
-        "Quatro notas repetidas logo no começo. Se alguma soar mais forte que "
+        "Três notas repetidas logo no começo. Se alguma soar mais forte que "
         "as outras, o arco está trocando de direção com acento.",
         "Notas repetidas rápidas na ponta do arco. Mantenha o golpe curto.",
         "Três tempos por compasso, o que obriga o arco a planejar. Bach "
         "escreve a frase por cima da barra de compasso, então não respire em "
         "toda barra.",
+        "Começa antes do primeiro compasso: conte os dois tempos de silêncio e "
+        "entre no terceiro. A nota longa do meio pede arco guardado.",
+        "Seis por oito, em Lá menor, com o Sol sustenido da cadência. Reja em "
+        "dois tempos e deixe a colcheia pontuada puxar a semicolcheia.",
     };
 
     for (int index = 0; index < pieceCount(); ++index) {
@@ -1174,9 +1198,18 @@ Module buildRepertoire() {
         recipe.beats      = piece->beats;
         recipe.beatUnit   = piece->beatUnit;
 
+        std::string title = piece->title;
+        // The Suzuki module drills this tune in A; here it is the same melody
+        // on the D and A strings, so the two entries are not one exercise twice.
+        if (index == kTwinklePieceIndex) {
+            recipe.transposeSemitones = kTwinkleToDMajorSemitones;
+            recipe.fifths             = kDMajorFifths;
+            title += " em Ré maior";
+        }
+
         auto exercise = make(
             std::string("repertoire.") + std::to_string(index),
-            piece->title, piece->composer, "Tocar uma melodia",
+            std::move(title), piece->composer, "Tocar uma melodia",
             kHowTo[std::min<std::size_t>(static_cast<std::size_t>(index),
                                          std::size(kHowTo) - 1)],
             kLevels[std::min<std::size_t>(static_cast<std::size_t>(index),

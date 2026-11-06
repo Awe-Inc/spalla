@@ -72,11 +72,17 @@ export function LiveClock({ live }: { live: LiveSource }) {
   return clock === null ? null : <span className="font-mono tabular">{clock} s</span>;
 }
 
-export function LiveRunPanel({ score, live }: { score: Score; live: LiveSource }) {
+export function LiveRunPanel({ score, live, fromMemory }: { score: Score; live: LiveSource; fromMemory: boolean }) {
   return (
     <section className="grid gap-6" aria-label="Nota atual">
-      <ScoreView score={score} {...START_FRAME} live={live} />
-      <NowPlaying score={score} live={live} />
+      {fromMemory ? (
+        <p className="text-center text-body text-ink-muted">De memória: a pauta fica escondida até o fim da passada.</p>
+      ) : (
+        <>
+          <ScoreView score={score} {...START_FRAME} live={live} />
+          <NowPlaying score={score} live={live} />
+        </>
+      )}
       <LiveCombo live={live} />
       <LiveStats score={score} live={live} />
     </section>

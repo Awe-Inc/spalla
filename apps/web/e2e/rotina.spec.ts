@@ -13,6 +13,7 @@ test("uma peça da biblioteca entra na rotina e aparece na sessão de hoje", asy
   );
 
   await page.goto("/repertorio");
+  await page.getByRole("searchbox", { name: "Buscar por título ou compositor" }).fill(LIBRARY_TITLE);
   await page.getByRole("link", { name: LIBRARY_TITLE, exact: true }).click();
   await page.waitForURL(/\/repertorio\/peca\/biblioteca\//);
   const slug = new URL(page.url()).pathname.split("/").at(-1)!;

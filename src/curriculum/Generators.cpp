@@ -365,8 +365,13 @@ void buildPieceInto(ScoreBuilder& builder, const Recipe& recipe) {
     if (variation == 0) {
         applyBow(builder, recipe.bow);
         for (std::size_t i = 0; i < piece->count; ++i) {
-            builder.note(piece->notes[i].midi,
-                         static_cast<double>(piece->notes[i].quarters));
+            const PieceNote& note = piece->notes[i];
+            const auto quarters = static_cast<double>(note.quarters);
+            if (note.midi < 0) {
+                builder.rest(quarters);
+                continue;
+            }
+            builder.note(note.midi + recipe.transposeSemitones, quarters);
         }
         builder.fillBar();
         return;
@@ -664,7 +669,7 @@ score::Score buildScore(const Exercise& exercise, std::uint32_t seed) {
             if (piece != nullptr) {
                 builder.composer(piece->composer)
                        .meter(piece->beats, piece->beatUnit)
-                       .key(piece->fifths);
+                       .key(recipe.transposeSemitones != 0 ? recipe.fifths : piece->fifths);
             }
             buildPieceInto(builder, recipe);
             break;

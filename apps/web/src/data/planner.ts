@@ -1,6 +1,7 @@
 import type { Exercise } from "@fretless/core";
 
 import type { BlockKind, ExerciseResult, LessonTask, Routine, RoutineBlock } from "./db";
+import { estimatedPieceSeconds, libraryPlayPath, libraryResultId, type LibraryPiece } from "./library";
 import { goalProgress, type GoalProgress } from "./repetitions";
 import { BLOCK_KINDS, BLOCK_VARIATIONS, goalFor, pinnedItem, type RoutineItem } from "./routines";
 import { daySeed, pickSeeded, rankBySpacing } from "./spaced";
@@ -10,10 +11,17 @@ export const REVIEW_WEAK_ACCURACY_PCT = 70;
 export const LEVEL_LOOKAHEAD = 1;
 export const STUCK_NEW_PIECE_DAYS = 4;
 export const CLASS_BLOCK_MINUTES = 5;
+export const LEVEL_MASTERY_SHARE = 1 / 3;
+export const LEVEL_MASTERY_MINIMUM = 2;
+export const LIBRARY_TOP_TEMPO_FACTOR = 1.5;
+
+const SECONDS_PER_MINUTE = 60;
+
+export type PlannableExercise = Pick<Exercise, "id" | "title" | "level" | "kind" | "playable" | "maxBpm">;
 
 export interface PlannedBlock {
   block: RoutineBlock;
-  exercise: Exercise | null;
+  exercise: PlannableExercise | null;
   item: RoutineItem | null;
   reason: string;
   variation: string | null;
@@ -37,6 +45,7 @@ export interface ClassTaskItem {
 export interface PlannerInput {
   routine: Routine;
   exercises: readonly Exercise[];
+  library?: readonly LibraryPiece[];
   best: ReadonlyMap<string, ExerciseResult>;
   latest: ReadonlyMap<string, ExerciseResult>;
   lessonTasks: readonly LessonTask[];
@@ -48,16 +57,43 @@ export interface PlannerInput {
   day: string;
 }
 
-export function studentLevel(exercises: readonly Exercise[], best: ReadonlyMap<string, ExerciseResult>): number {
-  const reached = exercises.filter((exercise) => (best.get(exercise.id)?.stars ?? 0) >= 2).map((exercise) => exercise.level);
-  return reached.length === 0 ? 1 : Math.max(...reached);
+function masteredToReach(playableInLevel: number): number {
+  return Math.min(playableInLevel, Math.max(LEVEL_MASTERY_MINIMUM, Math.ceil(playableInLevel * LEVEL_MASTERY_SHARE)));
 }
 
-function withinReach(exercise: Exercise, level: number): boolean {
+export function studentLevel(exercises: readonly Exercise[], best: ReadonlyMap<string, ExerciseResult>): number {
+  const tally = new Map<number, { playable: number; mastered: number }>();
+  for (const exercise of exercises) {
+    if (!exercise.playable) continue;
+    const count = tally.get(exercise.level) ?? { playable: 0, mastered: 0 };
+    const mastered = (best.get(exercise.id)?.stars ?? 0) >= 2 ? 1 : 0;
+    tally.set(exercise.level, { playable: count.playable + 1, mastered: count.mastered + mastered });
+  }
+  const reached = [...tally].filter(([, count]) => count.mastered >= masteredToReach(count.playable)).map(([level]) => level);
+  return Math.max(1, ...reached);
+}
+
+function withinReach(exercise: PlannableExercise, level: number): boolean {
   return exercise.playable && exercise.level <= level + LEVEL_LOOKAHEAD;
 }
 
-function pickReview(candidates: readonly Exercise[], input: PlannerInput, used: ReadonlySet<string>): { exercise: Exercise; reason: string } | null {
+function libraryExercise(piece: LibraryPiece): PlannableExercise {
+  return {
+    id: libraryResultId(piece.slug),
+    title: piece.title,
+    level: piece.level,
+    kind: "piece",
+    playable: true,
+    maxBpm: Math.round(piece.beatsPerMinute * LIBRARY_TOP_TEMPO_FACTOR),
+  };
+}
+
+function libraryCandidates(block: RoutineBlock, input: PlannerInput): PlannableExercise[] {
+  if (!BLOCK_KINDS[block.type].includes("piece")) return [];
+  return (input.library ?? []).filter((piece) => estimatedPieceSeconds(piece) <= block.durationMinutes * SECONDS_PER_MINUTE).map(libraryExercise);
+}
+
+function pickReview(candidates: readonly PlannableExercise[], input: PlannerInput, used: ReadonlySet<string>): { exercise: PlannableExercise; reason: string } | null {
   const played = candidates.filter((exercise) => input.latest.has(exercise.id) && !used.has(exercise.id));
   const weak = played.filter((exercise) => (input.latest.get(exercise.id)?.accuracyPct ?? 100) < REVIEW_WEAK_ACCURACY_PCT);
   if (weak.length > 0) {
@@ -70,31 +106,35 @@ function pickReview(candidates: readonly Exercise[], input: PlannerInput, used: 
   return chosen ? { exercise: chosen, reason: "Está na hora de revisitar." } : null;
 }
 
-function pickNew(candidates: readonly Exercise[], input: PlannerInput, used: ReadonlySet<string>): { exercise: Exercise; reason: string } | null {
+function isFromLibrary(exercise: PlannableExercise): boolean {
+  return libraryPlayPath(exercise.id) !== null;
+}
+
+function pickNew(candidates: readonly PlannableExercise[], input: PlannerInput, used: ReadonlySet<string>): { exercise: PlannableExercise; reason: string } | null {
   const fresh = candidates
     .filter((exercise) => !used.has(exercise.id) && isUnfinished(exercise, input))
-    .sort((a, b) => Number(isStuck(a, input)) - Number(isStuck(b, input)) || a.level - b.level || (input.best.has(a.id) ? -1 : 1));
+    .sort((a, b) => Number(isStuck(a, input)) - Number(isStuck(b, input)) || Number(isFromLibrary(a)) - Number(isFromLibrary(b)) || a.level - b.level || Number(input.best.has(b.id)) - Number(input.best.has(a.id)));
   const chosen = fresh[0];
   if (!chosen) return null;
   const reason = isStuck(chosen, input) ? "Voltou do rodízio: tente de novo com calma." : input.best.has(chosen.id) ? "Ainda sem duas estrelas." : "Novidade do dia.";
   return { exercise: chosen, reason };
 }
 
-function isUnfinished(exercise: Exercise, input: PlannerInput): boolean {
+function isUnfinished(exercise: PlannableExercise, input: PlannerInput): boolean {
   return (input.best.get(exercise.id)?.stars ?? 0) < 2;
 }
 
-function isStuck(exercise: Exercise, input: PlannerInput): boolean {
+function isStuck(exercise: PlannableExercise, input: PlannerInput): boolean {
   return (input.triedDays?.get(exercise.id) ?? 0) >= STUCK_NEW_PIECE_DAYS;
 }
 
-function belongsToBlock(exercise: Exercise, block: RoutineBlock, input: PlannerInput): boolean {
+function belongsToBlock(exercise: PlannableExercise, block: RoutineBlock, input: PlannerInput): boolean {
   if (block.type === "revisao") return input.latest.has(exercise.id);
   if (block.type === "peca-nova") return isUnfinished(exercise, input);
   return true;
 }
 
-function pickSpaced(candidates: readonly Exercise[], input: PlannerInput, used: ReadonlySet<string>): { exercise: Exercise; reason: string } | null {
+function pickSpaced(candidates: readonly PlannableExercise[], input: PlannerInput, used: ReadonlySet<string>): { exercise: PlannableExercise; reason: string } | null {
   const free = candidates.filter((exercise) => !used.has(exercise.id));
   const ranked = rankBySpacing(free, input.best, input.latest, input.now);
   const top = ranked.filter((entry) => entry.priority === ranked[0]?.priority).map((entry) => entry.item);
@@ -104,13 +144,13 @@ function pickSpaced(candidates: readonly Exercise[], input: PlannerInput, used: 
   return { exercise: chosen, reason: stars === 0 ? "Primeira vez." : `${stars} de 3 estrelas.` };
 }
 
-function targetBpmFor(exercise: Exercise, best: ExerciseResult | undefined): number | null {
+function targetBpmFor(exercise: PlannableExercise, best: ExerciseResult | undefined): number | null {
   if (!best || best.stars < 2) return null;
   const next = Math.min(exercise.maxBpm, best.bpm + DELIBERATE_BPM_STEP);
   return next > best.bpm ? next : null;
 }
 
-function blockKindFor(exercise: Exercise): BlockKind | null {
+function blockKindFor(exercise: PlannableExercise): BlockKind | null {
   return (Object.keys(BLOCK_KINDS) as BlockKind[]).find((kind) => BLOCK_KINDS[kind].includes(exercise.kind)) ?? null;
 }
 
@@ -136,8 +176,8 @@ function extraClassBlocks(input: PlannerInput, used: Set<string>): PlannedBlock[
   });
 }
 
-function exerciseItem(exercise: Exercise): RoutineItem {
-  return { id: exercise.id, title: exercise.title, playPath: `/tocar/${exercise.id}` };
+function exerciseItem(exercise: PlannableExercise): RoutineItem {
+  return { id: exercise.id, title: exercise.title, playPath: libraryPlayPath(exercise.id) ?? `/tocar/${exercise.id}` };
 }
 
 const PICK_ORDER: readonly BlockKind[] = ["revisao", "peca-nova"];
@@ -186,7 +226,7 @@ export function planSession(input: PlannerInput): PlannedBlock[] {
     const lessonTask = openTasks.find((task) => task.blockType === block.type && task.itemId && !used.has(task.itemId));
     const lessonExercise = lessonTask ? input.exercises.find((exercise) => exercise.id === lessonTask.itemId) : undefined;
     const lessonNote = openTasks.find((task) => task.blockType === block.type && !task.itemId);
-    const candidates = input.exercises.filter((exercise) => BLOCK_KINDS[block.type].includes(exercise.kind) && withinReach(exercise, level) && !input.skipped?.has(exercise.id));
+    const candidates = [...input.exercises.filter((exercise) => BLOCK_KINDS[block.type].includes(exercise.kind)), ...libraryCandidates(block, input)].filter((exercise) => withinReach(exercise, level) && !input.skipped?.has(exercise.id));
 
     const playedExercise = candidates.find((exercise) => input.playedToday.has(exercise.id) && !used.has(exercise.id) && belongsToBlock(exercise, block, input));
 

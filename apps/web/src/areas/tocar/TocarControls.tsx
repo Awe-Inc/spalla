@@ -17,9 +17,11 @@ interface TocarControlsProps {
   loop: MeasureRange | null;
   droneOn: boolean;
   droneLabel: string;
+  fromMemory: boolean;
   onBpm: (bpm: number) => void;
   onLoop: (range: MeasureRange | null) => void;
   onDrone: (on: boolean) => void;
+  onFromMemory: (on: boolean) => void;
 }
 
 const SUBDIVISIONS: { value: Subdivision; label: string }[] = [
@@ -34,7 +36,7 @@ const toggleClass =(on: boolean) =>
     on ? "bg-primary text-on-primary" : "bg-surface-soft text-ink-muted hover:text-ink"
   }`;
 
-export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, droneOn, droneLabel, onBpm, onLoop, onDrone }: TocarControlsProps) {
+export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, droneOn, droneLabel, fromMemory, onBpm, onLoop, onDrone, onFromMemory }: TocarControlsProps) {
   const prefs = useSettings();
   const first = loop?.firstIndex ?? 0;
   const last = loop?.lastIndex ?? fullMeasureCount - 1;
@@ -77,6 +79,9 @@ export function TocarControls({ score, fullMeasureCount, limits, bpm, loop, dron
             onClick={() => prefs.setPracticeAudio({ autoSlowdown: !prefs.autoSlowdown })}
           >
             Diminuir ao errar
+          </button>
+          <button type="button" aria-pressed={fromMemory} title="Esconde a pauta durante a passada e vale para a maestria Memória" className={toggleClass(fromMemory)} onClick={() => onFromMemory(!fromMemory)}>
+            De memória
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Vista">

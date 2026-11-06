@@ -7,7 +7,10 @@ export const SUZUKI_TWINKLE_ID = "suzuki.twinkle.0";
 export const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30] as const;
 export const LONGEST_REVIEW_INTERVAL_DAYS = 30;
 
+export const SUZUKI_DAILY_REVIEW_CAP = 5;
+
 const DAY_MS = 86_400_000;
+const CONTINUES_THE_PIECE = /^\s*(K\.|de\s)/;
 const TWINKLE_PIECE = "variacoes do twinkle";
 
 export interface SuzukiPiece {
@@ -30,16 +33,16 @@ export function splitBookPieces(source: string): string[] {
   const pieces: string[] = [];
   let depth = 0;
   let current = "";
-  for (const char of source) {
+  [...source].forEach((char, index, chars) => {
     if (char === "(") depth += 1;
     if (char === ")") depth = Math.max(0, depth - 1);
-    if (char === "," && depth === 0) {
+    if (char === "," && depth === 0 && !CONTINUES_THE_PIECE.test(chars.slice(index + 1).join(""))) {
       pieces.push(current);
       current = "";
     } else {
       current += char;
     }
-  }
+  });
   pieces.push(current);
   return pieces.map((piece) => piece.trim().replace(/\.$/, "")).filter((piece) => piece.length > 0);
 }
@@ -94,6 +97,15 @@ export function dueReviews(pieces: readonly StoredSuzukiPiece[], today: string):
   return pieces.filter((piece) => isReviewDue(piece, today)).sort((a, b) => nextReviewDay(a).localeCompare(nextReviewDay(b)) || a.book - b.book);
 }
 
+export function reviewsDoneToday(pieces: readonly StoredSuzukiPiece[], today: string): number {
+  return pieces.filter((piece) => piece.lastReviewedAt !== piece.learnedAt && localDayKey(new Date(piece.lastReviewedAt)) === today).length;
+}
+
+export function reviewsForToday(pieces: readonly StoredSuzukiPiece[], today: string): StoredSuzukiPiece[] {
+  const room = Math.max(0, SUZUKI_DAILY_REVIEW_CAP - reviewsDoneToday(pieces, today));
+  return dueReviews(pieces, today).slice(0, room);
+}
+
 export function pieceStatus(stored: StoredSuzukiPiece | undefined, today: string): SuzukiPieceStatus {
   if (!stored) return "nova";
   return isReviewDue(stored, today) ? "revisar-hoje" : "em-revisao";
@@ -111,6 +123,10 @@ export function reviewedPiece(piece: StoredSuzukiPiece, now: number): StoredSuzu
   return { ...piece, lastReviewedAt: now, reviewCount: piece.reviewCount + 1 };
 }
 
+export function lapsedPiece(piece: StoredSuzukiPiece, now: number): StoredSuzukiPiece {
+  return { ...piece, lastReviewedAt: now, reviewCount: 0 };
+}
+
 export async function markLearned(book: number, name: string, now = Date.now()): Promise<void> {
   await db.suzukiPieces.put(learnedPiece(book, name, now));
 }
@@ -118,6 +134,11 @@ export async function markLearned(book: number, name: string, now = Date.now()):
 export async function markReviewed(key: string, now = Date.now()): Promise<void> {
   const piece = await db.suzukiPieces.get(key);
   if (piece) await db.suzukiPieces.put(reviewedPiece(piece, now));
+}
+
+export async function markLapsed(key: string, now = Date.now()): Promise<void> {
+  const piece = await db.suzukiPieces.get(key);
+  if (piece) await db.suzukiPieces.put(lapsedPiece(piece, now));
 }
 
 export async function unmarkLearned(key: string): Promise<void> {

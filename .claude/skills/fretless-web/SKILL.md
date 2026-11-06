@@ -17,7 +17,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (120 cases) + vitest core (14) + vitest web (458); API: 44 em apps/api
+pnpm test                          # WASM harness (159 cases) + vitest core (15) + vitest web (651); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e:aulas   # professora + admin + aluno in three contexts against a throwaway API
                                    # on 3410 (PGlite temp) and vite on 4180; muted; see docs/testes.md (~45 s)
@@ -510,3 +510,16 @@ send never post the same results twice. The session planner (`planSession`) assi
   mesmo jeito. Causa: o pnpm 12 recusa script não decidido em `allowBuilds`. Regra: dependência nova com `postinstall`
   entra em `allowBuilds` do `pnpm-workspace.yaml` (`false` se o script só pede doação, como aqui), e publicar só conta
   como feito depois de ver o CI passar.
+- **Clique do 6/8 batia em cada colcheia** (06/11). Sintoma: em compasso composto o aluno ouvia seis cliques por
+  compasso em vez de dois. Causa: o pulso vinha do denominador. Regra: 6/8, 9/8 e 12/8 clicam na semínima pontuada
+  (`pulsesPerMeasure`, em `audio/clickTrack.ts`).
+- **Concerto do Suzuki virava três peças** (06/11). Sintoma: "K. 219" e "de Mozart" apareciam como peças soltas nos
+  livros 9 e 10. Causa: `splitBookPieces` cortava em toda vírgula. Regra: vírgula seguida de `K.` ou `de` continua a
+  peça; a versão 13 do banco junta o que já estava partido, e `restoreBackup` chama o mesmo `joinSplitConcertos`,
+  senão um backup antigo traz os pedaços de volta.
+- **Uma passada boa subia o nível do aluno** (06/11). Sintoma: o plano passava a escolher exercícios difíceis depois
+  de um exercício só do nível. Regra: `studentLevel` exige um terço do nível dominado, com no mínimo dois exercícios,
+  e `estimateLevel` no core segue a mesma conta.
+- **E2E que conta com a primeira página do catálogo quebra quando entra peça nova** (06/11). Sintoma: 4 specs falharam
+  depois do rebuild do WASM porque duas peças novas empurraram a canção usada no teste para fora das 20 primeiras.
+  Regra: o spec busca a peça no campo "Buscar por título ou compositor".

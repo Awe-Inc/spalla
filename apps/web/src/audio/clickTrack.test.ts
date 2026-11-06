@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Score } from "@fretless/core";
 import { buildClickTrack, clicksBetween, leadInClicks } from "./clickTrack";
 
-function scoreWithMeasures(beatsPerMeasure: number, measureSeconds: number, count: number): Score {
+function scoreWithMeasures(beatsPerMeasure: number, measureSeconds: number, count: number, beatUnit = 4): Score {
   const measures = Array.from({ length: count }, (_, index) => ({
     startQuarters: index * beatsPerMeasure,
     startSeconds: index * measureSeconds,
@@ -10,7 +10,7 @@ function scoreWithMeasures(beatsPerMeasure: number, measureSeconds: number, coun
     lengthQuarters: beatsPerMeasure,
     number: index + 1,
     beats: beatsPerMeasure,
-    beatUnit: 4,
+    beatUnit,
     beatOffset: 0,
   }));
   return { measures } as unknown as Score;
@@ -22,6 +22,22 @@ describe("buildClickTrack", () => {
     expect(track).toHaveLength(8);
     expect(track.filter((click) => click.kind === "downbeat").map((click) => click.timeSec)).toEqual([0, 2]);
     expect(track[1]).toEqual({ timeSec: 0.5, kind: "beat" });
+  });
+
+  it("clicks a 6/8 bar on its two dotted quarters, not on six eighths", () => {
+    const track = buildClickTrack(scoreWithMeasures(6, 3, 1, 8), 1, 0);
+    expect(track).toEqual([
+      { timeSec: 0, kind: "downbeat" },
+      { timeSec: 1.5, kind: "beat" },
+    ]);
+  });
+
+  it("keeps a 3/8 bar on its three eighths", () => {
+    expect(buildClickTrack(scoreWithMeasures(3, 1.5, 1, 8), 1, 0)).toHaveLength(3);
+  });
+
+  it("counts a 6/8 lead-in in dotted quarters too", () => {
+    expect(leadInClicks(scoreWithMeasures(6, 3, 1, 8), 3).map((click) => click.timeSec)).toEqual([-3, -1.5]);
   });
 
   it("adds subdivisions between beats", () => {

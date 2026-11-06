@@ -221,6 +221,16 @@ rest breaks the group and resets the counter — you cannot slur across silence.
 `BowPattern::Acceleration` is special-cased in `buildScaleInto`: it runs the
 same pitches six times at 1, 2, 3, 4, 6 and 8 to a bow.
 
+## Armadilhas
+
+- **Au clair de la lune com salto de oitava que a melodia não tem** (06/11). Sintoma: a partitura saltava de Ré4 a
+  Dó#5 na descida. Regra: melodia só entra verificável, nota por nota; o teste
+  `au_clair_de_la_lune_descends_without_an_octave_leap_and_ends_on_its_tonic` limita o salto e confere a tônica final.
+- **Texto e faixa prometendo o que o exercício não faz** (06/11). Sintoma: módulo dizendo níveis que não tinha, nomeação
+  "na corda Mi" fora da corda, escala de 2 oitavas prometendo mudança sem precisar dela, exercícios duplicados com
+  nome diferente. Regra: `levelFrom` e `levelTo` são os níveis reais dos exercícios, título e subtítulo saem do conteúdo,
+  e os testes do bloco "Content that has to match what it claims" em `tests/test_curriculum.cpp` cobram isso.
+
 ## Where the musical decisions are explained
 
 The *why* behind the content — the Suzuki sequence, the scale ladder, ringing

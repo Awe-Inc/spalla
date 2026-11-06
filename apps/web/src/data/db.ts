@@ -1,5 +1,5 @@
 import type { ScoreStructure } from "@/pdf/omr/structure";
-import Dexie, { type EntityTable } from "dexie";
+import Dexie, { type EntityTable, type Table } from "dexie";
 
 import type { StudentAnnouncement, StudentAssignment } from "@/api/types";
 
@@ -120,6 +120,13 @@ export interface StoredSheetFile {
 }
 
 export const DEFAULT_DAILY_GOAL_XP = 60;
+export const THREE_STARS_ACCURACY_PCT = 95;
+export const TWO_STARS_ACCURACY_PCT = 80;
+
+const SINGLE_CONCERTO_BOOKS: readonly (readonly [number, string])[] = [
+  [9, "Concerto para violino nº 5 em Lá maior, K. 219, de Mozart"],
+  [10, "Concerto para violino nº 4 em Ré maior, K. 218, de Mozart"],
+];
 
 export const DEFAULT_USER_STATS: UserStats = {
   key: "me",
@@ -259,6 +266,17 @@ export class FretlessDatabase extends Dexie {
           delete row.bytes;
         });
       });
+    this.version(13).upgrade((transaction) => joinSplitConcertos(transaction.table<StoredSuzukiPiece, string>("suzukiPieces")));
+  }
+}
+
+export async function joinSplitConcertos(pieces: Table<StoredSuzukiPiece, string>): Promise<void> {
+  for (const [book, name] of SINGLE_CONCERTO_BOOKS) {
+    const fragments = await pieces.where("book").equals(book).toArray();
+    const kept = fragments.reduce<StoredSuzukiPiece | null>((most, piece) => (!most || piece.reviewCount > most.reviewCount ? piece : most), null);
+    if (!kept) continue;
+    await pieces.bulkDelete(fragments.map((piece) => piece.key));
+    await pieces.put({ ...kept, key: `${book}:${name}`, name });
   }
 }
 
@@ -283,8 +301,8 @@ export function latestResultsByExercise(results: readonly ExerciseResult[]): Map
 }
 
 export function starsFor(accuracyPct: number, bpm: number, writtenBpm: number): 0 | 1 | 2 | 3 {
-  if (accuracyPct >= 95 && bpm >= writtenBpm) return 3;
-  if (accuracyPct >= 80) return 2;
+  if (accuracyPct >= THREE_STARS_ACCURACY_PCT && bpm >= writtenBpm) return 3;
+  if (accuracyPct >= TWO_STARS_ACCURACY_PCT) return 2;
   if (accuracyPct > 0) return 1;
   return 0;
 }

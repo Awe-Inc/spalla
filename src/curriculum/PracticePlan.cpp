@@ -1,6 +1,7 @@
 #include "fretless/curriculum/PracticePlan.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 
@@ -78,16 +79,42 @@ std::uint32_t todaySeed() {
 }
 
 int estimateLevel(const Curriculum& curriculum, const Progress& progress) {
-    int highest = 0;
+    // One lucky pass must not move a player up: a level counts once a third of
+    // what it asks for has been played well, and never on fewer than two
+    // exercises unless the level holds only one.
+    constexpr int kFirstLevel = 1;
+    constexpr int kLastLevel = 10;
+    constexpr int kExercisesPerMasteredShare = 3;
+    constexpr int kMinimumMastered = 2;
+
+    std::array<int, kLastLevel + 1> playable{};
+    std::array<int, kLastLevel + 1> mastered{};
     for (const auto& module : curriculum.modules) {
         for (const auto& exercise : module.exercises) {
+            if (!isPlayable(exercise.kind) || exercise.level < kFirstLevel ||
+                exercise.level > kLastLevel) {
+                continue;
+            }
+            const auto level = static_cast<std::size_t>(exercise.level);
+            ++playable[level];
             const ExerciseRecord* record = progress.find(exercise.id);
             if (record != nullptr && record->stars(exercise.defaultBpm) >= 2) {
-                highest = std::max(highest, exercise.level);
+                ++mastered[level];
             }
         }
     }
-    return std::clamp(highest + 1, 1, 10);
+
+    int highest = 0;
+    for (int level = kFirstLevel; level <= kLastLevel; ++level) {
+        const auto index = static_cast<std::size_t>(level);
+        const int share = (playable[index] + kExercisesPerMasteredShare - 1) /
+                          kExercisesPerMasteredShare;
+        const int needed = std::min(playable[index], std::max(kMinimumMastered, share));
+        if (needed > 0 && mastered[index] >= needed) {
+            highest = level;
+        }
+    }
+    return std::clamp(highest + 1, kFirstLevel, kLastLevel);
 }
 
 PracticePlan buildPracticePlan(const Curriculum& curriculum, const Progress& progress,

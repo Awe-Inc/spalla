@@ -60,7 +60,7 @@ O que o aluno sente toda vez que pega o violino.
 | A13 A20 | Worklet reaproveita o módulo WASM compilado; AudioContext suspenso em vez de recriado | M |
 | A17 A18 | Biblioteca distingue erro de rede de "não existe"; estado "sem conexão" nas áreas da API | M |
 
-## Fase 4 — Correções de conteúdo
+## Fase 4 — Correções de conteúdo — feita em 06/11
 Correções no currículo e no planner sem conteúdo novo. **Ids de exercício não mudam** (são a chave do progresso).
 
 | # | O quê | Esf. |

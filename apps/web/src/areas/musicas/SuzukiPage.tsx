@@ -7,9 +7,11 @@ import { db, localDayKey, type StoredSuzukiPiece } from "@/data/db";
 import {
   dueReviews,
   learnedCount,
+  markLapsed,
   markLearned,
   markReviewed,
   pieceStatus,
+  reviewsForToday,
   suzukiBooks,
   unmarkLearned,
   type SuzukiBook,
@@ -21,6 +23,7 @@ import { Badge, ChoiceChips, type BadgeTone } from "@/design/fields";
 import { List, ListRow, PageHeader, Section, SkeletonList } from "@/design/layout";
 
 import { RepertorioTabs } from "./RepertorioTabs";
+import { SuzukiReviewList, WorkTitle } from "./SuzukiReviewList";
 
 const BOOK_PARAM = "livro";
 
@@ -35,10 +38,6 @@ const STATUS_TONE: Record<SuzukiPieceStatus, BadgeTone> = {
   "em-revisao": "good",
   "revisar-hoje": "warn",
 };
-
-function WorkTitle({ children }: { children: string }) {
-  return <span className="font-display text-heading font-normal italic">{children}</span>;
-}
 
 interface PieceRowProps {
   book: number;
@@ -62,7 +61,13 @@ function PieceActions({ book, piece, status }: { book: number; piece: SuzukiPiec
           Revisei hoje
         </Button>
       ) : null}
-      <Menu label={`Ações de ${piece.name}`} items={[{ label: "Desfazer aprendida", onSelect: () => void unmarkLearned(piece.key) }]} />
+      <Menu
+        label={`Ações de ${piece.name}`}
+        items={[
+          { label: "Esqueci, voltar para amanhã", onSelect: () => void markLapsed(piece.key) },
+          { label: "Desfazer aprendida", onSelect: () => void unmarkLearned(piece.key) },
+        ]}
+      />
     </>
   );
 }
@@ -125,32 +130,15 @@ function BookView({ book, storedByKey, today }: { book: SuzukiBook; storedByKey:
   );
 }
 
-function ReviewToday({ due }: { due: readonly StoredSuzukiPiece[] }) {
-  if (due.length === 0) {
+function ReviewToday({ due, later }: { due: readonly StoredSuzukiPiece[]; later: number }) {
+  if (due.length === 0 && later === 0) {
     return (
       <p className="rounded-md bg-surface-sunken/60 px-4 py-3 text-small text-ink-muted ring-1 ring-inset ring-hairline">
         Nada para revisar hoje. Quando o professor passar uma peça, marque "Aprendi na aula" no livro dela.
       </p>
     );
   }
-  return (
-    <Section title="Revisão de hoje" description="Toque cada uma com o afinador aberto e marque quando terminar.">
-      <List label="Peças para revisar hoje">
-        {due.map((piece) => (
-          <ListRow
-            key={piece.key}
-            title={<WorkTitle>{piece.name}</WorkTitle>}
-            meta={`Livro ${piece.book}`}
-            trailing={
-              <Button variant="primary" onClick={() => void markReviewed(piece.key)} aria-label={`Revisei hoje: ${piece.name}`}>
-                Revisei hoje
-              </Button>
-            }
-          />
-        ))}
-      </List>
-    </Section>
-  );
+  return <SuzukiReviewList pieces={due} later={later} />;
 }
 
 function defaultBook(books: readonly SuzukiBook[], learnedKeys: ReadonlySet<string>): number | undefined {
@@ -162,6 +150,7 @@ export function SuzukiPage() {
   const stored = useLiveQuery(() => db.suzukiPieces.toArray(), []) ?? [];
   const [params, setParams] = useSearchParams();
   const today = localDayKey(new Date());
+  const forToday = reviewsForToday(stored, today);
   const books = core.status === "ready" ? suzukiBooks(core.core.exercises) : [];
   const storedByKey = new Map(stored.map((piece) => [piece.key, piece] as const));
   const requested = Number(params.get(BOOK_PARAM));
@@ -184,7 +173,7 @@ export function SuzukiPage() {
       <RepertorioTabs />
 
       <div className="grid gap-8">
-        <ReviewToday due={dueReviews(stored, today)} />
+        <ReviewToday due={forToday} later={dueReviews(stored, today).length - forToday.length} />
 
         {core.status !== "ready" ? <SkeletonList rows={4} label="Carregando os livros…" /> : null}
 

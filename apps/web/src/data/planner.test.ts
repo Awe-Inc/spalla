@@ -2,6 +2,7 @@ import type { Exercise, ExerciseKind } from "@fretless/core";
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseResult } from "./db";
+import type { LibraryPiece } from "./library";
 import { nextOpenBlock, planSession, sessionProgress, studentLevel, weakestBlock, type ClassTaskItem } from "./planner";
 import { runsByExercise } from "./repetitions";
 import { defaultRoutines, hasRepeatedNeighbours, withPinnedItem } from "./routines";
@@ -159,9 +160,73 @@ describe("planSession com tarefas da turma", () => {
 });
 
 describe("studentLevel", () => {
-  it("is the highest level with two stars, starting at one", () => {
-    expect(studentLevel(exercises, new Map())).toBe(1);
-    expect(studentLevel(exercises, new Map([["scale-2", result("scale-2", 2, 85, 1)]]))).toBe(3);
+  const twoStars = (...ids: string[]) => new Map(ids.map((id) => [id, result(id, 2, 85, 1)]));
+  const levelOne = ["a", "b", "c", "d", "e", "f"].map((id) => exercise(id, "scale"));
+
+  it("starts at one", () => {
+    expect(studentLevel(levelOne, new Map())).toBe(1);
+  });
+
+  it("does not move up on a single good exercise of a bigger level", () => {
+    const withLevelThree = [...levelOne, ...["x", "y", "z", "w"].map((id) => exercise(id, "scale", 3))];
+    expect(studentLevel(withLevelThree, twoStars("x"))).toBe(1);
+  });
+
+  it("asks for a third of the level, and never fewer than two", () => {
+    const withLevelThree = [...levelOne, ...["x", "y", "z", "w"].map((id) => exercise(id, "scale", 3))];
+    expect(studentLevel(withLevelThree, twoStars("x", "y"))).toBe(3);
+    expect(studentLevel(levelOne, twoStars("a", "b"))).toBe(1);
+  });
+
+  it("settles for what exists when a level has a single playable exercise", () => {
+    expect(studentLevel([...levelOne, exercise("only", "scale", 4)], twoStars("only"))).toBe(4);
+  });
+
+  it("ignores what cannot be played", () => {
+    const references = [exercise("r1", "reference", 7, false), exercise("r2", "reference", 7, false)];
+    expect(studentLevel(references, twoStars("r1", "r2"))).toBe(1);
+  });
+});
+
+describe("library in the plan", () => {
+  const piece = (slug: string, level: number, noteCount = 60, beatsPerMinute = 60): LibraryPiece => ({ slug, file: `${slug}.mxl`, title: slug, composer: "", noteCount, beatsPerMinute, level });
+  const onlyScales = [exercise("scale-1", "scale")];
+  const planWith = (library: LibraryPiece[], results: ExerciseResult[] = [], skipped = new Set<string>()) => {
+    const best = new Map(results.map((item) => [item.exerciseId, item]));
+    return planSession({ routine, exercises: onlyScales, library, best, latest: best, lessonTasks: [], playedToday: new Set(), skipped, now, day: "2026-10-28" });
+  };
+  const newPiece = (planned: ReturnType<typeof planWith>) => planned.find((item) => item.block.type === "peca-nova");
+
+  it("offers a library piece when the curriculum has no piece in reach, and links to its route", () => {
+    const block = newPiece(planWith([piece("lied", 1)]));
+    expect(block?.exercise?.id).toBe("biblioteca:lied");
+    expect(block?.item?.playPath).toBe("/tocar/biblioteca/lied");
+  });
+
+  it("leaves out a piece beyond reach or longer than the block", () => {
+    const tooHard = piece("dificil", 3);
+    const tooLong = piece("longa", 1, 2000);
+    expect(newPiece(planWith([tooHard, tooLong]))?.exercise).toBeNull();
+  });
+
+  it("brings a played library piece back in review", () => {
+    const planned = planWith([piece("lied", 1)], [result("biblioteca:lied", 1, 50, 3)]);
+    expect(planned.find((item) => item.block.type === "revisao")?.exercise?.id).toBe("biblioteca:lied");
+  });
+
+  it("respects a skipped piece", () => {
+    expect(newPiece(planWith([piece("lied", 1)], [], new Set(["biblioteca:lied"])))?.exercise).toBeNull();
+  });
+
+  it("prefers the curriculum over the library", () => {
+    const best = new Map<string, ExerciseResult>();
+    const planned = planSession({ routine, exercises, library: [piece("lied", 1)], best, latest: best, lessonTasks: [], playedToday: new Set(), now, day: "2026-10-28" });
+    expect(newPiece(planned)?.exercise?.id).toBe("piece-1");
+  });
+
+  it("does not let library pieces raise the student level", () => {
+    const planned = planWith([piece("lied", 1), piece("dificil", 3)], [result("biblioteca:lied", 3, 99, 1)]);
+    expect(planned.some((item) => item.exercise?.id === "biblioteca:dificil")).toBe(false);
   });
 });
 

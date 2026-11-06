@@ -9,13 +9,21 @@ export interface Click {
 }
 
 const CLICK_EPSILON = 1e-6;
+const EIGHTHS_PER_COMPOUND_PULSE = 3;
+const EIGHTH_NOTE_UNIT = 8;
+
+function pulsesPerMeasure(beats: number, beatUnit: number): number {
+  const isCompound = beatUnit === EIGHTH_NOTE_UNIT && beats > EIGHTHS_PER_COMPOUND_PULSE && beats % EIGHTHS_PER_COMPOUND_PULSE === 0;
+  return isCompound ? beats / EIGHTHS_PER_COMPOUND_PULSE : beats;
+}
 
 function beatsOf(score: Score, measureIndex: number): { startSec: number; beatSec: number; beats: number } | null {
   const measure = score.measures[measureIndex];
   if (!measure || measure.beats <= 0) return null;
   const lengthSec = measure.endSeconds - measure.startSeconds;
   if (lengthSec <= 0) return null;
-  return { startSec: measure.startSeconds, beatSec: lengthSec / measure.beats, beats: measure.beats };
+  const pulses = pulsesPerMeasure(measure.beats, measure.beatUnit);
+  return { startSec: measure.startSeconds, beatSec: lengthSec / pulses, beats: pulses };
 }
 
 export function leadInClicks(score: Score, leadInSeconds: number): Click[] {

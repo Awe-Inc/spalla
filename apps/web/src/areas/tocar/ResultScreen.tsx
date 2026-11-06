@@ -1,11 +1,12 @@
 import type { GameStats, MeasureRange, NoteJudgement, Score } from "@fretless/core";
 import { useEffect, useRef } from "react";
 import type { BlockGoal } from "@/areas/hoje/useTodayPlan";
+import { THREE_STARS_ACCURACY_PCT, TWO_STARS_ACCURACY_PCT } from "@/data/db";
 import { ACHIEVEMENTS, MASTERY_LEVELS, type MasteryLevel } from "@/data/gamification";
 import { driftSentence, unheardSentence } from "@/data/history";
 import { earnedMedalTitle } from "@/data/medals";
 import type { RunOutcome } from "@/data/progress";
-import { goalSentence } from "@/data/repetitions";
+import { CLEAN_RUN_ACCURACY_PCT, goalSentence } from "@/data/repetitions";
 import { Button, ButtonLink, Card, GoalDots, Stars } from "@/design/components";
 import { Stat, Stats } from "@/design/layout";
 
@@ -14,6 +15,8 @@ import type { TocarOrigin } from "./origin";
 import { slowdownSentence, type Slowdown } from "./autoSlowdown";
 import { hardestRange, measureStats, measureTone, type MeasureStat } from "./measureMap";
 import { adviseTempo, type TempoAdvice, type TempoLimits } from "./tempo";
+
+const THRESHOLDS_SENTENCE = `${TWO_STARS_ACCURACY_PCT}% vale duas estrelas. ${CLEAN_RUN_ACCURACY_PCT}% é passada limpa: conta nas repetições e no andamento. ${THREE_STARS_ACCURACY_PCT}% no andamento escrito vale três estrelas.`;
 
 interface ResultScreenProps {
   score: Score;
@@ -52,8 +55,8 @@ const toneClass: Record<ReturnType<typeof measureTone>, string> = {
 
 function headline(stats: GameStats, outcome: RunOutcome | null): string {
   if (outcome && outcome.mastery > outcome.masteryBefore) return "Subiu de nível.";
-  if (stats.accuracyPct >= 95) return "Impecável.";
-  if (stats.accuracyPct >= 80) return "Muito bem.";
+  if (stats.accuracyPct >= THREE_STARS_ACCURACY_PCT) return "Impecável.";
+  if (stats.accuracyPct >= TWO_STARS_ACCURACY_PCT) return "Muito bem.";
   if (stats.accuracyPct >= 60) return "Está chegando lá.";
   return "Cada tentativa conta.";
 }
@@ -181,6 +184,7 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
           {Math.round(stats.accuracyPct)}% de precisão
         </h2>
         <p className="max-w-prose text-ink-muted">{driftSentence(stats.meanSignedCents)}</p>
+        <p className="max-w-prose text-small text-ink-subtle">{THRESHOLDS_SENTENCE}</p>
         {unheardLabel ? <p className="max-w-prose text-small text-ink-muted">{unheardLabel}</p> : null}
         {saveError ? <p className="text-small text-off">{saveError}</p> : null}
         {completedTasks.map((sentence) => (
