@@ -184,8 +184,11 @@ apps/web/src/pdf/                pdfDocument.ts (pdfjs-dist 6: openPdf/closePdf/
                                  `fretless:pdfjs-assets` do vite.config; testado), autoScroll.ts (rolagem por
                                  progresso, com `ReadingMap` opcional), scorePath.ts (progresso ↔ posição no
                                  percurso, aviso antes do salto), omr/ (lê a imagem da página: pautas, barras,
-                                 pontos de repetição, casas, segno, coda; o texto vem da camada do PDF; `corrections`
-                                 aplica a correção manual; `performancePath` calcula a ordem tocada). Não lê notas.
+                                 pontos de repetição, casas, segno, coda; o texto vem da camada do PDF ou do OCR
+                                 (`scanText`, um leitor por análise; assets em `ocr/`, fora do precache); `corrections`
+                                 aplica a correção manual; `performancePath` calcula a ordem tocada. Notas: `staffHeader`,
+                                 `noteHeads`, `readMeasure`, `readPage`; `meter`, `timing`, `tempoText` tiram compasso e
+                                 andamento; `noteEdits` corrige; `musicXmlWriter` escreve). Tela: `areas/estante/ConversaoPartitura`.
 apps/web/src/music/              noteNames.ts, tunerReading.ts (leitura do afinador a partir do PitchFrame; única
                                  implementação, usada em Afinador, MicrofoneCard, BoasVindas e no leitor)
 apps/web/src/areas/progresso/    ProgressoPage em `/voce` (hero com nível + Stats; abas `?ver=geral|conquistas|
@@ -490,3 +493,13 @@ send never post the same results twice. The session planner (`planSession`) assi
   com 0.13, o scan simulado foi de 28 para 45 fins de repetição achados, mais do que os 37 do corpus. Regra:
   mudou o limiar, medir no corpus limpo e no scan simulado antes de aceitar. O ponto de 2 pt num PDF de teste é pequeno
   demais para esse limite; o e2e usa 3 pt.
+- **Leitura de scan travava para sempre em "Lendo a partitura…"** (06/11, achado pelo e2e de conversão). Sintoma: o OCR de um
+  PDF sem texto nunca voltava, às vezes sim, às vezes não. Causa: o motor do tesseract era um só no módulo; duas análises ao
+  mesmo tempo (StrictMode, ou sair e abrir outra partitura) o dividiam, e a primeira a terminar o fechava com a outra na
+  fila, cuja promessa nunca resolve. Regra: recurso que alguém fecha tem um dono só (`openScanReader` por análise), e
+  chamada de motor externo tem limite de tempo (`withinTime`). Teste em `scanText.test`.
+- **Nota colada na clave vira armadura** (06/11). No PDF de teste, a primeira nota a 0,45 espaço da clave não foi lida; a
+  1,7 espaço, foi. `staffHeader` também toma a primeira figura alta como clave quando a pauta não tem clave, e a primeira
+  nota some. Partitura impressa não costuma fazer isso; desenho de teste faz. Regra: fixture com clave e espaço real.
+- **Scan sem OCR não fica guardado** (06/11). `isReadingFinal`: se o OCR não rodou (sem rede na primeira vez), a estrutura
+  não vai para o Dexie, e a próxima abertura tenta de novo. Guardar deixaria o scan sem D.S. e Fine para sempre.

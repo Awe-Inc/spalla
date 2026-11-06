@@ -1,6 +1,7 @@
 import { findBarlines, isRepeatEnd, isRepeatStart, isSystemOpening, type Barline } from "./barlines";
 import { findNavigationSymbols, findVoltaBrackets, navigationFromText, type NavigationKind, type NavigationMark, type PageText, type VoltaBracket } from "./marks";
-import { estimateSkewSlope, straightened, type InkImage } from "./raster";
+import { leveledPage } from "./pageLeveling";
+import type { InkImage } from "./raster";
 import { findStaves, groupSystems, type StaffSystem } from "./staves";
 
 export interface ScoreMeasure {
@@ -19,11 +20,16 @@ export interface ScoreMeasure {
   readonly dalSegno?: boolean;
   readonly daCapo?: boolean;
   readonly fine?: boolean;
+  readonly quarters?: number;
 }
 
 export interface ScoreStructure {
   readonly measures: readonly ScoreMeasure[];
   readonly hasTextLayer: boolean;
+  readonly ocrRead?: boolean;
+  readonly bpm?: number;
+  readonly hasPickup?: boolean;
+  readonly meter?: { readonly numerator: number; readonly denominator: number };
 }
 
 const TRAILING_MEASURE_SPACES = 4;
@@ -122,13 +128,17 @@ export function numberUnnamedVoltas(measures: readonly ScoreMeasure[]): ScoreMea
 }
 
 export function analyzePage(source: InkImage, texts: readonly PageText[], pageIndex: number): ScoreMeasure[] {
-  const image = straightened(source, estimateSkewSlope(source));
+  const image = leveledPage(source);
   const systems = groupSystems(image, findStaves(image));
   const perSystem = systems.flatMap((system, index) => measuresOfSystem(system, findBarlines(image, system), pageIndex, index, image));
   const fromText = navigationFromText(texts, systems);
   const fromShape = texts.length === 0 ? findNavigationSymbols(image, systems) : findNavigationSymbols(image, systems).filter((mark) => !fromText.some((known) => known.kind === mark.kind && known.system === mark.system));
   const brackets = findVoltaBrackets(image, systems, texts);
   return applyVoltas(applyNavigation(perSystem, [...fromText, ...fromShape], image.width), brackets, image.width);
+}
+
+export function isReadingFinal(structure: ScoreStructure): boolean {
+  return structure.hasTextLayer || structure.ocrRead === true || structure.measures.length === 0;
 }
 
 export function assembleStructure(pages: ReadonlyArray<readonly ScoreMeasure[]>, hasTextLayer: boolean): ScoreStructure {

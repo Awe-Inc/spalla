@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { performancePath } from "./performancePath";
 import type { InkImage } from "./raster";
-import { analyzePage, assembleStructure } from "./structure";
+import { analyzePage, assembleStructure, isReadingFinal, type ScoreMeasure } from "./structure";
 import type { PageText } from "./marks";
 
 const WIDTH = 1600;
@@ -192,5 +192,22 @@ describe("leitura da página", () => {
     expect(measures[0]?.toCoda).toBe(true);
     expect(measures[0]?.coda).toBeUndefined();
     expect(measures[2]?.coda).toBe(true);
+  });
+});
+
+describe("isReadingFinal", () => {
+  const measures = [{ page: 0 } as ScoreMeasure];
+
+  it("scan cujo OCR não rodou fica para ler de novo", () => {
+    expect(isReadingFinal({ measures, hasTextLayer: false })).toBe(false);
+  });
+
+  it("guarda quando o OCR rodou ou quando o PDF tem texto", () => {
+    expect(isReadingFinal({ measures, hasTextLayer: false, ocrRead: true })).toBe(true);
+    expect(isReadingFinal({ measures, hasTextLayer: true })).toBe(true);
+  });
+
+  it("página sem pauta não tem o que reler", () => {
+    expect(isReadingFinal({ measures: [], hasTextLayer: false })).toBe(true);
   });
 });

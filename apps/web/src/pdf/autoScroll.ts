@@ -12,19 +12,25 @@ export const PLAN_LIMITS = {
   bpm: { min: 20, max: 300 },
 } as const;
 
+export type PlanField = keyof typeof PLAN_LIMITS;
+
+export interface TimedScrollPlan extends ScrollPlan {
+  readonly totalBeats?: number | null;
+}
+
 const MIN_LEAD_IN_SECONDS = 4;
 
 export function isPlanReady(plan: ScrollPlan): boolean {
-  return (Object.keys(PLAN_LIMITS) as (keyof ScrollPlan)[]).every((field) => isFieldValid(field, plan[field]));
+  return (Object.keys(PLAN_LIMITS) as PlanField[]).every((field) => isFieldValid(field, plan[field]));
 }
 
-export function isFieldValid(field: keyof ScrollPlan, value: number): boolean {
+export function isFieldValid(field: PlanField, value: number): boolean {
   const { min, max } = PLAN_LIMITS[field];
   return Number.isInteger(value) && value >= min && value <= max;
 }
 
-export function pieceSeconds(plan: ScrollPlan): number {
-  return (plan.measures * plan.beatsPerMeasure * 60) / plan.bpm;
+export function pieceSeconds(plan: TimedScrollPlan): number {
+  return ((plan.totalBeats ?? plan.measures * plan.beatsPerMeasure) * 60) / plan.bpm;
 }
 
 export function leadInSeconds(plan: ScrollPlan): number {
@@ -35,7 +41,7 @@ function clampProgress(progress: number): number {
   return Math.min(1, Math.max(0, progress));
 }
 
-export function advanceProgress(progress: number, elapsedSeconds: number, plan: ScrollPlan): number {
+export function advanceProgress(progress: number, elapsedSeconds: number, plan: TimedScrollPlan): number {
   return clampProgress(progress + elapsedSeconds / pieceSeconds(plan));
 }
 
@@ -46,6 +52,7 @@ export function nudgeProgress(progress: number, measures: number, plan: ScrollPl
 export interface ReadingMap {
   yAt: (progress: number) => number;
   progressAt: (readingY: number, currentProgress: number) => number;
+  nudged?: (progress: number, measures: number) => number;
 }
 
 export function linearReading(contentHeight: number): ReadingMap {

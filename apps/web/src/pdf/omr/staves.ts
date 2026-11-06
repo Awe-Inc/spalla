@@ -21,6 +21,8 @@ const MINIMUM_LINE_RUN = 0.12;
 const LINE_RUN_GAP = 3;
 const LINES_PER_STAFF = 5;
 const SPACING_TOLERANCE = 0.3;
+const EXTENT_LINE_REACH_SPACES = 0.25;
+const EXTENT_MIN_LINES = 3;
 
 interface RowBand {
   readonly center: number;
@@ -59,14 +61,17 @@ function darkRowBands(image: InkImage): RowBand[] {
 }
 
 function staffExtent(image: InkImage, lines: readonly number[]): { left: number; right: number } {
-  const row = Math.round(lines[2] ?? 0);
-  const thicknessReach = 2;
-  const isLineAt = (x: number) => {
-    for (let dy = -thicknessReach; dy <= thicknessReach; dy += 1) {
-      if (image.ink[(row + dy) * image.width + x] === 1) return true;
+  const spacing = ((lines[4] ?? 0) - (lines[0] ?? 0)) / 4;
+  const reach = Math.max(2, Math.round(spacing * EXTENT_LINE_REACH_SPACES));
+  const hasInkNear = (line: number, x: number) => {
+    const row = Math.round(line);
+    for (let dy = -reach; dy <= reach; dy += 1) {
+      const y = row + dy;
+      if (y >= 0 && y < image.height && image.ink[y * image.width + x] === 1) return true;
     }
     return false;
   };
+  const isLineAt = (x: number) => lines.filter((line) => hasInkNear(line, x)).length >= EXTENT_MIN_LINES;
   const allowedGap = Math.max(4, Math.round(((lines[4] ?? 0) - (lines[0] ?? 0)) / 2));
   let best = { left: 0, right: -1 };
   let start = -1;

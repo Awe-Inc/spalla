@@ -11,6 +11,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 import { LIBRARY_CACHE, PDF_READER_CACHE, SAMPLES_CACHE } from "./src/app/offlineCaches";
 import { isPdfjsAssetFile, PDFJS_ASSET_FOLDERS, PDFJS_ASSETS_DIR } from "./src/pdf/assets";
+import { OCR_ASSETS_DIR, OCR_CORE_FILES, OCR_LANGUAGE_FILE, OCR_WORKER_FILE } from "./src/pdf/ocrAssets";
 
 const DEV_PORT = 5180;
 const PREVIEW_PORT = 4180;
@@ -85,12 +86,44 @@ function pdfjsAssets(): Plugin {
   };
 }
 
+const WEB_REQUIRE = createRequire(import.meta.url);
+const TESSERACT_DIR = dirname(WEB_REQUIRE.resolve("tesseract.js/package.json"));
+const TESSERACT_CORE_DIR = dirname(createRequire(join(TESSERACT_DIR, "package.json")).resolve("tesseract.js-core/package.json"));
+const OCR_LANGUAGE_DIR = join(dirname(WEB_REQUIRE.resolve("@tesseract.js-data/eng/package.json")), "4.0.0_best_int");
+const OCR_SOURCES: Record<string, string> = {
+  [OCR_WORKER_FILE]: join(TESSERACT_DIR, "dist", OCR_WORKER_FILE),
+  [OCR_LANGUAGE_FILE]: join(OCR_LANGUAGE_DIR, OCR_LANGUAGE_FILE),
+  ...Object.fromEntries(OCR_CORE_FILES.map((file) => [file, join(TESSERACT_CORE_DIR, file)])),
+};
+
+function ocrAssets(): Plugin {
+  return {
+    name: "fretless:ocr-assets",
+    generateBundle() {
+      for (const [file, source] of Object.entries(OCR_SOURCES)) this.emitFile({ type: "asset", fileName: `${OCR_ASSETS_DIR}/${file}`, source: readFileSync(source) });
+    },
+    configureServer(server) {
+      server.middlewares.use(`${base.replace(/\/$/, "")}/${OCR_ASSETS_DIR}`, (request, response, next) => {
+        const requested = (request.url ?? "/").split("?")[0]?.replace(/^\//, "") ?? "";
+        const source = Object.hasOwn(OCR_SOURCES, requested) ? OCR_SOURCES[requested] : undefined;
+        if (!source) {
+          next();
+          return;
+        }
+        response.setHeader("Content-Type", source.endsWith(".js") ? "text/javascript" : "application/gzip");
+        pipeline(createReadStream(source), response, () => response.destroy());
+      });
+    },
+  };
+}
+
 export default defineConfig({
   base,
   plugins: [
     react(),
     spaFallbackForStaticHosts(),
     pdfjsAssets(),
+    ocrAssets(),
     tailwindcss(),
     VitePWA({
       registerType: "prompt",
@@ -112,7 +145,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: [`**/*.{${PRECACHED_EXTENSIONS.join(",")}}`],
-        globIgnores: [`${PDFJS_ASSETS_DIR}/**`, `assets/${PDF_WORKER_FILE}*`],
+        globIgnores: [`${PDFJS_ASSETS_DIR}/**`, `${OCR_ASSETS_DIR}/**`, `assets/${PDF_WORKER_FILE}*`],
         maximumFileSizeToCacheInBytes: FIVE_MEGABYTES,
         runtimeCaching: [
           {
@@ -126,7 +159,7 @@ export default defineConfig({
             options: { cacheName: LIBRARY_CACHE, expiration: { maxEntries: LIBRARY_MAX_ENTRIES }, cacheableResponse: { statuses: [200] } },
           },
           {
-            urlPattern: new RegExp(`/${PDFJS_ASSETS_DIR}/|/${PDF_WORKER_FILE}`),
+            urlPattern: new RegExp(`/${PDFJS_ASSETS_DIR}/|/${OCR_ASSETS_DIR}/|/${PDF_WORKER_FILE}`),
             handler: "CacheFirst",
             options: { cacheName: PDF_READER_CACHE, expiration: { maxEntries: PDF_READER_MAX_ENTRIES }, cacheableResponse: { statuses: [200] } },
           },

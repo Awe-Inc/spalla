@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { rememberSheetStructure } from "@/data/sheets";
 import { analyzePdf } from "@/pdf/omr/analyzePdf";
-import type { ScoreMeasure, ScoreStructure } from "@/pdf/omr/structure";
+import { isReadingFinal, type ScoreMeasure, type ScoreStructure } from "@/pdf/omr/structure";
 import type { PdfDocument } from "@/pdf/pdfDocument";
 
 export type StructureReading = { status: "lendo"; done: number; total: number } | { status: "pronta"; structure: ScoreStructure } | { status: "falhou" };
@@ -23,7 +23,7 @@ export function useScoreStructure(document: PdfDocument, sheetId: number, saved:
       .then((structure) => {
         if (controller.signal.aborted) return;
         setReading({ status: "pronta", structure });
-        rememberSheetStructure(sheetId, structure).catch(() => undefined);
+        if (isReadingFinal(structure)) rememberSheetStructure(sheetId, structure).catch(() => undefined);
       })
       .catch(() => {
         if (!controller.signal.aborted) setReading({ status: "falhou" });

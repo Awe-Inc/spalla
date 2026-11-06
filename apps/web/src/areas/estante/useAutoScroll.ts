@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { advanceProgress, leadInSeconds, nudgeProgress, progressAtScrollTop, scrollTopAt, type ReadingMap, type ScrollPlan } from "@/pdf/autoScroll";
+import { advanceProgress, leadInSeconds, nudgeProgress, progressAtScrollTop, scrollTopAt, type ReadingMap, type TimedScrollPlan } from "@/pdf/autoScroll";
 
 export type RollStatus = "parada" | "contando" | "rolando";
 
@@ -12,7 +12,7 @@ interface AutoScrollOptions {
   markerRef: RefObject<HTMLElement | null>;
   viewHeight: number;
   contentHeight: number;
-  plan: ScrollPlan;
+  plan: TimedScrollPlan;
   reading: ReadingMap;
   onReadingY: (readingY: number, progress: number) => void;
 }
@@ -146,7 +146,8 @@ export function useAutoScroll({ containerRef, markerRef, viewHeight, contentHeig
 
   const nudge = useCallback(
     (measures: number) => {
-      progressRef.current = nudgeProgress(progressRef.current, measures, latestRef.current.plan);
+      const { reading, plan } = latestRef.current;
+      progressRef.current = reading.nudged?.(progressRef.current, measures) ?? nudgeProgress(progressRef.current, measures, plan);
       applyProgress();
     },
     [applyProgress],

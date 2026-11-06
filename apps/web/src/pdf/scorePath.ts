@@ -20,6 +20,7 @@ export interface ScoreTimeline {
   readonly measures: readonly ScoreMeasure[];
   readonly placed: readonly PlacedMeasure[];
   readonly order: readonly number[];
+  readonly starts: readonly number[];
 }
 
 export interface PathNotice {
@@ -52,7 +53,35 @@ export function placeMeasures(measures: readonly ScoreMeasure[], stack: PageStac
 }
 
 export function buildTimeline(measures: readonly ScoreMeasure[], stack: PageStack, width: number): ScoreTimeline {
-  return { measures, placed: placeMeasures(measures, stack, width), order: performancePath(measures) };
+  const order = performancePath(measures);
+  return { measures, placed: placeMeasures(measures, stack, width), order, starts: startsOf(order, measures) };
+}
+
+function startsOf(order: readonly number[], measures: readonly ScoreMeasure[]): number[] {
+  const weights = order.map((measure) => measures[measure]?.quarters ?? 1);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let elapsed = 0;
+  const starts = weights.map((weight) => {
+    const start = total > 0 ? elapsed / total : 0;
+    elapsed += weight;
+    return start;
+  });
+  return [...starts, 1];
+}
+
+export function totalBeatsOf(timeline: ScoreTimeline): number | null {
+  const known = timeline.order.map((measure) => timeline.measures[measure]?.quarters);
+  if (known.length === 0 || known.some((quarters) => quarters === undefined)) return null;
+  return known.reduce<number>((sum, quarters) => sum + (quarters ?? 0), 0);
+}
+
+export function commonBeatsOf(timeline: ScoreTimeline): number | null {
+  const counts = new Map<number, number>();
+  for (const measure of timeline.measures) {
+    if (measure.quarters !== undefined) counts.set(measure.quarters, (counts.get(measure.quarters) ?? 0) + 1);
+  }
+  const [best] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  return best ? Math.max(1, Math.round(best[0])) : null;
 }
 
 function yInsideMeasure(placed: PlacedMeasure, fraction: number): number {
@@ -66,10 +95,14 @@ function smoothStep(value: number): number {
 }
 
 function stepAt(timeline: ScoreTimeline, progress: number): { step: number; fraction: number } {
-  const total = timeline.order.length;
-  const position = Math.min(total, Math.max(0, progress * total));
-  const step = Math.min(total - 1, Math.floor(position));
-  return { step, fraction: position - step };
+  const { starts } = timeline;
+  const last = timeline.order.length - 1;
+  const clamped = Math.min(1, Math.max(0, progress));
+  let step = 0;
+  while (step < last && (starts[step + 1] ?? 1) <= clamped) step += 1;
+  const start = starts[step] ?? 0;
+  const span = (starts[step + 1] ?? 1) - start;
+  return { step, fraction: span > 0 ? (clamped - start) / span : 0 };
 }
 
 export function currentMeasure(timeline: ScoreTimeline, progress: number): number {
@@ -114,13 +147,24 @@ export function progressAtReadingY(timeline: ScoreTimeline, y: number, currentPr
   const occurrences = timeline.order.flatMap((candidate, step) => (candidate === measure ? [step] : []));
   if (occurrences.length === 0) return currentProgress;
   const step = occurrences.find((candidate) => candidate >= currentStep) ?? (occurrences[0] as number);
-  return (step + fraction) / timeline.order.length;
+  const start = timeline.starts[step] ?? 0;
+  return start + fraction * ((timeline.starts[step + 1] ?? 1) - start);
+}
+
+export function progressAfterMeasures(timeline: ScoreTimeline, progress: number, measures: number): number {
+  const { step, fraction } = stepAt(timeline, progress);
+  const target = step + measures;
+  if (target < 0) return 0;
+  if (target >= timeline.order.length) return 1;
+  const start = timeline.starts[target] ?? 0;
+  return start + fraction * ((timeline.starts[target + 1] ?? 1) - start);
 }
 
 export function readingMapOf(timeline: ScoreTimeline, beatsPerMeasure: number): ReadingMap {
   return {
     yAt: (progress) => readingYAt(timeline, progress, beatsPerMeasure),
     progressAt: (y, current) => progressAtReadingY(timeline, y, current),
+    nudged: (progress, measures) => progressAfterMeasures(timeline, progress, measures),
   };
 }
 

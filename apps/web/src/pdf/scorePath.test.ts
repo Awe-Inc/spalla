@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { PageStack } from "./autoScroll";
 import type { ScoreMeasure } from "./omr/structure";
-import { buildTimeline, currentMeasure, pathRanges, progressAtReadingY, readingYAt, upcomingNotice } from "./scorePath";
+import { buildTimeline, commonBeatsOf, currentMeasure, pathRanges, progressAfterMeasures, progressAtReadingY, readingYAt, totalBeatsOf, upcomingNotice } from "./scorePath";
 
 const STACK: PageStack = { tops: [0, 1100], heights: [1000, 1000], contentHeight: 2100 };
 const WIDTH = 800;
@@ -113,5 +113,38 @@ describe("aviso antes do salto", () => {
 describe("percurso escrito para conferir", () => {
   it("agrupa o que é seguido", () => {
     expect(pathRanges([0, 1, 2, 3, 0, 1, 4])).toBe("1–4, 1–2, 5");
+  });
+});
+
+describe("tempo lido por compasso", () => {
+  const weighted = (first: number, rest: number) => [measure(0, 0, { quarters: first }), measure(0, 1, { quarters: rest }), measure(1, 0, { quarters: rest })];
+
+  it("sem tempos lidos, todos os compassos pesam igual", () => {
+    const timeline = buildTimeline(twoSystems({}), STACK, WIDTH);
+    expect(timeline.starts).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    expect(totalBeatsOf(timeline)).toBeNull();
+    expect(commonBeatsOf(timeline)).toBeNull();
+  });
+
+  it("anacruse pesa só o que dura", () => {
+    const timeline = buildTimeline(weighted(1, 4), STACK, WIDTH);
+    expect(timeline.starts).toEqual([0, 1 / 9, 5 / 9, 1]);
+    expect(totalBeatsOf(timeline)).toBe(9);
+    expect(commonBeatsOf(timeline)).toBe(4);
+    expect(currentMeasure(timeline, 0.05)).toBe(0);
+    expect(currentMeasure(timeline, 0.12)).toBe(1);
+  });
+
+  it("repetição soma os tempos tocados de novo", () => {
+    const timeline = buildTimeline([measure(0, 0, { quarters: 3 }), measure(0, 1, { quarters: 3, repeatEnd: true })], STACK, WIDTH);
+    expect(totalBeatsOf(timeline)).toBe(12);
+  });
+
+  it("andar por compasso respeita o tamanho de cada um", () => {
+    const timeline = buildTimeline(weighted(1, 4), STACK, WIDTH);
+    expect(progressAfterMeasures(timeline, 1 / 9, -1)).toBeCloseTo(0);
+    expect(progressAfterMeasures(timeline, 0, 1)).toBeCloseTo(1 / 9);
+    expect(progressAfterMeasures(timeline, 0.2, -5)).toBe(0);
+    expect(progressAfterMeasures(timeline, 0.2, 5)).toBe(1);
   });
 });

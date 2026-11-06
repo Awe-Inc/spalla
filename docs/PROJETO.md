@@ -38,7 +38,7 @@ O que roda agora, verificado nesta data:
 | Core C++ nativo (`build.bat`, `test.bat`) | 100 testes, 0 falhas |
 | Core em WASM (`pnpm build:core`) | os mesmos 100 casos passam no Node (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 12 testes vitest |
-| `apps/web` | 510 testes vitest em 88 arquivos, typecheck limpo, `vite build` gera a PWA (111 entradas e 1,9 MB no precache, só o shell; partituras, amostras e leitor de PDF baixam em segundo plano) e o `404.html` para hospedagem estática; 6 testes e2e Playwright (`pnpm --filter @fretless/web test:e2e`): um toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado, com a vista "As duas" ligada; outro abre uma canção da biblioteca CC0 por Músicas e toca até o Resultado; o terceiro marca uma peça Suzuki como aprendida e confere que ela continua em revisão depois de recarregar; o quarto marca um trecho no detalhe de uma canção, recarrega e confere que "Praticar em loop" abre o Tocar com o trecho repetindo e o andamento escolhido; o quinto grava duas passadas da mesma peça com o microfone falso do Chromium, recarrega, compara as duas lado a lado e confere que o detalhe da peça lista as gravações; o sexto põe uma canção da biblioteca no bloco de Revisão da rotina de 25 minutos, confere que a Hoje usa a cópia nova com a peça ligada ao Tocar e que "Soltar peça" devolve o bloco ao app |
+| `apps/web` | 622 testes vitest em 104 arquivos, typecheck limpo, `vite build` gera a PWA (112 entradas e 2 MB no precache, só o shell; partituras, amostras e leitor de PDF baixam em segundo plano) e o `404.html` para hospedagem estática; 6 testes e2e Playwright (`pnpm --filter @fretless/web test:e2e`): um toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado, com a vista "As duas" ligada; outro abre uma canção da biblioteca CC0 por Músicas e toca até o Resultado; o terceiro marca uma peça Suzuki como aprendida e confere que ela continua em revisão depois de recarregar; o quarto marca um trecho no detalhe de uma canção, recarrega e confere que "Praticar em loop" abre o Tocar com o trecho repetindo e o andamento escolhido; o quinto grava duas passadas da mesma peça com o microfone falso do Chromium, recarrega, compara as duas lado a lado e confere que o detalhe da peça lista as gravações; o sexto põe uma canção da biblioteca no bloco de Revisão da rotina de 25 minutos, confere que a Hoje usa a cópia nova com a peça ligada ao Tocar e que "Soltar peça" devolve o bloco ao app |
 | `apps/api` (plataforma) | 44 testes vitest em 4 arquivos (PGlite em memória), typecheck limpo; contas, papéis e permissões, turmas, tarefas, materiais com PDF, planos, prática enviada ao professor, admin com auditoria. Ainda não hospedada |
 | CI (`.github/workflows/ci.yml`) | compila o core com o Emscripten 6.0.13, typecheck, testes e build web a cada push na `main`, e publica o site no GitHub Pages (https://awe-inc.github.io/spalla/) |
 | Dev server | `http://localhost:5180` (porta fixa; preview em 4180) |
@@ -157,12 +157,19 @@ onboarding existe (Boas-vindas, 5 passos).
 - **Parser MusicXML** (`.musicxml` e `.mxl`, partwise e timewise, repetições, casas, D.S., D.C., Coda e Fine seguidos
   mesmo quando só estão impressos, instrumento transpositor, fermata no tempo, palavra de andamento quando o arquivo
   não dá bpm, ligaduras fundidas, introdução silenciosa cortada), com beaming e armadura. A pauta desenha articulações,
-  arcadas, ornamentos, pizz., harmônico e dinâmicas; ficam de fora notas de enfeite e crescendo/decrescendo em cunha.
-  Cordas duplas viram a nota de cima.
-- **Leitura de estrutura no PDF** (`apps/web/src/pdf/omr`, só no aparelho): acha pautas, compassos, repetições, casas,
-  segno e coda na imagem, e D.S., D.C., Fine e To Coda na camada de texto. A rolagem segue o percurso tocado, com aviso
-  antes de cada salto, e o músico corrige qualquer marcação em "Corrigir marcações". Não lê notas, não lê texto de
-  scan (o app avisa), e anacruse e mudança de compasso não entram no cálculo: tempos e bpm vêm do músico.
+  arcadas, ornamentos, pizz., harmônico, dinâmicas (também em nota ligada), notas de enfeite e crescendo/decrescendo
+  em cunha. Corda dupla desenha as duas notas; o microfone só confirma uma, porque o detector é monofônico. Enfeite
+  errado não é punido e enfeite não ouvido não custa nada.
+- **Leitura do PDF** (`apps/web/src/pdf/omr`, só no aparelho): acha pautas, compassos, repetições, casas, segno e coda
+  na imagem, e D.S., D.C., Fine, To Coda e andamento na camada de texto ou, em scan, por OCR (tesseract.js, cerca de
+  1 s por página, baixado só quando um scan pede, limite de 60 s por página; passou disso, segue sem texto e avisa).
+  Compasso e anacruse vêm das notas lidas, e o que o músico digita tem prioridade. A rolagem segue o percurso tocado,
+  e "Corrigir marcações" corrige qualquer marca.
+- **Converter PDF em partitura tocável** (mesma pasta, botão na rolagem automática): lê as notas, mostra os compassos que
+  não fecham a conta para conferir (altura, duração, tirar nota) e salva como MusicXML no repertório. Sem servidor.
+  Medido: em 44 peças sintéticas, 92,4% das notas achadas, 94,5% de precisão, 94,9% de altura certa e 74,8% dos compassos
+  fechando; em scan real ruim, 61,9% das notas (comparado ao Audiveris). Não lê notas de enfeite nem mudança de compasso
+  composto no meio da peça. Por isso nada é salvo sem a tela de conferência.
 - **Pedagogia escrita** (`violin-pedagogy` e `pedagogia-e-rotina.md`): trilha N1–N7, modelo de rotina (blocos
   intercalados e espaçados), o que cada bloco mede, Suzuki "com os limites certos" (só melodias de domínio
   público tocáveis; o resto como referência e "aprendi na aula"), três ferramentas de afinação com uma regra.
@@ -209,17 +216,9 @@ escolha).
 
 ### Ideias para depois
 
-- **Converter PDF em partitura tocável dentro do app** (adiada pelo dono em 29/10). Hoje o PDF da estante só é lido;
-  a conversão para MusicXML foi feita fora do app, com o Audiveris 5.11 em lote no PC do dono. Desenho pensado:
-  - botão "Converter em partitura tocável" na Estante, só com conta;
-  - upload pela rota de arquivos da API, que enfileira um job;
-  - um worker em Docker (Java + Audiveris rodando sem modificação, como processo separado, então a AGPL dele não
-    contamina o app) gera o `.mxl`, a cerca de 12 s por página;
-  - prévia antes de salvar (o reconhecimento erra, e nota errada num app que julga afinação é pior que nenhuma);
-  - importação pelo `importPiece` que já existe.
-  - Custo: o worker pede pelo menos 2 GB de RAM (cerca de US$ 25/mês no Render; o plano grátis tem 512 MB). Não há
-    OMR com qualidade de produção em JS/WASM (oemer e homr são Python), então não roda no navegador.
-  - Antes de decidir: medir a qualidade da conversão em lote das partituras do dono (`_relatorio.csv` e amostras).
+- **Conversão com o Audiveris em servidor**, se a leitura no aparelho (seção acima) não bastar para scans ruins. Worker em
+  Docker com o Audiveris sem modificação, cerca de 12 s por página e 2 GB de RAM (cerca de US$ 25/mês no Render).
+  Decisão de dinheiro, do dono.
 
 ## 10. Dívidas conhecidas (achados do review ainda abertos)
 

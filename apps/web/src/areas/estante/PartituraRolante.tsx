@@ -3,12 +3,13 @@ import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } fro
 import { rememberSheetScrollPlan } from "@/data/sheets";
 import { Button } from "@/design/components";
 import { COMPACT_FIELD_CLASS } from "@/design/fields";
-import { bumpBpm, DEFAULT_SCROLL_PLAN, formatPieceDuration, isFieldValid, isPlanReady, keyToRollAction, linearReading, pageAtY, pieceSeconds, PLAN_LIMITS, stackPages, type ScrollPlan } from "@/pdf/autoScroll";
+import { bumpBpm, DEFAULT_SCROLL_PLAN, formatPieceDuration, isFieldValid, isPlanReady, keyToRollAction, linearReading, pageAtY, pieceSeconds, PLAN_LIMITS, stackPages, type PlanField, type ScrollPlan } from "@/pdf/autoScroll";
 import type { Box } from "@/pdf/fit";
 import type { ScoreStructure } from "@/pdf/omr/structure";
 import { cancelRender, isRenderCancelled, pdfPageSizes, renderPdfPage, type PdfDocument } from "@/pdf/pdfDocument";
-import { buildTimeline, currentMeasure, pathRanges, readingMapOf, upcomingNotice, type PathNotice, type PlacedMeasure } from "@/pdf/scorePath";
+import { buildTimeline, commonBeatsOf, currentMeasure, pathRanges, readingMapOf, totalBeatsOf, upcomingNotice, type PathNotice, type PlacedMeasure } from "@/pdf/scorePath";
 
+import { ConversaoPartitura } from "./ConversaoPartitura";
 import { MeasureEditor, MeasureOverlay, type MeasureSelection } from "./CorrecaoEstrutura";
 import { shouldLeaveKeyToTarget } from "./teclas";
 import { useAutoScroll } from "./useAutoScroll";
@@ -24,6 +25,7 @@ interface PartituraRolanteProps {
   startPage: number;
   savedPlan: ScrollPlan | undefined;
   savedStructure: ScoreStructure | undefined;
+  title: string;
   onPage: (page: number) => void;
   onError: (message: string) => void;
 }
@@ -109,7 +111,7 @@ function useElementBox(ref: RefObject<HTMLElement | null>): Box {
 }
 
 interface PlanFieldProps {
-  field: keyof ScrollPlan;
+  field: PlanField;
   label: string;
   value: number;
   onCommit: (value: number) => void;
@@ -150,7 +152,7 @@ function placeBox(element: HTMLElement | null, box: PlacedMeasure | undefined): 
   element.style.height = `${box.bottom - box.top}px`;
 }
 
-export function PartituraRolante({ document, sheetId, startPage, savedPlan, savedStructure, onPage, onError }: PartituraRolanteProps) {
+export function PartituraRolante({ document, sheetId, startPage, savedPlan, savedStructure, title, onPage, onError }: PartituraRolanteProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markerRef = useRef<HTMLDivElement | null>(null);
   const currentBoxRef = useRef<HTMLDivElement | null>(null);
@@ -170,8 +172,15 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, save
   const lastPageRef = useRef(startPage);
   const measures = structureReading.status === "pronta" ? structureReading.structure.measures : [];
   const timeline = useMemo(() => (measures.length > 0 && box.width > 0 ? buildTimeline(measures, stack, box.width) : null), [measures, stack, box.width]);
-  const effectivePlan = useMemo(() => (timeline ? { ...plan, measures: timeline.order.length } : plan), [timeline, plan]);
-  const readingMap = useMemo(() => (timeline ? readingMapOf(timeline, plan.beatsPerMeasure) : linearReading(stack.contentHeight)), [timeline, plan.beatsPerMeasure, stack.contentHeight]);
+  const readBpm = structureReading.status === "pronta" ? structureReading.structure.bpm : undefined;
+  useEffect(() => {
+    if (readBpm === undefined || savedPlan) return;
+    setPlan((current) => (current.bpm === DEFAULT_SCROLL_PLAN.bpm ? { ...current, bpm: readBpm } : current));
+  }, [readBpm, savedPlan]);
+  const readBeats = timeline && !plan.beatsTyped ? commonBeatsOf(timeline) : null;
+  const shownPlan = useMemo(() => (readBeats === null ? plan : { ...plan, beatsPerMeasure: readBeats }), [plan, readBeats]);
+  const effectivePlan = useMemo(() => (timeline ? { ...shownPlan, measures: timeline.order.length, totalBeats: plan.beatsTyped ? null : totalBeatsOf(timeline) } : shownPlan), [timeline, shownPlan, plan.beatsTyped]);
+  const readingMap = useMemo(() => (timeline ? readingMapOf(timeline, shownPlan.beatsPerMeasure) : linearReading(stack.contentHeight)), [timeline, shownPlan.beatsPerMeasure, stack.contentHeight]);
   const isReadingScore = structureReading.status === "lendo";
   const isReady = isPlanReady(effectivePlan) && !isReadingScore;
   const timelineRef = useRef(timeline);
@@ -280,7 +289,7 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, save
             {STATUS_ACTION[status]}
           </Button>
           {timeline ? null : <PlanField field="measures" label="Compassos" value={plan.measures} onCommit={(typed) => changePlan({ ...plan, measures: typed })} />}
-          <PlanField field="beatsPerMeasure" label="Tempos por compasso" value={plan.beatsPerMeasure} onCommit={(beatsPerMeasure) => changePlan({ ...plan, beatsPerMeasure })} />
+          <PlanField field="beatsPerMeasure" label="Tempos por compasso" value={shownPlan.beatsPerMeasure} onCommit={(beatsPerMeasure) => changePlan({ ...plan, beatsPerMeasure, beatsTyped: true })} />
           <PlanField field="bpm" label="Bpm" value={plan.bpm} onCommit={(bpm) => changePlan({ ...plan, bpm })} />
           <Button variant="secondary" onClick={() => changePlan(bumpBpm(plan, -BPM_STEP))} aria-label={`Diminuir ${BPM_STEP} bpm`}>
             −
@@ -316,8 +325,9 @@ export function PartituraRolante({ document, sheetId, startPage, savedPlan, save
           </p>
         ) : null}
         {timeline && structureReading.status === "pronta" && !structureReading.structure.hasTextLayer ? (
-          <p className="text-small text-ink-muted">Este PDF é uma imagem: D.S., D.C. e Fine escritos não são lidos. Confira o percurso e marque o que faltar em “Corrigir marcações”.</p>
+          <p className="text-small text-ink-muted">{structureReading.structure.ocrRead ? "Este PDF é uma imagem: D.S., D.C. e Fine foram lidos por OCR, que pode errar ou deixar passar." : "Este PDF é uma imagem e o OCR não pôde rodar: D.S., D.C. e Fine escritos não foram lidos."} Confira o percurso e marque o que faltar em “Corrigir marcações”.</p>
         ) : null}
+        {timeline && structureReading.status === "pronta" ? <ConversaoPartitura document={document} structure={structureReading.structure} title={title} onShowMeasure={(measure) => seek(timeline.placed[measure]?.top ?? 0)} /> : null}
         {isCorrecting && !selection ? <p className="text-small text-ink-muted">Toque em um compasso para corrigir as marcações dele.</p> : null}
         {isCorrecting && selection ? <MeasureEditor measures={measures} selection={selection} onChange={correct} onClose={() => setSelection(null)} /> : null}
         <p className="text-caption text-ink-subtle">

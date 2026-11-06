@@ -129,3 +129,10 @@ describe("teclas e pedal", () => {
     expect(keyToRollAction(key("a"))).toBeNull();
   });
 });
+
+describe("duração pelo tempo lido", () => {
+  it("usa o total de tempos quando existe", () => {
+    expect(pieceSeconds({ ...PLAN, totalBeats: 60 })).toBe(30);
+    expect(pieceSeconds(PLAN)).toBe(60);
+  });
+});

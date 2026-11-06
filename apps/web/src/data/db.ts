@@ -99,6 +99,7 @@ export interface StoredScrollPlan {
   measures: number;
   beatsPerMeasure: number;
   bpm: number;
+  beatsTyped?: boolean;
 }
 
 export interface StoredSheet {
