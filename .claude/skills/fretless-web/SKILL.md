@@ -505,3 +505,8 @@ send never post the same results twice. The session planner (`planSession`) assi
   nota some. Partitura impressa não costuma fazer isso; desenho de teste faz. Regra: fixture com clave e espaço real.
 - **Scan sem OCR não fica guardado** (06/11). `isReadingFinal`: se o OCR não rodou (sem rede na primeira vez), a estrutura
   não vai para o Dexie, e a próxima abertura tenta de novo. Guardar deixaria o scan sem D.S. e Fine para sempre.
+- **Dependência com script de instalação derruba o CI e o site não publica** (06/11, tesseract.js). Sintoma:
+  `ERR_PNPM_IGNORED_BUILDS` em "Instalar dependências" no CI, com tudo verde na máquina, onde a instalação não falha do
+  mesmo jeito. Causa: o pnpm 12 recusa script não decidido em `allowBuilds`. Regra: dependência nova com `postinstall`
+  entra em `allowBuilds` do `pnpm-workspace.yaml` (`false` se o script só pede doação, como aqui), e publicar só conta
+  como feito depois de ver o CI passar.
