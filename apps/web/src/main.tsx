@@ -21,6 +21,18 @@ const updateServiceWorker = registerSW({
 void watchDatabaseOpen(() => db.open());
 retryCore();
 
+if (import.meta.env.PROD && "caches" in window) {
+  window.addEventListener(
+    "load",
+    () => {
+      import("./app/offlineFiles")
+        .then(({ warmOfflineFiles }) => warmOfflineFiles())
+        .catch(() => undefined);
+    },
+    { once: true },
+  );
+}
+
 const root = document.getElementById("root");
 if (!root) {
   throw new Error("Elemento #root não encontrado.");

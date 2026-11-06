@@ -9,7 +9,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-import { isPdfjsAssetFile, PDFJS_ASSET_EXTENSIONS, PDFJS_ASSET_FOLDERS, PDFJS_ASSETS_DIR } from "./src/pdf/assets";
+import { LIBRARY_CACHE, PDF_READER_CACHE, SAMPLES_CACHE } from "./src/app/offlineCaches";
+import { isPdfjsAssetFile, PDFJS_ASSET_FOLDERS, PDFJS_ASSETS_DIR } from "./src/pdf/assets";
 
 const DEV_PORT = 5180;
 const PREVIEW_PORT = 4180;
@@ -32,7 +33,11 @@ function spaFallbackForStaticHosts(): Plugin {
 
 const PDFJS_DIR = dirname(createRequire(import.meta.url).resolve("pdfjs-dist/package.json"));
 const PDFJS_ASSET_CONTENT_TYPES: Record<string, string> = { ".wasm": "application/wasm", ".js": "text/javascript", ".ttf": "font/ttf" };
-const PRECACHED_EXTENSIONS = ["js", "mjs", "css", "html", "wasm", "svg", "woff2", "woff", "mxl", ...PDFJS_ASSET_EXTENSIONS];
+const PRECACHED_EXTENSIONS = ["js", "mjs", "css", "html", "wasm", "svg", "woff2", "woff"];
+const PDF_WORKER_FILE = "pdf.worker";
+const LIBRARY_MAX_ENTRIES = 256;
+const PDF_READER_MAX_ENTRIES = 256;
+const SAMPLES_MAX_ENTRIES = 64;
 
 function pdfjsAssetPath(requestUrl: string | undefined): string | null {
   try {
@@ -107,12 +112,23 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: [`**/*.{${PRECACHED_EXTENSIONS.join(",")}}`],
+        globIgnores: [`${PDFJS_ASSETS_DIR}/**`, `assets/${PDF_WORKER_FILE}*`],
         maximumFileSizeToCacheInBytes: FIVE_MEGABYTES,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes("/amostras/"),
             handler: "CacheFirst",
-            options: { cacheName: "amostras", expiration: { maxEntries: 64 }, cacheableResponse: { statuses: [200] } },
+            options: { cacheName: SAMPLES_CACHE, expiration: { maxEntries: SAMPLES_MAX_ENTRIES }, cacheableResponse: { statuses: [200] } },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith(".mxl"),
+            handler: "CacheFirst",
+            options: { cacheName: LIBRARY_CACHE, expiration: { maxEntries: LIBRARY_MAX_ENTRIES }, cacheableResponse: { statuses: [200] } },
+          },
+          {
+            urlPattern: new RegExp(`/${PDFJS_ASSETS_DIR}/|/${PDF_WORKER_FILE}`),
+            handler: "CacheFirst",
+            options: { cacheName: PDF_READER_CACHE, expiration: { maxEntries: PDF_READER_MAX_ENTRIES }, cacheableResponse: { statuses: [200] } },
           },
         ],
       },

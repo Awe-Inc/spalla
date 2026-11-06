@@ -19,6 +19,10 @@ export const LIBRARY: readonly LibraryPiece[] = manifest;
 
 const LIBRARY_FILE_URLS = import.meta.glob<string>("../../../../assets/songs/community/*.mxl", { query: "?url", import: "default", eager: true });
 
+export function libraryFileUrls(): string[] {
+  return Object.values(LIBRARY_FILE_URLS);
+}
+
 export function libraryResultId(slug: string): string {
   return `biblioteca:${slug}`;
 }
