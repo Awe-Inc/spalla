@@ -49,7 +49,7 @@ export function usePitchInput({ publishesFrames = true }: { publishesFrames?: bo
     return () => {
       cancelAnimationFrame(handle);
       unsubscribe();
-      void input.stop();
+      void input.dispose();
       inputRef.current = null;
     };
   }, [publishesFrames]);

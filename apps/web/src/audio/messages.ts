@@ -1,7 +1,8 @@
 import type { PitchFrame } from "@fretless/core";
 
 export interface WorkletOptions {
-  wasmBinary: ArrayBuffer;
+  wasmModule?: WebAssembly.Module;
+  wasmBinary?: ArrayBuffer;
   windowSize: number;
   hopFrames?: number;
 }

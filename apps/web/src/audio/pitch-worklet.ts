@@ -18,7 +18,7 @@ class PitchProcessor extends AudioWorkletProcessor {
       if (event.data.type === "stop") this.#running = false;
       if (event.data.type === "gain" && this.#tracker) this.#tracker.setInputGain(event.data.value);
     };
-    loadCore({ wasmBinary: processorOptions.wasmBinary })
+    loadCore({ wasmModule: processorOptions.wasmModule, wasmBinary: processorOptions.wasmBinary })
       .then((core) => {
         this.#tracker = core.createPitchTracker(sampleRate, processorOptions.windowSize);
         this.#post({ type: "ready", requiredSamples: this.#tracker.requiredSamples, sampleRate });

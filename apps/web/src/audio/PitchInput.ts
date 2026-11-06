@@ -7,6 +7,7 @@ import workletUrl from "./pitch-worklet.ts?worker&url";
 export type FrameListener = (frame: PitchFrame) => void;
 
 const READY_TIMEOUT_MS = 10_000;
+const SUSPEND_AFTER_STOP_MS = 1_000;
 
 export interface PitchInputInfo {
   sampleRate: number;
@@ -23,14 +24,51 @@ export class PitchInputCancelled extends Error {
   }
 }
 
-async function fetchWasmBinary(): Promise<ArrayBuffer> {
+interface CompiledCore {
+  wasmModule: WebAssembly.Module;
+  wasmBinary: ArrayBuffer;
+}
+
+let compiledCore: Promise<CompiledCore> | null = null;
+
+async function fetchAndCompileCore(): Promise<CompiledCore> {
   const response = await fetch(coreWasmUrl);
   if (!response.ok) throw new Error(`O núcleo não carregou (HTTP ${response.status}).`);
-  return response.arrayBuffer();
+  const wasmBinary = await response.arrayBuffer();
+  return { wasmModule: await WebAssembly.compile(wasmBinary), wasmBinary };
+}
+
+function compileCoreOnce(): Promise<CompiledCore> {
+  compiledCore ??= fetchAndCompileCore().catch((error: unknown) => {
+    compiledCore = null;
+    throw error;
+  });
+  return compiledCore;
+}
+
+export function forgetCompiledCore(): void {
+  compiledCore = null;
+}
+
+function isCloneFailure(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "DataCloneError";
+}
+
+function createPitchNode(context: AudioContext, core: CompiledCore, windowSize: number): AudioWorkletNode {
+  const build = (processorOptions: WorkletOptions) => new AudioWorkletNode(context, "fretless-pitch", { numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1, processorOptions });
+  try {
+    return build({ wasmModule: core.wasmModule, windowSize });
+  } catch (error: unknown) {
+    if (!isCloneFailure(error)) throw error;
+    return build({ wasmBinary: core.wasmBinary, windowSize });
+  }
 }
 
 export class PitchInput {
   #context: AudioContext | null = null;
+  #idleContext: AudioContext | null = null;
+  #workletLoad: Promise<void> | null = null;
+  #suspendTimer: ReturnType<typeof setTimeout> | null = null;
   #stream: MediaStream | null = null;
   #node: AudioWorkletNode | null = null;
   #listeners = new Set<FrameListener>();
@@ -67,19 +105,13 @@ export class PitchInput {
         channelCount: 1,
       },
     });
-    const context = new AudioContext({ latencyHint: "interactive" });
+    const context = this.#takeContext();
     this.#context = context;
     this.#stream = stream;
     try {
-      const [wasmBinary] = await Promise.all([fetchWasmBinary(), context.audioWorklet.addModule(workletUrl)]);
+      const [core] = await Promise.all([compileCoreOnce(), this.#loadWorklet(context)]);
       if (generation !== this.#generation) throw new PitchInputCancelled();
-      const processorOptions: WorkletOptions = { wasmBinary, windowSize };
-      const node = new AudioWorkletNode(context, "fretless-pitch", {
-        numberOfInputs: 1,
-        numberOfOutputs: 0,
-        channelCount: 1,
-        processorOptions,
-      });
+      const node = createPitchNode(context, core, windowSize);
       this.#node = node;
       context.createMediaStreamSource(stream).connect(node);
 
@@ -113,7 +145,8 @@ export class PitchInput {
         browserProcessing: activeProcessing(stream.getAudioTracks()[0]?.getSettings() ?? {}),
       };
     } catch (error: unknown) {
-      await this.#release(context, stream, this.#node);
+      this.#release(stream, this.#node);
+      this.#park(context);
       if (this.#context === context) {
         this.#context = null;
         this.#stream = null;
@@ -131,14 +164,53 @@ export class PitchInput {
     this.#context = null;
     this.#stream = null;
     this.#node = null;
-    await this.#release(context, stream, node);
+    this.#release(stream, node);
+    if (context) this.#park(context);
   }
 
-  async #release(context: AudioContext | null, stream: MediaStream | null, node: AudioWorkletNode | null): Promise<void> {
+  async dispose(): Promise<void> {
+    await this.stop();
+    this.#cancelSuspend();
+    const context = this.#idleContext;
+    this.#idleContext = null;
+    this.#workletLoad = null;
+    if (context && context.state !== "closed") await context.close();
+  }
+
+  #takeContext(): AudioContext {
+    this.#cancelSuspend();
+    const idle = this.#idleContext;
+    if (idle && idle.state !== "closed") return idle;
+    this.#workletLoad = null;
+    return new AudioContext({ latencyHint: "interactive" });
+  }
+
+  #loadWorklet(context: AudioContext): Promise<void> {
+    this.#workletLoad ??= context.audioWorklet.addModule(workletUrl).catch((error: unknown) => {
+      this.#workletLoad = null;
+      throw error;
+    });
+    return this.#workletLoad;
+  }
+
+  #park(context: AudioContext): void {
+    this.#idleContext = context;
+    this.#cancelSuspend();
+    this.#suspendTimer = setTimeout(() => {
+      this.#suspendTimer = null;
+      if (context.state === "running") void context.suspend();
+    }, SUSPEND_AFTER_STOP_MS);
+  }
+
+  #cancelSuspend(): void {
+    if (this.#suspendTimer !== null) clearTimeout(this.#suspendTimer);
+    this.#suspendTimer = null;
+  }
+
+  #release(stream: MediaStream | null, node: AudioWorkletNode | null): void {
     node?.port.postMessage({ type: "stop" });
     node?.disconnect();
     stream?.getTracks().forEach((track) => track.stop());
-    if (context && context.state !== "closed") await context.close();
   }
 }
 

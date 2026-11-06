@@ -22,6 +22,7 @@ export * from "./types.js";
 
 export interface CoreLoadOptions {
   wasmBinary?: ArrayBuffer | Uint8Array;
+  wasmModule?: WebAssembly.Module;
   locateFile?: (path: string, prefix: string) => string;
 }
 
@@ -258,7 +259,14 @@ export class FretlessCore {
 
 type InstantiateWasm = (imports: WebAssembly.Imports, receive: (instance: WebAssembly.Instance) => void) => Record<string, never>;
 
-function toModuleArg({ wasmBinary, locateFile }: CoreLoadOptions): { locateFile?: CoreLoadOptions["locateFile"]; instantiateWasm?: InstantiateWasm } {
+function toModuleArg({ wasmBinary, wasmModule, locateFile }: CoreLoadOptions): { locateFile?: CoreLoadOptions["locateFile"]; instantiateWasm?: InstantiateWasm } {
+  if (wasmModule) {
+    const instantiateWasm: InstantiateWasm = (imports, receive) => {
+      void WebAssembly.instantiate(wasmModule, imports).then(receive);
+      return {};
+    };
+    return { locateFile, instantiateWasm };
+  }
   if (!wasmBinary) return { locateFile };
   const instantiateWasm: InstantiateWasm = (imports, receive) => {
     void WebAssembly.instantiate(wasmBinary as BufferSource, imports).then(({ instance }) => receive(instance));
