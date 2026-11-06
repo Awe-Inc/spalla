@@ -48,14 +48,19 @@ export function catalogFromLibrary(pieces: readonly LibraryPiece[] = LIBRARY): C
   }));
 }
 
-export async function loadLibraryBytes(slug: string, fetcher: typeof fetch = fetch): Promise<Uint8Array | null> {
+export type LibraryLoad = { status: "ok"; bytes: Uint8Array } | { status: "missing" } | { status: "unreachable" };
+
+const NOT_FOUND = 404;
+
+export async function loadLibraryBytes(slug: string, fetcher: typeof fetch = fetch): Promise<LibraryLoad> {
   const piece = findLibraryPiece(slug);
   const url = piece ? libraryFileUrl(piece) : null;
-  if (!url) return null;
+  if (!url) return { status: "missing" };
   try {
     const response = await fetcher(url);
-    return response.ok ? new Uint8Array(await response.arrayBuffer()) : null;
+    if (response.ok) return { status: "ok", bytes: new Uint8Array(await response.arrayBuffer()) };
+    return { status: response.status === NOT_FOUND ? "missing" : "unreachable" };
   } catch {
-    return null;
+    return { status: "unreachable" };
   }
 }

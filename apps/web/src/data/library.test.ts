@@ -49,10 +49,12 @@ describe("biblioteca CC0", () => {
     const offline = (async () => {
       throw new TypeError("offline");
     }) as typeof fetch;
-    expect(await loadLibraryBytes(first.slug, ok)).toEqual(new Uint8Array([1, 2, 3]));
-    expect(await loadLibraryBytes(first.slug, missing)).toBeNull();
-    expect(await loadLibraryBytes(first.slug, offline)).toBeNull();
-    expect(await loadLibraryBytes("nao-existe", ok)).toBeNull();
+    const serverDown = (async () => new Response(null, { status: 503 })) as typeof fetch;
+    expect(await loadLibraryBytes(first.slug, ok)).toEqual({ status: "ok", bytes: new Uint8Array([1, 2, 3]) });
+    expect(await loadLibraryBytes(first.slug, missing)).toEqual({ status: "missing" });
+    expect(await loadLibraryBytes(first.slug, offline)).toEqual({ status: "unreachable" });
+    expect(await loadLibraryBytes(first.slug, serverDown)).toEqual({ status: "unreachable" });
+    expect(await loadLibraryBytes("nao-existe", ok)).toEqual({ status: "missing" });
     expect(libraryResultId(first.slug)).toBe(`biblioteca:${first.slug}`);
   });
 });

@@ -103,6 +103,10 @@ export const api = {
   upload: <T>(path: string, form: FormData) => apiRequest<T>("POST", path, { form }),
 };
 
+export function isConnectionError(error: unknown): boolean {
+  return error instanceof ApiError && (error.code === "rede" || error.code === "tempo");
+}
+
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return "Algo deu errado. Tente de novo.";

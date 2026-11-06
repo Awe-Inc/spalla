@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { errorMessage } from "./client";
+import { errorMessage, isConnectionError } from "./client";
 
 export interface ApiData<T> {
   data: T | undefined;
   error: string | null;
+  isDisconnected: boolean;
   loading: boolean;
   reload: () => void;
 }
@@ -12,6 +13,7 @@ export interface ApiData<T> {
 export function useApiData<T>(load: (signal: AbortSignal) => Promise<T>, deps: readonly unknown[]): ApiData<T> {
   const [data, setData] = useState<T | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [isDisconnected, setIsDisconnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(0);
   const loadRef = useRef(load);
@@ -26,10 +28,12 @@ export function useApiData<T>(load: (signal: AbortSignal) => Promise<T>, deps: r
         if (controller.signal.aborted) return;
         setData(value);
         setError(null);
+        setIsDisconnected(false);
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setError(errorMessage(cause));
+        setIsDisconnected(isConnectionError(cause));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -38,7 +42,14 @@ export function useApiData<T>(load: (signal: AbortSignal) => Promise<T>, deps: r
   }, [version, ...deps]);
 
   const reload = useCallback(() => setVersion((value) => value + 1), []);
-  return { data, error, loading, reload };
+
+  useEffect(() => {
+    if (!isDisconnected) return;
+    window.addEventListener("online", reload);
+    return () => window.removeEventListener("online", reload);
+  }, [isDisconnected, reload]);
+
+  return { data, error, isDisconnected, loading, reload };
 }
 
 export function useAction(): {

@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router";
 
 import { isPlatformEnabled } from "@/api/client";
 import type { Permission } from "@/api/types";
-import { EmptyState, InlineError } from "@/design/components";
+import { Button, EmptyState, InlineError } from "@/design/components";
 import { SkeletonList } from "@/design/layout";
 
 import { can, useAccount } from "./store";
@@ -29,10 +29,27 @@ interface LoadStateProps<T> {
   data: T | undefined;
   error: string | null;
   loading: boolean;
+  isDisconnected?: boolean;
+  reload?: () => void;
   children: (data: T) => ReactNode;
 }
 
-export function LoadState<T>({ data, error, loading, children }: LoadStateProps<T>) {
+export function LoadState<T>({ data, error, loading, isDisconnected = false, reload, children }: LoadStateProps<T>) {
+  if (isDisconnected && data === undefined) {
+    return (
+      <InlineError
+        title="Sem conexão com o servidor."
+        nextStep="Esta área volta sozinha quando a internet voltar. Tocar, estudar e o que está salvo neste aparelho continuam funcionando."
+        action={
+          reload ? (
+            <Button onClick={reload} disabled={loading}>
+              {loading ? "Tentando…" : "Tentar de novo"}
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  }
   if (error && data === undefined) return <InlineError title={error} nextStep="Recarregue a página ou tente de novo em alguns instantes." />;
   if (data === undefined) {
     return loading ? <SkeletonList /> : null;
