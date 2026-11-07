@@ -183,6 +183,8 @@ TEST(a_confidently_played_wrong_note_is_a_miss) {
     CHECK_EQ(engine.stats().miss, 4);
     CHECK_EQ(engine.stats().perfect, 0);
     CHECK_EQ(engine.stats().combo, 0);
+    // The Result screen tells a wrong pitch apart from a note never heard.
+    CHECK(engine.allJudgements().front().offTuneRatio > 0.5f);
 }
 
 TEST(silence_is_a_miss_and_breaks_the_combo) {
@@ -197,6 +199,7 @@ TEST(silence_is_a_miss_and_breaks_the_combo) {
     CHECK_EQ(engine.stats().miss, 4);
     CHECK_EQ(engine.stats().maxCombo, 0);
     CHECK_NEAR(engine.stats().accuracyPct, 0.0, 0.01);
+    CHECK(engine.allJudgements().front().offTuneRatio == 0.0f);
 }
 
 TEST(sound_the_detector_cannot_read_is_unheard_not_missed) {

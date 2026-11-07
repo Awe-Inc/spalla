@@ -104,7 +104,7 @@ export function ProgressoPage() {
                             {stars}/{max}
                           </span>
                         </div>
-                        <div className="h-2 rounded-pill bg-surface-sunken">
+                        <div role="progressbar" aria-valuemin={0} aria-valuemax={max} aria-valuenow={stars} aria-label={`${stars} de ${max} estrelas em ${module.title}`} className="h-2 rounded-pill bg-surface-sunken">
                           <div className="h-full rounded-pill bg-primary" style={{ width: `${max > 0 ? (stars / max) * 100 : 0}%` }} />
                         </div>
                       </Link>

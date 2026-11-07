@@ -1,6 +1,7 @@
 import type { FretlessCore } from "@fretless/core";
 
 import { db, type StoredPiece } from "./db";
+import type { RestoreRemoved } from "./restore";
 import { IMPORTED_GENRE, levelFromNoteCount } from "./pieces";
 
 export const MAX_PIECE_FILE_BYTES = 8 * 1024 * 1024;
@@ -39,9 +40,16 @@ export async function importPieceFile(core: FretlessCore, file: File): Promise<I
   return { ok: true, piece: { ...piece, id } };
 }
 
-export async function removePiece(id: number): Promise<void> {
-  await db.transaction("rw", db.pieces, db.pieceFiles, async () => {
+export async function removePiece(id: number): Promise<RestoreRemoved> {
+  const [piece, file] = await db.transaction("rw", db.pieces, db.pieceFiles, async () => {
+    const removed = await Promise.all([db.pieces.get(id), db.pieceFiles.get(id)]);
     await db.pieces.delete(id);
     await db.pieceFiles.delete(id);
+    return removed;
   });
+  return () =>
+    db.transaction("rw", db.pieces, db.pieceFiles, async () => {
+      if (piece) await db.pieces.put(piece);
+      if (file) await db.pieceFiles.put(file);
+    });
 }

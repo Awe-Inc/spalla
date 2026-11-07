@@ -17,7 +17,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (177 cases) + vitest core (15) + vitest web (651); API: 44 em apps/api
+pnpm test                          # WASM harness (177 cases) + vitest core (15) + vitest web (700); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e:aulas   # professora + admin + aluno in three contexts against a throwaway API
                                    # on 3410 (PGlite temp) and vite on 4180; muted; see docs/testes.md (~45 s)
@@ -523,3 +523,16 @@ send never post the same results twice. The session planner (`planSession`) assi
 - **E2E que conta com a primeira página do catálogo quebra quando entra peça nova** (06/11). Sintoma: 4 specs falharam
   depois do rebuild do WASM porque duas peças novas empurraram a canção usada no teste para fora das 20 primeiras.
   Regra: o spec busca a peça no campo "Buscar por título ou compositor".
+- **`ConfirmButton` jogava o foco no `body` ao confirmar ou cancelar** (06/11). Sintoma: quem usa teclado ou leitor de
+  tela voltava ao topo da página, porque o botão focado saía da tela. Regra: componente que troca o botão focado por
+  outro devolve o foco ao lugar de origem, e o teste confere `toHaveFocus` nos dois caminhos.
+- **Metrônomo esquecia o andamento e o Pedal pedia os fones a cada visita** (06/11). Sintoma: bpm sempre em 72 e aviso
+  de fones de novo ao reabrir a ferramenta. Causa: `useState` local para uma preferência. Regra: o que o músico escolhe
+  e espera reencontrar fica em `useSettings`, e o campo novo entra na lista explícita do `partialize`; fora dela ele
+  some ao recarregar sem erro nenhum.
+- **`window.confirm` na Estante e apagar sem volta em Músicas, rotina e gravação** (06/11). Regra: remoção de dado do
+  aluno devolve uma função de restaurar (`RestoreRemoved`, `data/restore.ts`) que traz a linha e o arquivo, e a tela
+  oferece `useUndo` (`design/undo.tsx`), sem timer: o aviso só some ao fechar, sair da página ou apagar outra coisa.
+- **`noteErrors`: `event.string` é a corda sugerida e pode ser -1** (06/11). Regra: a frase omite "na corda" nesse caso.
+  O limite de 0,12 s para "ritmo" é conservador por causa da latência do microfone e ainda não foi calibrado com violino
+  real; não baixar sem medir.

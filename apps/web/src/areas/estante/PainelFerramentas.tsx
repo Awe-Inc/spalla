@@ -45,7 +45,7 @@ function AfinadorCompacto() {
       <Tuner noteLabel={reading?.note ?? null} cents={reading?.cents ?? null} frequencyHz={reading?.frequencyHz} compact />
       {mic.status.status === "error" ? <InlineError title="O microfone não abriu." nextStep={mic.status.message} /> : null}
       <Button variant={isListening ? "secondary" : "primary"} onClick={() => void (isListening ? mic.stop() : mic.start())} disabled={mic.status.status === "starting"}>
-        {isListening ? "Parar de ouvir" : "Ouvir"}
+        {isListening ? "Desligar microfone" : "Ligar microfone"}
       </Button>
     </PainelSecao>
   );
@@ -53,7 +53,9 @@ function AfinadorCompacto() {
 
 function MetronomoCompacto() {
   const sound = useSettings((state) => state.metronomeSound);
-  const [settings, setSettings] = useState<TempoClockSettings>({ bpm: 72, beatsPerMeasure: 4, subdivision: 1, accentFirstBeat: true, sound, progressive: null });
+  const rememberedBpm = useSettings((state) => state.metronomeBpm);
+  const setPracticeAudio = useSettings((state) => state.setPracticeAudio);
+  const [settings, setSettings] = useState<TempoClockSettings>({ bpm: rememberedBpm, beatsPerMeasure: 4, subdivision: 1, accentFirstBeat: true, sound, progressive: null });
   const [isRunning, setIsRunning] = useState(false);
   const clockRef = useRef<TempoClock | null>(null);
 
@@ -70,6 +72,7 @@ function MetronomoCompacto() {
 
   function patch(changes: Partial<TempoClockSettings>) {
     setSettings((current) => ({ ...current, ...changes }));
+    if (changes.bpm !== undefined) setPracticeAudio({ metronomeBpm: changes.bpm });
   }
 
   async function toggle() {

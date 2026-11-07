@@ -102,7 +102,7 @@ export function AccuracyBars({ bars, label, className = "h-32" }: { bars: readon
         <li key={bar.key} className="flex flex-1 flex-col items-center gap-1">
           <span className="font-mono text-caption text-ink-subtle tabular">{Math.round(bar.accuracyPct)}</span>
           <div className="flex w-full flex-1 items-end">
-            <div className={`w-full rounded-sm ${accuracyToneClass(bar.accuracyPct)}`} style={{ height: `${Math.max(4, bar.accuracyPct)}%` }} aria-label={`${Math.round(bar.accuracyPct)}% a ${bar.bpm} bpm`} />
+            <div className={`w-full rounded-sm ${accuracyToneClass(bar.accuracyPct)}`} style={{ height: `${Math.max(4, bar.accuracyPct)}%` }} role="img" aria-label={`${Math.round(bar.accuracyPct)}% a ${bar.bpm} bpm`} />
           </div>
           <span className="font-mono text-caption text-ink-subtle tabular">{bar.bpm}</span>
         </li>
@@ -124,7 +124,7 @@ export function ProgressRing({ value, max, caption, size = 112 }: ProgressRingPr
   const circumference = 2 * Math.PI * radius;
   const ratio = max > 0 ? Math.min(value / max, 1) : 0;
   return (
-    <figure className="relative inline-grid place-items-center" style={{ width: size, height: size }}>
+    <div role="progressbar" aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.min(value, max)} aria-label={`${value} ${caption}`} className="relative inline-grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} className="stroke-surface-sunken" />
         <circle
@@ -139,11 +139,11 @@ export function ProgressRing({ value, max, caption, size = 112 }: ProgressRingPr
           className="stroke-primary transition-[stroke-dashoffset] duration-slow ease-spalla"
         />
       </svg>
-      <figcaption className="absolute inset-0 grid place-content-center text-center">
+      <div className="absolute inset-0 grid place-content-center text-center">
         <span className="font-mono text-numeric tabular">{value}</span>
         <span className="text-caption text-ink-subtle">{caption}</span>
-      </figcaption>
-    </figure>
+      </div>
+    </div>
   );
 }
 

@@ -25,6 +25,7 @@ import { buttonClass, ButtonLink, EmptyState, InlineError, Menu, Stars } from "@
 import { Badge, type BadgeTone } from "@/design/fields";
 import { Icon } from "@/design/icons";
 import { List, ListRow, PageHeader, SkeletonList } from "@/design/layout";
+import { useUndo } from "@/design/undo";
 
 import { PieceFiltersBar } from "./PieceFilters";
 import { RepertorioTabs } from "./RepertorioTabs";
@@ -99,6 +100,8 @@ export function MusicasPage() {
   const [shown, setShown] = useState(PAGE_SIZE);
   const [error, setError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [removeFailed, setRemoveFailed] = useState(false);
+  const { offerUndo, undoNotice } = useUndo();
 
   const catalog = [...catalogFromStored(stored), ...(core.status === "ready" ? catalogFromCurriculum(core.core.curriculum) : []), ...LIBRARY_CATALOG];
   const statuses = statusByPiece(catalog, results);
@@ -106,6 +109,16 @@ export function MusicasPage() {
   const visible = filterPieces(catalog, statuses, filters);
   const page = visible.slice(0, shown);
   const remaining = visible.length - page.length;
+
+  function remove(id: number, title: string) {
+    removePiece(id).then(
+      (restore) => {
+        setRemoveFailed(false);
+        offerUndo({ message: `"${title}" saiu do repertório.`, restore });
+      },
+      () => setRemoveFailed(true),
+    );
+  }
 
   function changeFilters(next: PieceFilters) {
     setFilters(next);
@@ -137,6 +150,8 @@ export function MusicasPage() {
       <RepertorioTabs />
 
       <div className="grid gap-4">
+        {undoNotice}
+        {removeFailed ? <InlineError title="A música não foi apagada." nextStep="Feche e abra o app e tente apagar de novo." /> : null}
         {error ? <InlineError title="Esse arquivo não abriu." nextStep={error} /> : null}
 
         <PieceFiltersBar
@@ -160,7 +175,7 @@ export function MusicasPage() {
             </p>
             <List label="Peças do repertório">
               {page.map((piece) => (
-                <PieceRow key={piece.key} piece={piece} status={statuses.get(piece.key) ?? "nao-iniciada"} stars={best.get(piece.resultId)?.stars ?? 0} onRemove={(id) => void removePiece(id)} />
+                <PieceRow key={piece.key} piece={piece} status={statuses.get(piece.key) ?? "nao-iniciada"} stars={best.get(piece.resultId)?.stars ?? 0} onRemove={(id) => remove(id, piece.title)} />
               ))}
             </List>
             {remaining > 0 ? (

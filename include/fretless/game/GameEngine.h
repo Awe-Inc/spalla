@@ -86,6 +86,7 @@ struct NoteJudgement {
     float       worstCents    = 0.0f;
     double      onsetErrorSec = 0.0;    ///< positive = late
     float       voicedRatio   = 0.0f;
+    float       offTuneRatio  = 0.0f;   ///< share of the note read at a wrong pitch
     int         points        = 0;
     int         comboAfter    = 0;
     double      judgedAtSec   = 0.0;

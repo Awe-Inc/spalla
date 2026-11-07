@@ -1,5 +1,6 @@
 import type { ScoreStructure } from "@/pdf/omr/structure";
 import { db, type StoredScrollPlan, type StoredSheet } from "./db";
+import type { RestoreRemoved } from "./restore";
 import { describeStorageError } from "./storageErrors";
 
 export const MAX_SHEET_FILE_BYTES = 64 * 1024 * 1024;
@@ -83,11 +84,18 @@ function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
-export async function removeSheet(id: number): Promise<void> {
-  await db.transaction("rw", db.sheets, db.sheetFiles, async () => {
+export async function removeSheet(id: number): Promise<RestoreRemoved> {
+  const [sheet, file] = await db.transaction("rw", db.sheets, db.sheetFiles, async () => {
+    const removed = await Promise.all([db.sheets.get(id), db.sheetFiles.get(id)]);
     await db.sheets.delete(id);
     await db.sheetFiles.delete(id);
+    return removed;
   });
+  return () =>
+    db.transaction("rw", db.sheets, db.sheetFiles, async () => {
+      if (sheet) await db.sheets.put(sheet);
+      if (file) await db.sheetFiles.put(file);
+    });
 }
 
 export async function rememberSheetPage(id: number, lastPage: number): Promise<void> {

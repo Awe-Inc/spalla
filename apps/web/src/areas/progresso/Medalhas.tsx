@@ -38,7 +38,7 @@ function tierLabel(tier: MedalTier): string {
 function ShareBar({ medal }: { medal: MedalProgress }) {
   const percent = Math.round(medalShare(medal) * 100);
   return (
-    <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-pill bg-surface-sunken" aria-hidden>
+    <span role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label={`${percent}% do caminho até a próxima medalha`} className="mt-1 block h-1.5 w-full overflow-hidden rounded-pill bg-surface-sunken">
       <span className="block h-full rounded-pill bg-primary" style={{ width: `${percent}%` }} />
     </span>
   );

@@ -5,6 +5,7 @@ import { db, type StoredSheet } from "@/data/db";
 import { describeSheetStorageError, importSheetFile, pageCountLabel, removeSheet } from "@/data/sheets";
 import { buttonClass, ButtonLink, EmptyState, InlineError, Menu } from "@/design/components";
 import { Icon } from "@/design/icons";
+import { useUndo } from "@/design/undo";
 import { List, ListRow, PageHeader, SkeletonList } from "@/design/layout";
 import { countPdfPages } from "@/pdf/pdfDocument";
 
@@ -69,6 +70,7 @@ export function EstantePage() {
   const sheets = useLiveQuery(() => db.sheets.orderBy("openedAt").reverse().toArray(), []);
   const [error, setError] = useState<{ title: string; nextStep: string } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const { offerUndo, undoNotice } = useUndo();
 
   async function onFiles(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -84,10 +86,13 @@ export function EstantePage() {
     setIsImporting(false);
   }
 
-  function confirmRemove(sheet: StoredSheet) {
-    if (sheet.id === undefined || !window.confirm(`Apagar "${sheet.title}" da estante? O PDF sai do aparelho.`)) return;
+  function remove(sheet: StoredSheet) {
+    if (sheet.id === undefined) return;
     removeSheet(sheet.id).then(
-      () => setError(null),
+      (restore) => {
+        setError(null);
+        offerUndo({ message: `"${sheet.title}" saiu da estante.`, restore });
+      },
       () => setError({ title: "O PDF não saiu da estante.", nextStep: "Feche e abra o app e tente apagar de novo." }),
     );
   }
@@ -102,6 +107,7 @@ export function EstantePage() {
       <RepertorioTabs />
 
       <div className="grid gap-4">
+        {undoNotice}
         {error ? <InlineError title={error.title} nextStep={error.nextStep} /> : null}
 
         {sheets === undefined ? <SkeletonList rows={3} label="Abrindo a estante…" /> : null}
@@ -113,7 +119,7 @@ export function EstantePage() {
         {sheets !== undefined && sheets.length > 0 ? (
           <List label="PDFs da estante">
             {sheets.map((sheet) => (
-              <SheetRow key={sheet.id} sheet={sheet} onRemove={confirmRemove} />
+              <SheetRow key={sheet.id} sheet={sheet} onRemove={remove} />
             ))}
           </List>
         ) : null}

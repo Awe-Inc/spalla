@@ -1,9 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("./metronome", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./metronome")>()),
+  scheduleClick: vi.fn(),
+}));
+
 import { clampBpm, clickKindFor, progressiveBpm, TempoClock, type TempoClockSettings } from "./tempoClock";
 
+let audioNowSec = 0;
+
 class FakeAudioContext {
-  currentTime = 0;
+  get currentTime(): number {
+    return audioNowSec;
+  }
   destination = {};
   async resume(): Promise<void> {}
   async close(): Promise<void> {}
@@ -42,6 +51,51 @@ describe("TempoClock.start", () => {
     await clock.dispose();
     await starting;
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("TempoClock.onBeat", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal("AudioContext", FakeAudioContext);
+    vi.stubGlobal("GainNode", FakeGainNode);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  function play(seconds: number) {
+    for (let elapsed = 0; elapsed < seconds; elapsed += 0.025) {
+      audioNowSec += 0.025;
+      vi.advanceTimersByTime(25);
+    }
+  }
+
+  it("announces each beat once, not each subdivision", async () => {
+    audioNowSec = 0;
+    const beats: number[] = [];
+    const clock = new TempoClock({ ...SETTINGS, bpm: 120, subdivision: 2 });
+    clock.onBeat((beat) => beats.push(beat));
+    await clock.start();
+    play(1.5);
+    clock.stop();
+    expect(beats).toEqual([0, 1, 2]);
+  });
+
+  it("drops the beats still waiting when stopped", async () => {
+    const beats: number[] = [];
+    audioNowSec = 0;
+    const clock = new TempoClock({ ...SETTINGS, bpm: 60 });
+    clock.onBeat((beat) => beats.push(beat));
+    await clock.start();
+    play(0.025);
+    expect(vi.getTimerCount()).toBe(2);
+    clock.stop();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(5000);
+    expect(beats).toEqual([]);
   });
 });
 

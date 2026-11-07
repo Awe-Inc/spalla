@@ -60,7 +60,7 @@ function Overview() {
                       </Link>
                       <span className="tabular text-ink-muted">{role.users}</span>
                     </div>
-                    <div className="h-2 rounded-pill bg-surface-soft">
+                    <div role="img" aria-label={`${role.users} em ${role.name}`} className="h-2 rounded-pill bg-surface-soft">
                       <div className="h-2 rounded-pill bg-primary" style={{ width: `${(role.users / maxRole) * 100}%` }} />
                     </div>
                   </li>

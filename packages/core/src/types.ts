@@ -179,6 +179,7 @@ export interface NoteJudgement {
   worstCents: number;
   onsetErrorSec: number;
   voicedRatio: number;
+  offTuneRatio: number;
   points: number;
   comboAfter: number;
   judgedAtSec: number;

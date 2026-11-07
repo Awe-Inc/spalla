@@ -42,6 +42,34 @@ describe("ConfirmButton", () => {
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.queryByRole("group")).not.toBeInTheDocument();
   });
+
+  it("returns focus to the button after confirming", () => {
+    render(<ConfirmButton label="Apagar trecho" confirmLabel="Apagar" onConfirm={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Apagar trecho" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apagar" }));
+    expect(screen.getByRole("button", { name: "Apagar trecho" })).toHaveFocus();
+  });
+
+  it("returns focus to the button after cancelling", () => {
+    render(<ConfirmButton label="Apagar trecho" onConfirm={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Apagar trecho" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByRole("button", { name: "Apagar trecho" })).toHaveFocus();
+  });
+
+  it("cancels on Escape", () => {
+    const onConfirm = vi.fn();
+    render(<ConfirmButton label="Apagar trecho" confirmLabel="Apagar" onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole("button", { name: "Apagar trecho" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "Apagar" }), { key: "Escape" });
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Apagar trecho" })).toHaveFocus();
+  });
+
+  it("does not take the focus when it first appears", () => {
+    render(<ConfirmButton label="Apagar trecho" onConfirm={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Apagar trecho" })).not.toHaveFocus();
+  });
 });
 
 describe("Menu", () => {
@@ -68,6 +96,24 @@ describe("Menu", () => {
     expect(onRename).not.toHaveBeenCalled();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it("jumps to the ends with Home and End", () => {
+    render(<Menu label="Ações do trecho" items={items(vi.fn(), vi.fn())} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ações do trecho" }));
+    const menu = screen.getByRole("menu");
+    fireEvent.keyDown(menu, { key: "End" });
+    expect(screen.getByRole("menuitem", { name: "Apagar" })).toHaveFocus();
+    fireEvent.keyDown(menu, { key: "Home" });
+    expect(screen.getByRole("menuitem", { name: "Renomear" })).toHaveFocus();
+  });
+
+  it("closes on Tab and lets the focus move on", () => {
+    render(<Menu label="Ações do trecho" items={items(vi.fn(), vi.fn())} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ações do trecho" }));
+    const notPrevented = fireEvent.keyDown(screen.getByRole("menu"), { key: "Tab" });
+    expect(notPrevented).toBe(true);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
   it("closes on Escape and on a click outside", () => {

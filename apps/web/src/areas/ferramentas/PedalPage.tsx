@@ -34,7 +34,8 @@ export function PedalPage() {
   const [timbre, setTimbre] = useState<DroneTimbre>("corda");
   const [volume, setVolume] = useState(droneVolume);
   const [isOn, setIsOn] = useState(false);
-  const [headphonesConfirmed, setHeadphonesConfirmed] = useState(false);
+  const headphonesConfirmedAt = useSettings((state) => state.headphonesConfirmedAt);
+  const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
   const droneRef = useRef<{ context: AudioContext; drone: Drone } | null>(null);
   const midi = midiOf(pitchClass, octave);
 
@@ -81,7 +82,7 @@ export function PedalPage() {
 
   return (
     <ToolLayout title="Nota pedal" description="Um bordão contínuo para afinar cada nota por cima até o som parar de bater." isWide>
-      {!headphonesConfirmed ? <HeadphoneNotice onConfirm={() => setHeadphonesConfirmed(true)} /> : null}
+      {headphonesConfirmedAt === null ? <HeadphoneNotice onConfirm={confirmHeadphones} /> : null}
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <Card className="grid place-items-center gap-5">
           <div className="grid place-items-center gap-1">

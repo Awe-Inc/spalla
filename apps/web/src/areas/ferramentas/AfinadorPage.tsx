@@ -61,8 +61,8 @@ export function AfinadorPage() {
       Parar
     </Button>
   ) : (
-    <Button variant="primary" icon="ouvir" onClick={() => void mic.start()} disabled={mic.status.status === "starting" || core.status !== "ready"} loading={mic.status.status === "starting"}>
-      {mic.status.status === "starting" ? "Abrindo microfone…" : "Ouvir"}
+    <Button variant="primary" icon="microfone" onClick={() => void mic.start()} disabled={mic.status.status === "starting" || core.status !== "ready"} loading={mic.status.status === "starting"}>
+      {mic.status.status === "starting" ? "Abrindo microfone…" : "Ligar microfone"}
     </Button>
   );
 
@@ -78,7 +78,7 @@ export function AfinadorPage() {
           ) : isListening ? (
             "Ouvindo. Toque uma corda solta."
           ) : (
-            "Toque em Ouvir e libere o microfone."
+            "Toque em Ligar microfone e libere o acesso."
           )}
         </p>
         {mic.frame?.clipped ? <p className="text-center text-small text-off">O sinal está saturando. Afaste o microfone ou baixe a sensibilidade em Ajustes.</p> : null}

@@ -180,7 +180,7 @@ describe("layoutBeam", () => {
 describe("toneFor", () => {
   it("colours the past by its verdict and the present as current", () => {
     const judgements = [
-      { eventIndex: 0, grade: "Perfect" as const, meanCents: 0, worstCents: 0, onsetErrorSec: 0, voicedRatio: 1, points: 1, comboAfter: 1, judgedAtSec: 1 },
+      { eventIndex: 0, grade: "Perfect" as const, meanCents: 0, worstCents: 0, onsetErrorSec: 0, voicedRatio: 1, offTuneRatio: 0, points: 1, comboAfter: 1, judgedAtSec: 1 },
     ];
     expect(toneFor(0, 2, judgements)).toBe("Perfect");
     expect(toneFor(1, 2, judgements)).toBe("unjudged");

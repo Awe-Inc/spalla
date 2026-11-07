@@ -48,6 +48,8 @@ export class TempoClock {
   #tick = 0;
   #measureIndex = 0;
   #onMeasure: ((measureIndex: number, bpm: number) => void) | null = null;
+  #onBeat: ((beatIndex: number) => void) | null = null;
+  readonly #beatTimers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor(settings: TempoClockSettings, volume = 0.6) {
     this.#context = new AudioContext();
@@ -67,6 +69,10 @@ export class TempoClock {
 
   onMeasure(callback: ((measureIndex: number, bpm: number) => void) | null): void {
     this.#onMeasure = callback;
+  }
+
+  onBeat(callback: ((beatIndex: number) => void) | null): void {
+    this.#onBeat = callback;
   }
 
   update(settings: TempoClockSettings): void {
@@ -98,6 +104,8 @@ export class TempoClock {
     if (this.#timer === null) return;
     clearInterval(this.#timer);
     this.#timer = null;
+    this.#beatTimers.forEach((timer) => clearTimeout(timer));
+    this.#beatTimers.clear();
   }
 
   async dispose(): Promise<void> {
@@ -106,11 +114,23 @@ export class TempoClock {
     await this.#context.close();
   }
 
+  #announceBeat(beatIndex: number, atSec: number): void {
+    const timer = setTimeout(
+      () => {
+        this.#beatTimers.delete(timer);
+        this.#onBeat?.(beatIndex);
+      },
+      Math.max(0, (atSec - this.#context.currentTime) * 1000),
+    );
+    this.#beatTimers.add(timer);
+  }
+
   #schedule(): void {
     const horizon = this.#context.currentTime + LOOKAHEAD_SEC;
     while (this.#nextTickSec < horizon) {
       const { beatsPerMeasure, subdivision, accentFirstBeat, sound } = this.#settings;
       scheduleClick(this.#context, this.#output, this.#nextTickSec, clickKindFor(this.#beatIndex, this.#tick, accentFirstBeat), sound);
+      if (this.#tick === 0) this.#announceBeat(this.#beatIndex, this.#nextTickSec);
       this.#nextTickSec += 60 / this.currentBpm / subdivision;
       this.#tick = (this.#tick + 1) % subdivision;
       if (this.#tick === 0) {

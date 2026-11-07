@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode, type Ref, useEffect, useId, useRef, useState } from "react";
 import { Link, type LinkProps } from "react-router";
 
 import { Icon, type IconName } from "./icons";
@@ -29,6 +29,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   icon?: ReactNode | IconName;
   loading?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 function renderIcon(icon: ReactNode | IconName, size: ButtonSize): ReactNode {
@@ -87,18 +88,32 @@ interface ConfirmButtonProps {
 export function ConfirmButton({ label, confirmLabel = label, question = "Tem certeza?", onConfirm, icon, variant = "danger" }: ConfirmButtonProps) {
   const [asking, setAsking] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const hasAsked = useRef(false);
   useEffect(() => {
-    if (asking) confirmRef.current?.focus();
+    if (asking) {
+      hasAsked.current = true;
+      confirmRef.current?.focus();
+    } else if (hasAsked.current) {
+      hasAsked.current = false;
+      triggerRef.current?.focus();
+    }
   }, [asking]);
   if (!asking) {
     return (
-      <Button variant={variant} {...(icon ? { icon } : {})} onClick={() => setAsking(true)}>
+      <Button ref={triggerRef} variant={variant} {...(icon ? { icon } : {})} onClick={() => setAsking(true)}>
         {label}
       </Button>
     );
   }
   return (
-    <span role="group" aria-label={question} className="inline-flex animate-rise items-center gap-1 rounded-md bg-off-soft py-0.5 pl-3 pr-0.5">
+    <span
+      role="group"
+      aria-label={question}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setAsking(false);
+      }}
+      className="inline-flex animate-rise items-center gap-1 rounded-md bg-off-soft py-0.5 pl-3 pr-0.5">
       <span className="text-small text-ink">{question}</span>
       <button
         ref={confirmRef}
@@ -159,9 +174,22 @@ export function Menu({ label, items, trigger, align = "end" }: MenuProps) {
       close();
       return;
     }
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    if (!open) return;
+    if (event.key === "Tab") {
+      close();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const entries = [...(rootRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+    if (event.key === "Home") {
+      entries[0]?.focus();
+      return;
+    }
+    if (event.key === "End") {
+      entries.at(-1)?.focus();
+      return;
+    }
     const current = entries.indexOf(document.activeElement as HTMLButtonElement);
     const step = event.key === "ArrowDown" ? 1 : -1;
     entries[(current + step + entries.length) % entries.length]?.focus();

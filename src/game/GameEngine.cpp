@@ -284,6 +284,10 @@ void GameEngine::judgeCurrentNote(double atTime) {
         ? static_cast<float>(acc_.voicedInTune) / static_cast<float>(acc_.samples)
         : 0.0f;
 
+    judgement.offTuneRatio = (acc_.samples > 0)
+        ? static_cast<float>(acc_.voicedOffTune) / static_cast<float>(acc_.samples)
+        : 0.0f;
+
     const bool isShort = note.durationSeconds < config_.shortNoteSec;
     // A short note cannot be expected to hold a steady pitch; require only
     // that something in tune was heard at all.

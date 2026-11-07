@@ -85,7 +85,7 @@ Correções no currículo e no planner sem conteúdo novo. **Ids de exercício n
 | P5 P6 | Aceleração que acelera de verdade; bariolage real e cordas não adjacentes | M |
 | P12 P17 | Leitura com um eixo por grau, duração alinhada ao tempo, pausas e compassos além de 4/4; síncopes e anacruse | M |
 
-## Fase 6 — Retorno ao aluno e ferramentas
+## Fase 6 — Retorno ao aluno e ferramentas — feita em 06/11
 
 | # | O quê | Esf. |
 |---|---|---|

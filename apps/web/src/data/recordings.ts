@@ -1,4 +1,5 @@
 import { db, type StoredRecording } from "./db";
+import type { RestoreRemoved } from "./restore";
 
 export const MAX_RECORDING_MS = 15 * 60 * 1000;
 export const RECORDING_MIME_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"] as const;
@@ -97,11 +98,18 @@ export async function renameRecording(id: number, name: string): Promise<void> {
   if (trimmed) await db.recordings.update(id, { name: trimmed });
 }
 
-export async function removeRecording(id: number): Promise<void> {
-  await db.transaction("rw", db.recordings, db.recordingFiles, async () => {
+export async function removeRecording(id: number): Promise<RestoreRemoved> {
+  const [recording, file] = await db.transaction("rw", db.recordings, db.recordingFiles, async () => {
+    const removed = await Promise.all([db.recordings.get(id), db.recordingFiles.get(id)]);
     await db.recordings.delete(id);
     await db.recordingFiles.delete(id);
+    return removed;
   });
+  return () =>
+    db.transaction("rw", db.recordings, db.recordingFiles, async () => {
+      if (recording) await db.recordings.put(recording);
+      if (file) await db.recordingFiles.put(file);
+    });
 }
 
 export async function readRecordingBlob(id: number | undefined, mimeType: string): Promise<Blob | null> {

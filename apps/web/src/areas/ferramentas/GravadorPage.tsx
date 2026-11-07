@@ -22,6 +22,7 @@ import {
 import { describeStorageError } from "@/data/storageErrors";
 import { Button, Card, InlineError } from "@/design/components";
 import { FIELD_CLASS } from "@/design/fields";
+import { useUndo } from "@/design/undo";
 
 import { CompareRecordings, RecordingRow, useObjectUrl } from "./RecordingPlayer";
 
@@ -144,12 +145,16 @@ export function GravadorPage() {
   const shown = newestFirst(recordings).filter((recording) => matchesFilter(recording.pieceKey, filter));
   const pair = comparablePair(recordings, compared);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const { offerUndo, undoNotice } = useUndo();
   useLeaveWarning(recorder.take !== null || recorder.status === "recording");
 
-  function forget(id: number) {
+  function forget(id: number, name: string) {
     setCompared((selected) => selected.filter((existing) => existing !== id));
     removeRecording(id).then(
-      () => setRemoveError(null),
+      (restore) => {
+        setRemoveError(null);
+        offerUndo({ message: `A gravação "${name}" foi apagada.`, restore });
+      },
       () => setRemoveError("Feche e abra o app e tente apagar de novo."),
     );
   }
@@ -187,6 +192,7 @@ export function GravadorPage() {
               <option value={UNLINKED_RECORDINGS}>Sem peça</option>
             </select>
           </label>
+          {undoNotice}
           {removeError ? <InlineError title="A gravação não foi apagada." nextStep={removeError} /> : null}
           {shown.length === 0 ? (
             <p className="text-ink-muted">Nenhuma gravação aqui ainda. Grave uma passada e ouça logo depois: o ouvido percebe o que a mão não sente.</p>
@@ -201,7 +207,7 @@ export function GravadorPage() {
                     recording={recording}
                     isCompared={compared.includes(id)}
                     onCompare={() => setCompared((selected) => toggleCompared(selected, id))}
-                    onRemove={() => forget(id)}
+                    onRemove={() => forget(id, recording.name)}
                   />
                 );
               })}

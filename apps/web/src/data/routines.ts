@@ -2,6 +2,7 @@ import type { ExerciseKind } from "@fretless/core";
 
 import { db, type BlockKind, type Routine, type RoutineBlock } from "./db";
 import { DEFAULT_CLEAN_REPETITIONS } from "./repetitions";
+import type { RestoreRemoved } from "./restore";
 
 export const BLOCK_LABELS: Record<BlockKind, string> = {
   aquecimento: "Aquecimento",
@@ -202,4 +203,12 @@ export function goalSummary(block: RoutineBlock): string {
     case "uma-vez":
       return "uma vez";
   }
+}
+
+export async function removeRoutine(id: number): Promise<RestoreRemoved> {
+  const routine = await db.routines.get(id);
+  await db.routines.delete(id);
+  return async () => {
+    if (routine) await db.routines.put(routine);
+  };
 }

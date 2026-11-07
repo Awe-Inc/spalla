@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
+import { useSettings } from "@/app/settings";
+
 import type { Subdivision } from "@/audio/clickTrack";
 import { CLICK_SOUNDS, type ClickSound } from "@/audio/metronome";
 import { clampBpm, TEMPO_MAX_BPM, TEMPO_MIN_BPM, TempoClock, type ProgressivePlan, type TempoClockSettings } from "@/audio/tempoClock";
+import { addTap, bpmFromTaps } from "@/audio/tapTempo";
+import { isTypingTarget } from "@/areas/tocar/shortcuts";
 import { Button, Card } from "@/design/components";
 import { FIELD_CLASS } from "@/design/fields";
 
@@ -30,12 +34,27 @@ function pillClass(active: boolean): string {
   return `inline-flex h-10 items-center rounded-pill px-4 font-medium transition-colors ${active ? "bg-primary-soft text-primary" : "bg-surface-soft text-ink-muted hover:text-ink"}`;
 }
 
+function BeatPulse({ beats, current }: { beats: number; current: number | null }) {
+  return (
+    <div className="flex items-center gap-2" aria-hidden data-testid="pulso">
+      {Array.from({ length: beats }, (_, beat) => (
+        <span key={beat} data-active={beat === current} className={`rounded-pill transition-colors duration-fast ${beat === 0 ? "size-4" : "size-3"} ${beat === current ? "bg-primary" : "bg-surface-sunken"}`} />
+      ))}
+    </div>
+  );
+}
+
 export function MetronomoPage() {
-  const [settings, setSettings] = useState<TempoClockSettings>({ bpm: 72, beatsPerMeasure: 4, subdivision: 1, accentFirstBeat: true, sound: "madeira", progressive: null });
+  const rememberedBpm = useSettings((state) => state.metronomeBpm);
+  const rememberedSound = useSettings((state) => state.metronomeSound);
+  const setPracticeAudio = useSettings((state) => state.setPracticeAudio);
+  const [settings, setSettings] = useState<TempoClockSettings>({ bpm: rememberedBpm, beatsPerMeasure: 4, subdivision: 1, accentFirstBeat: true, sound: rememberedSound, progressive: null });
   const [plan, setPlan] = useState<ProgressivePlan>(DEFAULT_PLAN);
   const [isRunning, setIsRunning] = useState(false);
   const [live, setLive] = useState<{ measure: number; bpm: number } | null>(null);
+  const [beat, setBeat] = useState<number | null>(null);
   const clockRef = useRef<TempoClock | null>(null);
+  const tapsRef = useRef<number[]>([]);
 
   useEffect(() => {
     return () => {
@@ -48,8 +67,26 @@ export function MetronomoPage() {
     clockRef.current?.update(settings);
   }, [settings]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== " " || event.repeat || isTypingTarget(event.target)) return;
+      event.preventDefault();
+      void toggle();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   function patch(changes: Partial<TempoClockSettings>) {
     setSettings((current) => ({ ...current, ...changes }));
+    if (changes.bpm !== undefined) setPracticeAudio({ metronomeBpm: changes.bpm });
+    if (changes.sound !== undefined) setPracticeAudio({ metronomeSound: changes.sound });
+  }
+
+  function tap() {
+    tapsRef.current = addTap(tapsRef.current, performance.now());
+    const bpm = bpmFromTaps(tapsRef.current);
+    if (bpm !== null) patch({ bpm });
   }
 
   async function toggle() {
@@ -57,11 +94,13 @@ export function MetronomoPage() {
       clockRef.current?.stop();
       setIsRunning(false);
       setLive(null);
+      setBeat(null);
       return;
     }
     if (!clockRef.current) {
       const clock = new TempoClock(settings);
       clock.onMeasure((measure, bpm) => setLive({ measure, bpm }));
+      clock.onBeat(setBeat);
       clockRef.current = clock;
     }
     await clockRef.current.start();
@@ -86,9 +125,16 @@ export function MetronomoPage() {
               </Button>
             ))}
           </div>
-          <Button variant="primary" onClick={() => void toggle()}>
-            {isRunning ? "Parar" : "Começar"}
-          </Button>
+          <BeatPulse beats={settings.beatsPerMeasure} current={beat} />
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="primary" onClick={() => void toggle()}>
+              {isRunning ? "Parar" : "Começar"}
+            </Button>
+            <Button onClick={tap} disabled={isProgressive}>
+              Bater o andamento
+            </Button>
+          </div>
+          <p className="text-caption text-ink-subtle">A tecla Espaço começa e para.</p>
         </Card>
         <div className="grid content-start gap-6">
           <Card title="Compasso" className="grid gap-3">

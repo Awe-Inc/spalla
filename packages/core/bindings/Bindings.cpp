@@ -321,6 +321,7 @@ val judgementToVal(const game::NoteJudgement& j) {
     o.set("worstCents", j.worstCents);
     o.set("onsetErrorSec", j.onsetErrorSec);
     o.set("voicedRatio", j.voicedRatio);
+    o.set("offTuneRatio", j.offTuneRatio);
     o.set("points", j.points);
     o.set("comboAfter", j.comboAfter);
     o.set("judgedAtSec", j.judgedAtSec);

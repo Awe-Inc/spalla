@@ -2,6 +2,7 @@ import { useState, type DragEvent } from "react";
 
 import { useSettings } from "@/app/settings";
 import { db, type BlockKind, type Routine, type RoutineBlock } from "@/data/db";
+import { useUndo } from "@/design/undo";
 import {
   addBlock,
   BLOCK_LABELS,
@@ -16,6 +17,7 @@ import {
   moveBlock,
   pinnedItem,
   removeBlock,
+  removeRoutine,
   ROUTINE_ORDER,
   setBlockGoal,
   setBlockMinutes,
@@ -23,7 +25,7 @@ import {
   unpinBlock,
   type RoutineGoal,
 } from "@/data/routines";
-import { Button, Card } from "@/design/components";
+import { Button, Card, InlineError } from "@/design/components";
 import { COMPACT_FIELD_CLASS, FIELD_CLASS } from "@/design/fields";
 
 interface RoutinePickerProps {
@@ -216,15 +218,33 @@ export function RoutinePicker({ routines }: RoutinePickerProps) {
   const routineId = useSettings((state) => state.routineId);
   const setRoutine = useSettings((state) => state.setRoutine);
   const [editing, setEditing] = useState<Routine | "new" | null>(null);
+  const [removeFailed, setRemoveFailed] = useState(false);
+  const { offerUndo, undoNotice } = useUndo();
 
   async function remove(routine: Routine) {
     if (routine.id === undefined || routine.origin === "padrao") return;
-    await db.routines.delete(routine.id);
-    if (routineId === routine.id) setRoutine(DEFAULT_ROUTINE_ID);
+    const wasActive = routineId === routine.id;
+    const removedId = routine.id;
+    try {
+      const restore = await removeRoutine(removedId);
+      if (wasActive) setRoutine(DEFAULT_ROUTINE_ID);
+      setRemoveFailed(false);
+      offerUndo({
+        message: `A rotina "${routine.name}" foi apagada.`,
+        restore: async () => {
+          await restore();
+          if (wasActive) setRoutine(removedId);
+        },
+      });
+    } catch {
+      setRemoveFailed(true);
+    }
   }
 
   return (
     <Card title="Rotina do dia" className="grid gap-4">
+      {undoNotice}
+      {removeFailed ? <InlineError title="A rotina não foi apagada." nextStep="Feche e abra o app e tente apagar de novo." /> : null}
       <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="Rotina do dia">
         {routines.map((routine) => {
           const active = routine.id === routineId;

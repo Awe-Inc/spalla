@@ -24,6 +24,7 @@ export interface SkippedPieces {
 
 export interface PracticeAudioPrefs {
   metronomeOn: boolean;
+  metronomeBpm: number;
   metronomeSubdivision: Subdivision;
   metronomeVolume: number;
   metronomeSound: ClickSound;
@@ -93,6 +94,7 @@ export const useSettings = create<SettingsState>()(
       setReadingGuide: (readingGuide) => set({ readingGuide }),
       setAccent: (accent) => set({ accent }),
       metronomeOn: false,
+      metronomeBpm: 72,
       metronomeSubdivision: 1,
       metronomeVolume: 0.5,
       metronomeSound: "madeira",
@@ -108,7 +110,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, skippedPieces, metronomeOn, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, listenSound, autoSlowdown }) => ({
+      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, skippedPieces, metronomeOn, metronomeBpm, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, listenSound, autoSlowdown }) => ({
         theme,
         lessonWeekday,
         skippedPieces,
@@ -123,6 +125,7 @@ export const useSettings = create<SettingsState>()(
         readingGuide,
         accent,
         metronomeOn,
+        metronomeBpm,
         metronomeSubdivision,
         metronomeVolume,
         metronomeSound,

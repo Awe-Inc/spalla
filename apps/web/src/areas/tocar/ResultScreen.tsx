@@ -13,7 +13,11 @@ import { Stat, Stats } from "@/design/layout";
 import type { TocarOrigin } from "./origin";
 
 import { slowdownSentence, type Slowdown } from "./autoSlowdown";
-import { hardestRange, measureStats, measureTone, type MeasureStat } from "./measureMap";
+import { useSettings } from "@/app/settings";
+
+import { noteErrors } from "./feedback";
+import { hardestRange, measureStats } from "./measureMap";
+import { ErrorSummary, MeasureMap } from "./ResultFeedback";
 import { adviseTempo, type TempoAdvice, type TempoLimits } from "./tempo";
 
 const THRESHOLDS_SENTENCE = `${TWO_STARS_ACCURACY_PCT}% vale duas estrelas. ${CLEAN_RUN_ACCURACY_PCT}% é passada limpa: conta nas repetições e no andamento. ${THREE_STARS_ACCURACY_PCT}% no andamento escrito vale três estrelas.`;
@@ -46,13 +50,6 @@ export interface NextBlockLink {
 
 const KEEP_TEMPO: TempoAdvice = { kind: "keep" };
 
-const toneClass: Record<ReturnType<typeof measureTone>, string> = {
-  unplayed: "bg-surface-soft text-ink-subtle",
-  clean: "bg-in-tune-soft text-in-tune",
-  shaky: "bg-close-soft text-close",
-  hard: "bg-off-soft text-off",
-};
-
 function headline(stats: GameStats, outcome: RunOutcome | null): string {
   if (outcome && outcome.mastery > outcome.masteryBefore) return "Subiu de nível.";
   if (stats.accuracyPct >= THREE_STARS_ACCURACY_PCT) return "Impecável.";
@@ -63,11 +60,6 @@ function headline(stats: GameStats, outcome: RunOutcome | null): string {
 
 function masteryName(level: MasteryLevel): string {
   return MASTERY_LEVELS.find((item) => item.level === level)?.name ?? "—";
-}
-
-function measureTitle(stat: MeasureStat): string {
-  if (stat.accuracyPct === null) return `Compasso ${stat.measureNumber}: não tocado`;
-  return `Compasso ${stat.measureNumber}: ${Math.round(stat.accuracyPct)}% certas`;
 }
 
 function seriesSentence(goal: BlockGoal): string {
@@ -103,21 +95,6 @@ function TempoAdviceNote({ slowdown, advice, onKeepTempo, onChangeTempo }: { slo
         {isSlowDown ? "Diminuir o andamento" : "Acelerar"}
       </Button>
     </Card>
-  );
-}
-
-function MeasureMap({ perMeasure }: { perMeasure: readonly MeasureStat[] }) {
-  return (
-    <div className="grid w-full gap-2 text-left">
-      <h3 className="text-small font-semibold text-ink-muted">Por compasso</h3>
-      <ol className="flex flex-wrap gap-1.5" aria-label="Precisão por compasso">
-        {perMeasure.map((stat) => (
-          <li key={stat.measureIndex} title={measureTitle(stat)} className={`grid size-9 place-items-center rounded-sm font-mono text-caption tabular ${toneClass[measureTone(stat)]}`}>
-            {stat.measureNumber}
-          </li>
-        ))}
-      </ol>
-    </div>
   );
 }
 
@@ -159,7 +136,9 @@ function Rewards({ outcome }: { outcome: RunOutcome }) {
 }
 
 export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, limits, loop, slowdown, saveError, completedTasks, back, next, onPlayAgain, onRepeatHardest, onChangeTempo, onKeepTempo }: ResultScreenProps) {
+  const naming = useSettings((state) => state.noteNaming);
   const perMeasure = measureStats(score, judgements);
+  const errors = noteErrors(score, judgements);
   const hardest = loop ? null : hardestRange(perMeasure);
   const advice = slowdown ? KEEP_TEMPO : adviseTempo(stats.accuracyPct, bpm, limits);
   const goalLabel = goal ? goalSentence(goal.block, goal.progress) : null;
@@ -215,7 +194,8 @@ export function ResultScreen({ score, stats, judgements, outcome, goal, bpm, lim
 
       {outcome ? <Rewards outcome={outcome} /> : null}
       <TempoAdviceNote slowdown={slowdown} advice={advice} onKeepTempo={onKeepTempo} onChangeTempo={onChangeTempo} />
-      {perMeasure.length > 1 ? <MeasureMap perMeasure={perMeasure} /> : null}
+      <ErrorSummary errors={errors} naming={naming} />
+      {perMeasure.length > 1 ? <MeasureMap perMeasure={perMeasure} errors={errors} naming={naming} {...(loop ? {} : { onRepeat: onRepeatHardest })} /> : null}
 
       <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
         {next ? (
