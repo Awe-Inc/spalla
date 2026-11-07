@@ -117,14 +117,15 @@ compiler will find both, because both switches are exhaustive with no default.
 | `Piece` | an embedded melody, optionally with a rhythmic variation | `pieceIndex`, `pattern` (0 = theme, 1-5 = Twinkle variations A-E) |
 | `LongTone` | sustained open strings | `string` (-1 = all four), `noteQuarters` |
 | `Scale` | scales, arpeggios, broken thirds, chromatic | `tonicMidi`, `scale`, `octaves`, `bow`, `descend` |
-| `StringCrossing` | two open strings in a shape | `string`, `otherString`, `pattern` 0-3 |
+| `StringCrossing` | two strings in a shape, adjacent or not | `string`, `otherString`, `pattern` 0-3, 4 = real bariolage (`kCrossingBariolage`) |
 | `SingleString` | a scale locked to one string | `string`, `maxPosition` |
 | `FingerPattern` | the four first-position hand shapes | `pattern` 0-3, `string` |
 | `RingTone` | open string then the notes that resonate with it | `string` |
 | `DroneInterval` | one degree per bar against a drone | `tonicMidi`, `scale`; set `droneMidi` too |
-| `Rhythm` | one pitch, a rhythm cell | `tonicMidi`, `pattern` (index into `kRhythms`) |
-| `SightReading` | generated fresh from a seed | `fifths`, `lowMidi`, `highMidi`, `bars`, `pattern` = grade 0-3 |
+| `Rhythm` | one pitch, a rhythm cell; also the stroke studies and measured vibrato | `tonicMidi`, `pattern` (index into `kRhythms`), `marks` (`NoteMark` bits) |
+| `SightReading` | generated fresh from a seed | `fifths`, `lowMidi`, `highMidi`, `bars`, `pattern` = grade 0-9, `beats`, `beatUnit`, `pickupQuarters` |
 | `IntervalReading` | disconnected notes to name | `fifths`, `lowMidi`, `highMidi` |
+| `DoubleStop` | two strings at once, one open | `string`, `pattern` (`kDoubleStopOpen`, `kDoubleStopFingerBelow`, `kDoubleStopFingerAbove`) |
 | `Reference` | **not playable** — a card describing something outside the app | none |
 
 `Reference` exists so the Suzuki books can be listed as a study path without
@@ -209,9 +210,12 @@ Both are tables at the top of `src/curriculum/Generators.cpp`:
 
 - `kRhythms` — each cell is a list of quarter-note durations that **must sum to
   a whole number of beats**, or every barline after it lands in the wrong place
-  on the staff. There is a test.
-- `kGrades` — a duration pool, a maximum leap in scale degrees, and how often
-  to leap. Widen exactly one of those per grade.
+  on the staff. There is a test. A negative duration is a rest. Exercise ids
+  index this table, so a new cell goes at the end.
+- `kGrades` — a duration pool (negative is a rest), a maximum leap in scale
+  degrees, how often to leap, and how often to syncopate. Widen exactly one of
+  those per grade. `sitsOnTheBeat` keeps a drawn duration from hiding the beat;
+  syncope is written on purpose, never by accident.
 
 ## Bow groups
 
@@ -219,7 +223,9 @@ Both are tables at the top of `src/curriculum/Generators.cpp`:
 `ScoreEvent::bowSpan`/`bowSlot` carry it, and `StaffView` draws the slur. A
 rest breaks the group and resets the counter — you cannot slur across silence.
 `BowPattern::Acceleration` is special-cased in `buildScaleInto`: it runs the
-same pitches six times at 1, 2, 3, 4, 6 and 8 to a bow.
+same pitches six times at 1, 2, 3, 4, 6 and 8 to a bow. The bow keeps its length
+and every step shortens the notes; 3 and 6 to a bow come out as tuplets, which the
+staff draws without a bracket.
 
 ## Armadilhas
 
@@ -230,6 +236,14 @@ same pitches six times at 1, 2, 3, 4, 6 and 8 to a bow.
   "na corda Mi" fora da corda, escala de 2 oitavas prometendo mudança sem precisar dela, exercícios duplicados com
   nome diferente. Regra: `levelFrom` e `levelTo` são os níveis reais dos exercícios, título e subtítulo saem do conteúdo,
   e os testes do bloco "Content that has to match what it claims" em `tests/test_curriculum.cpp` cobram isso.
+
+- **Aceleração que não acelerava** (06/11). Sintoma: "Aceleração" mudava só a ligadura, com todas as notas no mesmo
+  valor, e o texto prometia a mão quatro vezes mais rápida. Causa: a nota usava `noteQuarters` em toda etapa, então o
+  arco é que ficava mais longo. Regra: o arco tem comprimento fixo e a nota é `arco / notas por arcada`; o teste
+  `acceleration_keeps_the_bow_and_shortens_the_notes` cobra isso.
+- **Tonalidade menor com armadura impossível** (06/11). Sintoma: Dó# menor pedindo oito bemóis, que o `clamp` em -7
+  transformava em outra armadura. Regra: `fifthsFor` passa para sustenidos depois de seis bemóis; o teste
+  `a_minor_key_past_six_flats_is_spelled_with_sharps` confere Dó#, Fá# e Sol# menor.
 
 ## Where the musical decisions are explained
 

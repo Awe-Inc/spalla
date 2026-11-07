@@ -25,11 +25,11 @@ ScoreBuilder& ScoreBuilder::note(int midi, double quarters) {
     // A rest breaks the bow: you cannot slur across silence. It also resets
     // the counter, so the slur after a rest starts at its own beginning.
     if (midi < 0) {
-        events_.push_back({midi, quarters, cursorQuarters_, 1, 0});
+        events_.push_back({midi, quarters, cursorQuarters_, 1, 0, -1, 0});
         bowCounter_ = 0;
     } else {
         events_.push_back({midi, quarters, cursorQuarters_, bowSpan_,
-                           bowCounter_ % bowSpan_});
+                           bowCounter_ % bowSpan_, -1, marks_});
         ++bowCounter_;
     }
     cursorQuarters_ += quarters;
@@ -38,6 +38,14 @@ ScoreBuilder& ScoreBuilder::note(int midi, double quarters) {
 
 ScoreBuilder& ScoreBuilder::rest(double quarters) {
     return note(-1, quarters);
+}
+
+ScoreBuilder& ScoreBuilder::doubleStop(int lowerMidi, int upperMidi, double quarters) {
+    note(upperMidi, quarters);
+    if (quarters > 0.0 && upperMidi >= 0) {
+        events_.back().lowerMidi = lowerMidi;
+    }
+    return *this;
 }
 
 ScoreBuilder& ScoreBuilder::notes(std::initializer_list<int> midis, double quarters) {
@@ -133,6 +141,19 @@ score::Score ScoreBuilder::build() const {
             event.suggestedString = score::stringForMidi(entry.midi);
             score::writeNoteName(event.noteName, sizeof(event.noteName),
                                  entry.midi, fifths_);
+            event.marks           = entry.marks;
+            if (entry.lowerMidi >= 0) {
+                const float lowerHz = score::midiToFrequency(entry.lowerMidi);
+                event.chordSize    = 1;
+                event.chordMidi[0] = entry.lowerMidi;
+                score::writeNoteName(event.chordNames[0], sizeof(event.chordNames[0]),
+                                     entry.lowerMidi, fifths_);
+                event.acceptedHz[event.acceptedCount++] = lowerHz;
+                const float shared = score::sharedPeriodHz(lowerHz, event.frequencyHz);
+                if (shared > 0.0f) {
+                    event.acceptedHz[event.acceptedCount++] = shared;
+                }
+            }
         }
         out.events.push_back(event);
     }

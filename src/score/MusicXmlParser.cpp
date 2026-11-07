@@ -598,21 +598,6 @@ void applySlurs(const std::vector<RawEvent>& events, std::vector<std::uint8_t>& 
     }
 }
 
-/// The period a fifth or a fourth shares, when it is one a violin could sound.
-float sharedPeriodHz(float lowHz, float highHz) noexcept {
-    constexpr float kLowestHeardHz = 170.0f;
-    constexpr float kHowClose = 0.012f;
-    const float ratio = highHz / lowHz;
-    for (int below = 2; below <= 3; ++below) {
-        const float above = std::round(ratio * static_cast<float>(below));
-        if (std::fabs(ratio - above / static_cast<float>(below)) <= ratio * kHowClose) {
-            const float shared = lowHz / static_cast<float>(below);
-            return shared >= kLowestHeardHz ? shared : 0.0f;
-        }
-    }
-    return 0.0f;
-}
-
 /// One played bar, still in quarters. `beats`/`beatUnit` are the meter in
 /// force when it was read; the time signature can change at any bar.
 struct RawMeasure {

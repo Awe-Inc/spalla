@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 
 #include "fretless/curriculum/Generators.h"
@@ -77,7 +78,7 @@ Module buildWarmUp() {
         "que é o que a maioria dos músicos de orquestra dedica a isso.";
     module.accent    = 0;
     module.levelFrom = 1;
-    module.levelTo   = 2;
+    module.levelTo   = 4;
 
     // ── Long tones ────────────────────────────────────────────────────────
     for (int string = 0; string < 4; ++string) {
@@ -122,15 +123,15 @@ Module buildWarmUp() {
 
     // ── Open-string crossings ─────────────────────────────────────────────
     static constexpr const char* kCrossingNames[4] = {
-        "alternado", "duas e duas", "bariolage", "invertido"};
+        "alternado", "duas e duas", "ida e volta", "volta e ida"};
     static constexpr const char* kCrossingHow[4] = {
         "Uma nota por corda, vai e volta. O braço tem que chegar no nível novo "
         "antes do arco; se você ouve as duas cordas juntas, ele chegou tarde.",
         "Duas em cada corda. O par dá ao braço um tempo para se preparar, e é "
         "por isso que este é o mais fácil para começar.",
-        "Ida e volta sem repetir: o braço muda de direção duas vezes por "
-        "grupo. É a forma que Bach escreve o tempo inteiro.",
-        "O espelho do bariolage. Estude os dois, ou o braço aprende só uma "
+        "Ida e volta: o braço muda de direção duas vezes por grupo e passa "
+        "duas notas seguidas em cada corda. É o preparo do bariolage.",
+        "O espelho do anterior. Estude os dois, ou o braço aprende só uma "
         "direção.",
     };
 
@@ -158,6 +159,57 @@ Module buildWarmUp() {
             exercise.metronome = true;
             module.exercises.push_back(std::move(exercise));
         }
+    }
+
+    // ── Non-adjacent strings ──────────────────────────────────────────────
+    struct SkipEntry { int lower; int upper; int level; };
+    static constexpr SkipEntry kSkips[] = {{0, 2, 3}, {1, 3, 3}, {0, 3, 4}};
+    for (const auto& skip : kSkips) {
+        Recipe recipe;
+        recipe.string       = skip.lower;
+        recipe.otherString  = skip.upper;
+        recipe.pattern      = 0;
+        recipe.noteQuarters = 1.0;
+        recipe.repeats      = 8;
+        recipe.fifths       = 0;
+
+        auto exercise = make(
+            std::string("warmup.cross.skip.") + kStringId[skip.lower] + kStringId[skip.upper],
+            "Salto de corda " + stringName(skip.lower) + "-" + stringName(skip.upper),
+            "Cordas não vizinhas, cordas soltas",
+            "Passar por cima da corda do meio",
+            "O braço atravessa a corda do meio sem encostar nela. O caminho é "
+            "maior, então a viagem começa mais cedo; se a corda do meio soa, o "
+            "arco saiu da corda tarde ou voltou baixo demais.",
+            skip.level, 54, ExerciseKind::StringCrossing, recipe);
+        exercise.source = "Estudos de arco em cordas soltas; a forma por trás do Sevcik Op. 3.";
+        exercise.metronome = true;
+        module.exercises.push_back(std::move(exercise));
+    }
+
+    // ── Bariolage ─────────────────────────────────────────────────────────
+    for (int lower = 0; lower < 3; ++lower) {
+        Recipe recipe;
+        recipe.string       = lower;
+        recipe.otherString  = lower + 1;
+        recipe.pattern      = kCrossingBariolage;
+        recipe.noteQuarters = 0.5;
+        recipe.repeats      = 2;
+        recipe.fifths       = fifthsFor(score::kOpenStringMidi[lower], ScaleType::Major);
+
+        auto exercise = make(
+            std::string("warmup.bariolage.") + kStringId[lower],
+            "Bariolage " + stringName(lower) + "-" + stringName(lower + 1),
+            "A linha anda na corda de baixo; a de cima responde solta",
+            "Braço balançando, dedos independentes",
+            "A corda de cima fica solta e a de baixo faz a melodia: é o bariolage "
+            "de verdade, a forma que Bach escreve o tempo inteiro. O arco quase "
+            "não sai do lugar; o balanço do braço é pequeno e constante. Quando o "
+            "dedo chega no uníssono, as duas cordas têm que soar como uma só.",
+            3, 54, ExerciseKind::StringCrossing, recipe);
+        exercise.source = "A figura do Prelúdio da Partita nº 3 de Bach.";
+        exercise.metronome = true;
+        module.exercises.push_back(std::move(exercise));
     }
 
     // ── Finger patterns ───────────────────────────────────────────────────
@@ -216,7 +268,7 @@ Module buildBowing() {
     Module module;
     module.id      = "bowing";
     module.title   = "Golpes de arco";
-    module.tagline = "Detaché, legato e ligaduras.";
+    module.tagline = "Do detaché ao spiccato, e o pizzicato.";
     module.description =
         "Os golpes de arco se dividem em três famílias: na corda com a nota "
         "inteira (detaché, legato), na corda com ar entre as notas (martelé, "
@@ -276,8 +328,9 @@ Module buildBowing() {
         {"accel", "Aceleração", "1, 2, 3, 4, 6, 8 notas por arcada",
          "Velocidade, sem a mão esquerda perceber",
          "O exercício de Galamian. As notas nunca mudam; só quantas cabem numa "
-         "arcada. Quando você chega em oito, a mão esquerda está andando "
-         "quatro vezes mais rápido do que começou, e nunca foi avisada disso.",
+         "arcada. O arco anda sempre na mesma velocidade, então cada etapa "
+         "põe mais notas nele: quando você chega em oito, a mão esquerda está "
+         "oito vezes mais rápida do que começou, e nunca foi avisada disso.",
          BowPattern::Acceleration, 0.5, 7, 60},
     };
 
@@ -339,6 +392,75 @@ Module buildBowing() {
         module.exercises.push_back(std::move(exercise));
     }
 
+    // The strokes the module's own description promises. Each sits on one open
+    // string, so the only thing left to judge is the length and the attack.
+    struct ArticulationEntry {
+        const char* id; const char* title; const char* subtitle; const char* focus;
+        const char* howTo; const char* source;
+        int cell; std::uint16_t marks; BowPattern bow; int tonicMidi; int level; int bpm;
+    };
+    static const ArticulationEntry kArticulations[] = {
+        {"pizzicato", "Pizzicato", "Lá solto, com a ponta do dedo",
+         "Som com o dedo, sem o arco",
+         "Segure o arco fechado na mão e puxe a corda com a ponta do indicador, "
+         "sobre o fim do espelho. Puxe para o lado, não para cima: corda que "
+         "bate no espelho estala em vez de soar. A pausa é para a nota tocar "
+         "sozinha.",
+         "Pizzicato, técnica padrão da mão direita.",
+         13, score::kMarkPizzicato, BowPattern::Separate, 69, 1, 60},
+
+        {"martele", "Martelé", "Ré solto, ataque e parada na metade superior",
+         "Ataque com o arco já pesado, parada limpa",
+         "Três tempos: pese, solte, pare. O arco pesa na corda antes da nota, "
+         "sai rápido e para sem encostar a nota seguinte. Na pausa, pese de "
+         "novo. Se o começo da nota não morde, o peso chegou tarde.",
+         "Galamian, Principles of Violin Playing and Teaching: martelé.",
+         13, score::kMarkAccent, BowPattern::Separate, 62, 3, 60},
+
+        {"colle", "Collé", "Sol solto, no talão, golpe mínimo",
+         "Dedos e pulso, o arco beliscando a corda",
+         "Perto do talão, ponha o arco na corda e belisque com os dedos: um "
+         "golpe de um centímetro, e o arco sai da corda logo depois. É o gesto "
+         "de onde nasce o spiccato, então vale a pena fazer devagar e com "
+         "poucos pelos, olhando os dedos dobrarem e esticarem.",
+         "Galamian, Principles of Violin Playing and Teaching: collé.",
+         12, score::kMarkStaccato, BowPattern::Separate, 55, 4, 54},
+
+        {"staccato", "Staccato ligado", "Mi solto, quatro paradas numa arcada só",
+         "Várias paradas na mesma direção do arco",
+         "É o martelé sem trocar de arcada: quatro mordidas na mesma direção, "
+         "com o arco parado entre elas. Comece para cima, na metade superior. "
+         "O que separa as notas é a parada do arco, não o braço endurecido.",
+         "Galamian, Principles of Violin Playing and Teaching: staccato.",
+         1, score::kMarkStaccato, BowPattern::Slur4, 76, 5, 52},
+
+        {"spiccato", "Spiccato", "Ré solto, o arco cai e sai no meio",
+         "Fora da corda, com o arco quicando",
+         "No ponto de equilíbrio do arco, um pouco abaixo do meio, deixe o arco "
+         "cair e sair em cada nota. A altura do salto controla o som: quanto "
+         "mais baixo, mais rápido. Se virar um detaché curto, o arco não está "
+         "saindo; volte ao collé.",
+         "Galamian, Principles of Violin Playing and Teaching: spiccato.",
+         1, score::kMarkStaccato, BowPattern::Separate, 62, 6, 72},
+    };
+
+    for (const auto& entry : kArticulations) {
+        Recipe recipe;
+        recipe.tonicMidi = entry.tonicMidi;
+        recipe.pattern   = entry.cell;
+        recipe.marks     = entry.marks;
+        recipe.bow       = entry.bow;
+        recipe.repeats   = 4;
+        recipe.fifths    = 0;
+
+        auto exercise = make(
+            std::string("bowing.") + entry.id, entry.title, entry.subtitle, entry.focus,
+            entry.howTo, entry.level, entry.bpm, ExerciseKind::Rhythm, recipe);
+        exercise.source = entry.source;
+        exercise.metronome = true;
+        module.exercises.push_back(std::move(exercise));
+    }
+
     return module;
 }
 
@@ -349,16 +471,16 @@ Module buildStrings() {
     Module module;
     module.id      = "strings";
     module.title   = "Uma corda por vez";
-    module.tagline = "Uma corda, as quatro posições.";
+    module.tagline = "Uma corda, da primeira à sétima posição.";
     module.description =
         "No instante em que a mudança de corda é permitida, a mão esquerda a "
         "usa, e a mudança de posição nunca é estudada. Prender o exercício a "
         "uma corda só é o único jeito de obrigar a mão a viajar - e é por isso "
         "que todo método desde o Sevcik tem um capítulo disso. Cada corda "
-        "recebe os mesmos quatro estudos, então dá para ouvir qual está atrás.";
+        "recebe os mesmos seis estudos, então dá para ouvir qual está atrás.";
     module.accent    = 1;
     module.levelFrom = 2;
-    module.levelTo   = 8;
+    module.levelTo   = 7;
 
     struct StringStudy {
         const char* id;
@@ -382,13 +504,25 @@ Module buildStrings() {
          "Deslize o dedo antigo até a nota nova em vez de levantar e chutar - "
          "o ouvido corrige um deslize, não corrige um salto."},
 
+        {"second", "até a segunda posição", 2, 5,
+         "A posição sem ponto de apoio",
+         "A terceira tem o corpo do violino para a mão encostar; a segunda não "
+         "tem nada. Por isso ela vem depois, mesmo estando mais perto. Compare "
+         "o primeiro dedo com a corda solta de cima antes de seguir.",},
+
+        {"fourth", "até a quarta posição", 4, 5,
+         "Uma posição além do corpo do violino",
+         "A mão agora encosta no corpo do violino e o pulso tem que abrir para "
+         "dar a volta. Não puxe o cotovelo para dentro depois da mudança; leve "
+         "ele antes, senão o dedo chega à nota certa pelo caminho errado."},
+
         {"fifth", "até a quinta posição", 5, 6,
          "Duas mudanças, e o polegar",
          "Da quinta posição em diante o polegar tem que ir junto com a mão. Se "
          "ele fica para trás, os dedos esticam para alcançar e a afinação sobe "
          "exatamente no ponto em que ela está mais exposta."},
 
-        {"seventh", "até a sétima posição", 7, 8,
+        {"seventh", "até a sétima posição", 7, 7,
          "O alto do espelho",
          "Os semitons aqui em cima são fisicamente minúsculos e o ouvido é a "
          "única medida que sobra. Devagar, e com o bordão ligado."},
@@ -424,13 +558,121 @@ Module buildStrings() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  Cordas duplas e vibrato
+// ═══════════════════════════════════════════════════════════════════════════
+Module buildDoubleStops() {
+    Module module;
+    module.id      = "doublestops";
+    module.title   = "Cordas duplas e vibrato";
+    module.tagline = "Duas cordas juntas e a primeira oscilação.";
+    module.description =
+        "O livro 3 do Suzuki traz o primeiro vibrato e as primeiras cordas "
+        "duplas sem dar tempo de preparar nenhum dos dois. Aqui cada coisa "
+        "chega sozinha: duas cordas soltas antes de qualquer dedo, uma corda "
+        "solta segurando o intervalo enquanto a outra anda, e a oscilação da "
+        "mão contada no metrônomo antes de virar movimento livre.";
+    module.accent    = 2;
+    module.levelFrom = 3;
+    module.levelTo   = 5;
+
+    struct DoubleStopStudy {
+        const char* id; const char* title; const char* subtitle; const char* focus;
+        const char* howTo; int pattern; int level; int bpm;
+    };
+    static const DoubleStopStudy kStudies[] = {
+        {"open", "Duas cordas soltas", "Quintas soltas, arco nas duas por igual",
+         "Nível do braço entre duas cordas",
+         "O arco fica num nível só, entre as duas cordas, e as duas soam com o "
+         "mesmo peso. Se uma some, o braço caiu para o lado da outra. Uma quinta "
+         "justa quase não vibra: escute o som ficar parado.",
+         kDoubleStopOpen, 3, 60},
+        {"below", "Dedo embaixo, corda solta em cima", "Quinta, quarta e terça sobre a corda solta",
+         "Um dedo só para afinar, contra uma corda solta",
+         "A corda de cima não muda, então só o dedo pode estar errado. Quando o "
+         "intervalo assenta, o som fica parado e aparece uma nota grave por "
+         "baixo; se ele treme, mova o dedo devagar até parar de tremer.",
+         kDoubleStopFingerBelow, 4, 54},
+        {"above", "Dedo em cima, corda solta embaixo", "Quinta, sexta e oitava sob a corda solta",
+         "Cordas duplas sem levantar a corda de baixo",
+         "Agora o dedo está na corda de cima e não pode encostar na de baixo: "
+         "curve bem a junta e deixe a corda solta tocar livre. A oitava é a "
+         "medida mais exigente, porque não aceita nenhuma aproximação.",
+         kDoubleStopFingerAbove, 5, 54},
+    };
+
+    for (const auto& study : kStudies) {
+        for (int lower = 0; lower < 3; ++lower) {
+            Recipe recipe;
+            recipe.string       = lower;
+            recipe.otherString  = lower + 1;
+            recipe.pattern      = study.pattern;
+            recipe.noteQuarters = 2.0;
+            recipe.repeats      = 2;
+            recipe.fifths       = fifthsFor(score::kOpenStringMidi[lower], ScaleType::Major);
+
+            auto exercise = make(
+                std::string("doublestops.") + study.id + "." + kStringId[lower],
+                std::string(study.title) + " - " + stringName(lower) + "-" + stringName(lower + 1),
+                study.subtitle, study.focus, study.howTo, study.level, study.bpm,
+                ExerciseKind::DoubleStop, recipe);
+            exercise.source =
+                "Primeiras cordas duplas com corda solta, como no Suzuki, livro 3.";
+            exercise.metronome = true;
+            module.exercises.push_back(std::move(exercise));
+        }
+    }
+
+    // Long notes in third position, where the hand can rest on the violin's
+    // body and the wrist is free. The note is one Rhythm cell long on purpose:
+    // the player is counting oscillations against the click, not new attacks.
+    struct VibratoStudy { const char* id; const char* title; const char* subtitle;
+                          const char* howTo; int level; };
+    static const VibratoStudy kVibrato[] = {
+        {"2", "Vibrato preparatório - duas por tempo", "Colcheias de oscilação em Ré, terceira posição",
+         "Dedo 1 em Ré, corda Lá, mão apoiada no corpo do violino. Balance a mão "
+         "para trás e volte, duas vezes por clique, largo e sem pressa. O dedo "
+         "rola na ponta e a oscilação vai só para baixo da nota: o afinador vai "
+         "mostrar a nota caindo e voltando, e tudo bem.", 3},
+        {"3", "Vibrato preparatório - três por tempo", "Tercinas de oscilação em Ré, terceira posição",
+         "Mesmo gesto, três por clique. Se o polegar aperta, a mão trava: solte "
+         "o polegar e volte para duas por tempo até ele relaxar. O arco não "
+         "acompanha a mão; ele continua reto e igual.", 4},
+        {"4", "Vibrato preparatório - quatro por tempo", "Semicolcheias de oscilação em Ré, terceira posição",
+         "Quatro por clique já é perto do vibrato de verdade. Mantenha a largura "
+         "que você tinha nas duas por tempo; quem acelera costuma encolher a "
+         "oscilação até ela virar um tremor do braço.", 5},
+    };
+
+    constexpr int kWholeNoteCell = 11;
+    constexpr int kFirstFingerInThirdPositionOnA = 74;
+    for (const auto& study : kVibrato) {
+        Recipe recipe;
+        recipe.tonicMidi = kFirstFingerInThirdPositionOnA;
+        recipe.pattern   = kWholeNoteCell;
+        recipe.repeats   = 4;
+        recipe.fifths    = 2;
+
+        auto exercise = make(
+            std::string("doublestops.vibrato.") + study.id, study.title, study.subtitle,
+            "Oscilação da mão, contada", study.howTo, study.level, 60,
+            ExerciseKind::Rhythm, recipe);
+        exercise.source =
+            "Preparo do vibrato em ritmo medido; o primeiro vibrato entra no Suzuki, livro 3.";
+        exercise.metronome = true;
+        module.exercises.push_back(std::move(exercise));
+    }
+
+    return module;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  4. Escalas
 // ═══════════════════════════════════════════════════════════════════════════
 Module buildScales() {
     Module module;
     module.id      = "scales";
     module.title   = "Escalas e arpejos";
-    module.tagline = "De uma oitava a três, e arpejos.";
+    module.tagline = "De uma oitava a três, e arpejos em todas as tonalidades.";
     module.description =
         "Dois sistemas de escalas dominam o ensino de violino: o de Flesch, "
         "carregado de cordas duplas, e o de Galamian, carregado de ritmo e "
@@ -521,7 +763,7 @@ Module buildScales() {
 
     // ── Three octaves ─────────────────────────────────────────────────────
     static constexpr KeyEntry kThreeOctave[] = {
-        {55, 7}, {57, 7}, {58, 8}, {60, 8}, {62, 8}, {63, 9}, {64, 9},
+        {55, 8}, {57, 8}, {58, 8}, {60, 8}, {62, 8}, {63, 9}, {64, 9},
     };
 
     for (const auto& entry : kThreeOctave) {
@@ -539,7 +781,7 @@ Module buildScales() {
             "Aceleração de Galamian, de 1 a 8 notas por arcada",
             "O espelho inteiro, em seis velocidades",
             "Três oitavas é a escala padrão de audição. Toque com a arcada de "
-            "aceleração: as notas são idênticas em toda velocidade, então "
+            "aceleração: o arco não muda e as notas vão ficando mais curtas, então "
             "qualquer coisa que desmorona em oito-por-arcada já estava errada "
             "em uma, e você estava passando o arco por cima.",
             entry.level, 60, ExerciseKind::Scale, recipe);
@@ -592,6 +834,42 @@ Module buildScales() {
         module.exercises.push_back(std::move(exercise));
     }
 
+    // ── Minors, one octave, before the two-octave ones ────────────────────
+    static constexpr int kOneOctaveMinorTonics[] = {69, 62, 55, 64};
+    struct OneOctaveMinor { ScaleType type; const char* label; int level; const char* howTo; };
+    static const OneOctaveMinor kOneOctaveMinors[] = {
+        {ScaleType::NaturalMinor, "menor natural", 3,
+         "As notas da maior relativa, começando em outro lugar. A terça é a "
+         "nota que muda o caráter; toque com o bordão e escute ela assentar."},
+        {ScaleType::HarmonicMinor, "menor harmônica", 4,
+         "Só o sétimo grau sobe, e abre um tom e meio antes dele. Essa distância "
+         "é maior do que a mão espera: separe bem os dois dedos."},
+        {ScaleType::MelodicMinor, "menor melódica", 4,
+         "Subindo, sexto e sétimo graus elevados; descendo, os dois voltam. "
+         "Pare no alto da escala e pense na descida antes de tocá-la."},
+    };
+    for (const int tonic : kOneOctaveMinorTonics) {
+        for (const auto& minor : kOneOctaveMinors) {
+            Recipe recipe;
+            recipe.tonicMidi = tonic;
+            recipe.scale     = minor.type;
+            recipe.octaves   = 1;
+            recipe.fifths    = fifthsFor(tonic, minor.type);
+            recipe.repeats   = 2;
+
+            auto exercise = make(
+                std::string("scales.min1.") + std::to_string(tonic) + "." +
+                    std::to_string(static_cast<int>(minor.type)),
+                keyLabel(tonic, recipe.fifths) + " " + minor.label + " - uma oitava",
+                "Primeira posição, sem mudanças",
+                "Afinação em modo menor",
+                minor.howTo, minor.level, 66, ExerciseKind::Scale, recipe);
+            exercise.source = "Escalas padrão de uma oitava em primeira posição.";
+            exercise.droneMidi = tonic - 12;
+            module.exercises.push_back(std::move(exercise));
+        }
+    }
+
     // ── Arpeggios and interval studies ────────────────────────────────────
     struct ShapeEntry { ScaleType type; const char* label; int octaves; int level;
                         const char* howTo; };
@@ -638,6 +916,38 @@ Module buildScales() {
             "Flesch, Scale System - a sequência de arpejos de cada tonalidade.";
         exercise.droneMidi = 57;
         module.exercises.push_back(std::move(exercise));
+
+        // The same shape in every other key. A hand that only ever met an
+        // arpeggio in A major has learned one fingering, not the arpeggio.
+        constexpr int kLowestTonic = 55;
+        constexpr int kHighestTonic = 66;
+        constexpr int kTonicAlreadyWritten = 57;
+        constexpr int kHardestLevel = 10;
+        for (int tonic = kLowestTonic; tonic <= kHighestTonic; ++tonic) {
+            if (tonic == kTonicAlreadyWritten) {
+                continue;
+            }
+            Recipe keyed = recipe;
+            keyed.tonicMidi = tonic;
+            keyed.fifths    = fifthsFor(tonic, shape.type);
+            const int keyFifths = fifthsFor(tonic, ScaleType::Major);
+            const int accidentals = std::abs(keyFifths);
+            const int keyDifficulty = accidentals <= 2 ? 0 : (accidentals <= 4 ? 1 : 2);
+
+            auto inKey = make(
+                std::string("scales.shape.") + std::to_string(static_cast<int>(shape.type)) +
+                    "." + std::to_string(tonic),
+                keyLabel(tonic, keyFifths) + " - " + shape.label,
+                std::to_string(shape.octaves) +
+                    (shape.octaves == 1 ? " oitava" : " oitavas"),
+                "Precisão de intervalo",
+                shape.howTo, std::min(kHardestLevel, shape.level + keyDifficulty), 63,
+                ExerciseKind::Scale, keyed);
+            inKey.source =
+                "Flesch, Scale System - a sequência de arpejos de cada tonalidade.";
+            inKey.droneMidi = tonic - 12;
+            module.exercises.push_back(std::move(inKey));
+        }
     }
 
     return module;
@@ -787,6 +1097,9 @@ Module buildReading() {
         int level;
         int bpm;
         const char* focus;
+        int beats = 4;
+        int beatUnit = 4;
+        double pickup = 0.0;
     };
 
     static const ReadingEntry kReading[] = {
@@ -800,17 +1113,31 @@ Module buildReading() {
          "Vocabulário rítmico"},
         {"g.1", "As cordas graves",                1, 55, 67, 1, 8,  3, 63,
          "Linhas suplementares abaixo da pauta"},
-        {"full.1", "Primeira posição, Ré maior",   2, 55, 81, 1, 12, 4, 66,
-         "A primeira posição inteira"},
-        {"full.2", "Primeira posição, Sol maior",  1, 55, 81, 2, 12, 5, 69,
-         "Ritmos pontuados e saltos"},
-        {"full.3", "Primeira posição, Sib maior", -2, 55, 81, 2, 12, 6, 69,
+        {"meter.3", "Três por compasso",           2, 62, 78, 1, 8,  3, 66,
+         "Ler em 3/4, com o tempo forte em outro lugar", 3},
+        {"meter.2", "Dois por compasso",           2, 62, 78, 1, 12, 3, 66,
+         "Ler em 2/4, com a barra chegando mais cedo", 2},
+        {"full.1", "Primeira posição, Ré maior",   2, 55, 81, 2, 12, 4, 66,
+         "A primeira posição inteira, com terças"},
+        {"leaps", "Primeira posição, saltos até a quinta", 2, 55, 81, 3, 12, 5, 66,
+         "Saltos, sem ritmo novo"},
+        {"full.2", "Primeira posição, Sol maior",  1, 55, 81, 4, 12, 5, 69,
+         "Ritmos pontuados"},
+        {"meter.68", "Seis por oito",              2, 62, 78, 8, 8,  5, 54,
+         "Ler em dois grupos de três", 6, 8},
+        {"full.3", "Primeira posição, Sib maior", -2, 55, 81, 4, 12, 6, 69,
          "Tonalidades com bemol, primeiro dedo baixo"},
-        {"full.4", "Dois sustenidos, semicolcheias", 2, 62, 86, 3, 12, 7, 72,
+        {"rests", "Primeira posição, com pausas",  1, 55, 81, 5, 12, 6, 69,
+         "Contar o silêncio com a mesma firmeza"},
+        {"pickup", "Começando antes do compasso",  2, 55, 81, 4, 12, 6, 66,
+         "Anacruse: a primeira nota é o último tempo", 4, 4, 1.0},
+        {"syncopation", "Síncopes",                2, 55, 81, 9, 12, 7, 60,
+         "A nota longa entre os tempos"},
+        {"full.4", "Dois sustenidos, semicolcheias", 2, 62, 86, 6, 12, 7, 72,
          "Velocidade com precisão"},
-        {"full.5", "Três bemóis, saltos largos",   -3, 55, 86, 3, 16, 8, 72,
+        {"full.5", "Três bemóis, saltos largos",   -3, 55, 86, 7, 16, 8, 72,
          "Tonalidades com bemol em velocidade"},
-        {"full.6", "Quatro sustenidos, terceira posição", 4, 62, 88, 3, 16, 9, 76,
+        {"full.6", "Quatro sustenidos, terceira posição", 4, 62, 88, 7, 16, 9, 76,
          "Ler acima da primeira posição"},
     };
 
@@ -822,6 +1149,9 @@ Module buildReading() {
         recipe.pattern      = entry.grade;
         recipe.bars         = entry.bars;
         recipe.stepwiseOnly = (entry.grade == 0);
+        recipe.beats        = entry.beats;
+        recipe.beatUnit     = entry.beatUnit;
+        recipe.pickupQuarters = entry.pickup;
 
         auto exercise = make(
             std::string("reading.") + entry.id,
@@ -894,7 +1224,7 @@ Module buildRhythm() {
         "não só que está errado.";
     module.accent    = 1;
     module.levelFrom = 1;
-    module.levelTo   = 5;
+    module.levelTo   = 6;
 
     struct RhythmEntry { int pattern; int level; int bpm; const char* focus;
                          const char* howTo; };
@@ -937,6 +1267,21 @@ Module buildRhythm() {
          "Seis colcheias por compasso em dois grupos de três. O pulso é a "
          "semínima pontuada, não a colcheia - reger em seis é como isso acaba "
          "soando como uma valsa lenta."},
+        {13, 2, 66, "Contar o silêncio",
+         "A pausa vale um tempo inteiro, tanto quanto a nota. Pare o arco no "
+         "clique da pausa e deixe ele parado até o próximo; quem corre aqui "
+         "está contando a pausa como um respiro."},
+        {12, 3, 66, "Silêncio no contratempo",
+         "A nota cai no tempo e a pausa, no contratempo. Fale 'um-e' em voz "
+         "alta e pare o arco exatamente no 'e'."},
+        {14, 5, 66, "Anacruse",
+         "A primeira nota é o último tempo do compasso, e ela leva para o "
+         "tempo forte seguinte. Conte três em silêncio e toque no quatro, em "
+         "arcada para cima: é o gesto de quase toda frase que começa antes da barra."},
+        {15, 6, 54, "Síncope de semicolcheia",
+         "A mesma síncope, dentro de um tempo só: curta, longa, curta. Subdivida "
+         "em quatro e conte as semicolcheias; o 'e' no meio do tempo não recebe "
+         "ataque, e é isso que dá o solavanco."},
     };
 
     for (const auto& entry : kEntries) {
@@ -1260,6 +1605,7 @@ Curriculum buildCurriculum() {
     curriculum.modules.push_back(buildScales());
     curriculum.modules.push_back(buildBowing());
     curriculum.modules.push_back(buildStrings());
+    curriculum.modules.push_back(buildDoubleStops());
     curriculum.modules.push_back(buildRhythm());
     curriculum.modules.push_back(buildReading());
     curriculum.modules.push_back(buildSuzuki());

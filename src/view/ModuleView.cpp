@@ -87,6 +87,7 @@ const char* kindLabel(curriculum::ExerciseKind kind) noexcept {
         case K::Rhythm:          return "RITMO";
         case K::SightReading:    return "LEITURA À PRIMEIRA VISTA";
         case K::IntervalReading: return "NOMEAR NOTAS";
+        case K::DoubleStop:      return "CORDAS DUPLAS";
         case K::Reference:       return "REFERÊNCIA";
     }
     return "EXERCÍCIO";

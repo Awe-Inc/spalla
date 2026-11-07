@@ -35,8 +35,8 @@ O que roda agora, verificado nesta data:
 
 | Peça | Estado |
 |---|---|
-| Core C++ nativo (`build.bat`, `test.bat`) | 160 testes, 0 falhas; currículo com 163 exercícios e 6419 notas, 0 problemas |
-| Core em WASM (`pnpm build:core`) | os mesmos casos passam no Node: 159 (o de threads é pulado) |
+| Core C++ nativo (`build.bat`, `test.bat`) | 178 testes, 0 falhas; currículo com 283 exercícios e 8852 notas, 0 problemas |
+| Core em WASM (`pnpm build:core`) | os mesmos casos passam no Node: 177 (o de threads é pulado) |
 | `packages/core` (bindings TypeScript) | 15 testes vitest |
 | `apps/web` | 651 testes vitest em 105 arquivos, typecheck limpo, `vite build` gera a PWA (113 entradas e 2 MB no precache, só o shell; partituras, amostras e leitor de PDF baixam em segundo plano) e o `404.html` para hospedagem estática; 6 testes e2e Playwright (`pnpm --filter @fretless/web test:e2e`): um toca um exercício inteiro com o jogador sintético no Chromium e confere o Resultado, com a vista "As duas" ligada; outro abre uma canção da biblioteca CC0 por Músicas e toca até o Resultado; o terceiro marca uma peça Suzuki como aprendida e confere que ela continua em revisão depois de recarregar; o quarto marca um trecho no detalhe de uma canção, recarrega e confere que "Praticar em loop" abre o Tocar com o trecho repetindo e o andamento escolhido; o quinto grava duas passadas da mesma peça com o microfone falso do Chromium, recarrega, compara as duas lado a lado e confere que o detalhe da peça lista as gravações; o sexto põe uma canção da biblioteca no bloco de Revisão da rotina de 25 minutos, confere que a Hoje usa a cópia nova com a peça ligada ao Tocar e que "Soltar peça" devolve o bloco ao app |
 | `apps/api` (plataforma) | 44 testes vitest em 4 arquivos (PGlite em memória), typecheck limpo; contas, papéis e permissões, turmas, tarefas, materiais com PDF, planos, prática enviada ao professor, admin com auditoria. Ainda não hospedada |
@@ -107,7 +107,7 @@ docs/PROJETO.md               este arquivo
 .claude/launch.json           preview "web" (vite na 5180)
 
 include/fretless, src/        core C++: app/ audio/ core/ curriculum/ game/ platform/ render/ score/ view/
-tests/                        160 casos (sem framework) + tests/data (MusicXML, .mxl)
+tests/                        178 casos (sem framework) + tests/data (MusicXML, .mxl)
 CMakeLists.txt, build.bat, test.bat
 
 packages/core/                Emscripten build (scripts/build.mjs), bindings (src/index.ts, types.ts),
@@ -149,8 +149,8 @@ onboarding existe (Boas-vindas, 5 passos).
 
 ## 6. Conteúdo que já existe no core
 
-- **9 módulos** (`src/curriculum/Curriculum.cpp`): Aquecimento, Golpes de arco, Uma corda por vez, Escalas e
-  arpejos, Afinação, Leitura, Ritmo, Método Suzuki, Melodias. **160+ exercícios** gerados por receita
+- **10 módulos** (`src/curriculum/Curriculum.cpp`): Aquecimento, Golpes de arco, Uma corda por vez, Cordas duplas e
+  vibrato, Escalas e arpejos, Afinação, Leitura, Ritmo, Método Suzuki, Melodias. **283 exercícios** gerados por receita
   (`Recipe`/`Generator`), ids como `warmup.longtone.G`, `scales.G.major.1oct`.
 - **Plano de prática** (`PracticePlan.cpp`): monta a sessão de hoje por slots com módulo de fallback; o nível
   (1–7) escala as receitas.

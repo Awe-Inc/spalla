@@ -77,6 +77,7 @@ export type ExerciseKind =
   | "rhythm"
   | "sight-reading"
   | "interval-reading"
+  | "double-stop"
   | "reference";
 
 export interface Recipe {

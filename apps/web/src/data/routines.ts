@@ -19,7 +19,7 @@ export const BLOCK_KINDS: Record<BlockKind, readonly ExerciseKind[]> = {
   aquecimento: ["long-tone", "single-string"],
   afinacao: ["ring-tone", "drone-interval"],
   escalas: ["scale", "finger-pattern"],
-  tecnica: ["string-crossing", "rhythm", "finger-pattern"],
+  tecnica: ["string-crossing", "rhythm", "finger-pattern", "double-stop"],
   estudo: ["string-crossing", "rhythm"],
   "peca-nova": ["piece"],
   revisao: ["piece"],

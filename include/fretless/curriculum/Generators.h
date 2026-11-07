@@ -16,6 +16,14 @@
 
 namespace fretless::curriculum {
 
+/// `Recipe::pattern` values beyond the four open-string crossing shapes.
+inline constexpr int kCrossingBariolage = 4;
+
+/// `Recipe::pattern` values for ExerciseKind::DoubleStop.
+inline constexpr int kDoubleStopOpen = 0;
+inline constexpr int kDoubleStopFingerBelow = 1;
+inline constexpr int kDoubleStopFingerAbove = 2;
+
 /// Builds the playable score for `exercise`. `seed` is only consulted by the
 /// kinds that regenerate — sight reading — so the same exercise otherwise
 /// yields byte-identical output every call.

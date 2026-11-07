@@ -8,6 +8,7 @@
 //  These cases are the tripwire.
 // ═══════════════════════════════════════════════════════════════════════════
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <set>
@@ -861,4 +862,298 @@ TEST(one_good_pass_does_not_move_a_player_up_a_level) {
         progress.record(exercise->id, kScore, kCleanAccuracy, kSteadyCents, exercise->defaultBpm);
     }
     CHECK_EQ(estimateLevel(shipped(), progress), 2);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  New content: strokes, double stops, positions, keys, reading
+// ═══════════════════════════════════════════════════════════════════════════
+
+namespace {
+
+constexpr double kQuarterTolerance = 1e-6;
+
+double quartersOf(const score::Score& built, std::size_t index) {
+    return index + 1 < built.events.size()
+        ? built.events[index + 1].startQuarters - built.events[index].startQuarters
+        : 0.0;
+}
+
+const Exercise& mustFind(const std::string& id) {
+    const Exercise* exercise = shipped().findExercise(id);
+    if (exercise == nullptr) {
+        ::testing::reportFailure(__FILE__, __LINE__, id + " is missing from the curriculum");
+        std::abort();
+    }
+    return *exercise;
+}
+
+}  // namespace
+
+TEST(every_stroke_the_bowing_module_promises_is_written_on_its_notes) {
+    struct Expected { const char* id; std::uint16_t mark; bool hasRests; int bowSpan; };
+    static const Expected kExpected[] = {
+        {"bowing.pizzicato", score::kMarkPizzicato, true, 1},
+        {"bowing.martele", score::kMarkAccent, true, 1},
+        {"bowing.colle", score::kMarkStaccato, true, 1},
+        {"bowing.staccato", score::kMarkStaccato, false, 4},
+        {"bowing.spiccato", score::kMarkStaccato, false, 1},
+    };
+    for (const auto& expected : kExpected) {
+        const auto built = buildScore(mustFind(expected.id), 1u);
+        bool sawRest = false;
+        for (const auto& event : built.events) {
+            if (event.isRest) {
+                sawRest = true;
+            } else {
+                CHECK((event.marks & expected.mark) != 0);
+                CHECK_EQ(static_cast<int>(event.bowSpan), expected.bowSpan);
+            }
+        }
+        CHECK_EQ(sawRest, expected.hasRests);
+    }
+}
+
+TEST(a_rest_in_a_rhythm_cell_is_silence_not_a_note_or_a_shorter_bar) {
+    const auto built = buildScore(mustFind("rhythm.13"), 1u);
+    CHECK(built.events.size() >= 4);
+    CHECK(!built.events[0].isRest);
+    CHECK(built.events[1].isRest);
+    CHECK_NEAR(built.events[2].startQuarters, 2.0, kQuarterTolerance);
+    CHECK(built.events[3].isRest);
+}
+
+TEST(a_double_stop_keeps_both_notes_and_lets_the_detector_hear_either) {
+    for (const char* lower : {"G", "D", "A"}) {
+        const auto built = buildScore(mustFind(std::string("doublestops.open.") + lower), 1u);
+        for (const auto& event : built.events) {
+            if (event.isRest) {
+                continue;
+            }
+            CHECK_EQ(static_cast<int>(event.chordSize), 1);
+            CHECK_EQ(event.midi - event.chordMidi[0], 7);
+            CHECK(event.acceptedCount >= 1);
+            CHECK_NEAR(event.acceptedHz[0], score::midiToFrequency(event.chordMidi[0]), 0.01f);
+        }
+    }
+}
+
+TEST(a_fingered_double_stop_keeps_one_string_open) {
+    const auto below = buildScore(mustFind("doublestops.below.D"), 1u);
+    const auto above = buildScore(mustFind("doublestops.above.D"), 1u);
+    std::set<int> belowFingered, aboveFingered;
+    for (const auto& event : below.events) {
+        if (!event.isRest) {
+            CHECK_EQ(event.midi, 69);
+            belowFingered.insert(event.chordMidi[0]);
+        }
+    }
+    for (const auto& event : above.events) {
+        if (!event.isRest) {
+            CHECK_EQ(event.chordMidi[0], 62);
+            aboveFingered.insert(event.midi);
+        }
+    }
+    CHECK((belowFingered == std::set<int>{62, 64, 66}));
+    CHECK((aboveFingered == std::set<int>{69, 71, 74}));
+}
+
+TEST(preparatory_vibrato_rises_one_measured_speed_at_a_time) {
+    int previousLevel = 0;
+    for (const char* speed : {"2", "3", "4"}) {
+        const Exercise& exercise = mustFind(std::string("doublestops.vibrato.") + speed);
+        CHECK(exercise.metronome);
+        CHECK_EQ(exercise.level, previousLevel == 0 ? 3 : previousLevel + 1);
+        previousLevel = exercise.level;
+        const auto built = buildScore(exercise, 1u);
+        CHECK_EQ(built.events.front().midi, 74);
+        CHECK_NEAR(quartersOf(built, 0), 4.0, kQuarterTolerance);
+    }
+}
+
+TEST(the_seventh_position_comes_before_three_octave_scales) {
+    for (const char* string : {"G", "D", "A", "E"}) {
+        CHECK(shipped().findExercise(std::string("strings.") + string + ".second") != nullptr);
+        CHECK(shipped().findExercise(std::string("strings.") + string + ".fourth") != nullptr);
+        const Exercise& seventh = mustFind(std::string("strings.") + string + ".seventh");
+        for (const int tonic : {55, 57, 58, 60, 62, 63, 64}) {
+            const Exercise& scale = mustFind("scales.3oct." + std::to_string(tonic));
+            CHECK(scale.level > seventh.level);
+        }
+    }
+}
+
+TEST(a_shape_exists_in_every_key_and_harder_keys_are_not_easier) {
+    static constexpr ScaleType kShapes[] = {
+        ScaleType::ArpeggioMajor, ScaleType::ArpeggioMinor, ScaleType::ArpeggioDominant7,
+        ScaleType::ArpeggioDiminished7, ScaleType::BrokenThirds, ScaleType::Chromatic};
+    for (const ScaleType type : kShapes) {
+        const std::string base = "scales.shape." + std::to_string(static_cast<int>(type));
+        const Exercise& written = mustFind(base);
+        std::set<int> pitchClasses{written.recipe.tonicMidi % 12};
+        for (int tonic = 55; tonic <= 66; ++tonic) {
+            if (tonic == 57) {
+                continue;
+            }
+            const Exercise& keyed = mustFind(base + "." + std::to_string(tonic));
+            CHECK(keyed.level >= written.level);
+            pitchClasses.insert(tonic % 12);
+        }
+        CHECK_EQ(pitchClasses.size(), std::size_t{12});
+    }
+}
+
+TEST(minor_scales_start_at_one_octave_before_the_two_octave_ones) {
+    for (const int tonic : {69, 62, 55, 64}) {
+        for (const ScaleType type : {ScaleType::NaturalMinor, ScaleType::HarmonicMinor,
+                                     ScaleType::MelodicMinor}) {
+            const Exercise& exercise = mustFind("scales.min1." + std::to_string(tonic) + "." +
+                                                std::to_string(static_cast<int>(type)));
+            const auto pitches = pitchesOf(buildScore(exercise, 1u));
+            const auto [low, high] = std::minmax_element(pitches.begin(), pitches.end());
+            CHECK_EQ(*high - *low, 12);
+        }
+    }
+}
+
+TEST(a_minor_key_past_six_flats_is_spelled_with_sharps) {
+    CHECK_EQ(fifthsFor(61, ScaleType::NaturalMinor), 4);
+    CHECK_EQ(fifthsFor(66, ScaleType::HarmonicMinor), 3);
+    CHECK_EQ(fifthsFor(56, ScaleType::MelodicMinor), 5);
+    CHECK_EQ(fifthsFor(58, ScaleType::NaturalMinor), -5);
+}
+
+TEST(acceleration_keeps_the_bow_and_shortens_the_notes) {
+    const auto built = buildScore(mustFind("bowing.accel"), 1u);
+    double firstNoteOfSpan[9] = {};
+    for (std::size_t index = 0; index + 1 < built.events.size(); ++index) {
+        const auto& event = built.events[index];
+        const auto span = static_cast<std::size_t>(event.bowSpan);
+        if (!event.isRest && span < 9 && firstNoteOfSpan[span] == 0.0) {
+            firstNoteOfSpan[span] = quartersOf(built, index);
+        }
+    }
+    const double bow = firstNoteOfSpan[1];
+    CHECK(bow > 0.0);
+    for (const int span : {2, 3, 4, 6, 8}) {
+        CHECK_NEAR(firstNoteOfSpan[span] * span, bow, kQuarterTolerance);
+    }
+}
+
+TEST(real_bariolage_walks_one_string_under_an_open_one) {
+    for (int lower = 0; lower < 3; ++lower) {
+        const std::string name = std::string("warmup.bariolage.") + "GDA"[lower];
+        const auto pitches = pitchesOf(buildScore(mustFind(name), 1u));
+        const int low = score::kOpenStringMidi[lower];
+        const int high = score::kOpenStringMidi[lower + 1];
+        std::set<int> walk;
+        for (std::size_t index = 0; index + 1 < pitches.size(); index += 2) {
+            walk.insert(pitches[index]);
+            CHECK_EQ(pitches[index + 1], high);
+        }
+        CHECK((walk == std::set<int>{low, low + 2, low + 4, low + 5, low + 7}));
+        CHECK_EQ(pitches.back(), low);
+    }
+}
+
+TEST(a_string_skip_never_sounds_the_string_between) {
+    const auto pitches = pitchesOf(buildScore(mustFind("warmup.cross.skip.GE"), 1u));
+    CHECK((std::set<int>(pitches.begin(), pitches.end()) == std::set<int>{55, 76}));
+    CHECK(shipped().findExercise("warmup.cross.skip.GA") != nullptr);
+    CHECK(shipped().findExercise("warmup.cross.skip.DE") != nullptr);
+}
+
+TEST(a_read_duration_never_hides_the_beat) {
+    const Module* module = shipped().findModule("reading");
+    CHECK(module != nullptr);
+    for (const auto& exercise : module->exercises) {
+        if (exercise.kind != ExerciseKind::SightReading) {
+            continue;
+        }
+        const bool syncopated = exercise.id == "reading.syncopation";
+        const double bar = exercise.recipe.beats * 4.0 / exercise.recipe.beatUnit;
+        const double beat =
+            (exercise.recipe.beatUnit == 8 && exercise.recipe.beats % 3 == 0) ? 1.5 : 1.0;
+        for (unsigned seed = 1; seed <= 40; ++seed) {
+            const auto built = buildScore(exercise, seed);
+            for (std::size_t index = 0; index + 1 < built.events.size(); ++index) {
+                const double duration = quartersOf(built, index);
+                const double intoBar = std::fmod(built.events[index].startQuarters, bar);
+                const double intoBeat = std::fmod(intoBar, beat);
+                CHECK(intoBar + duration <= bar + kQuarterTolerance);
+                if (syncopated) {
+                    continue;
+                }
+                if (duration >= beat - kQuarterTolerance) {
+                    CHECK(intoBeat <= kQuarterTolerance);
+                } else {
+                    CHECK(intoBeat + duration <= beat + kQuarterTolerance);
+                }
+            }
+        }
+    }
+}
+
+TEST(a_reading_rest_is_never_the_first_or_last_thing_and_never_doubled) {
+    const Exercise& exercise = mustFind("reading.rests");
+    bool sawRest = false;
+    for (unsigned seed = 1; seed <= 40; ++seed) {
+        const auto built = buildScore(exercise, seed);
+        CHECK(!built.events.front().isRest);
+        CHECK(!built.events.back().isRest);
+        for (std::size_t index = 0; index + 1 < built.events.size(); ++index) {
+            CHECK(!(built.events[index].isRest && built.events[index + 1].isRest));
+            sawRest = sawRest || built.events[index].isRest;
+        }
+    }
+    CHECK(sawRest);
+}
+
+TEST(reading_grades_before_rests_have_none) {
+    for (const char* id : {"reading.full.1", "reading.leaps", "reading.full.2"}) {
+        const auto built = buildScore(mustFind(id), 7u);
+        for (const auto& event : built.events) {
+            CHECK(!event.isRest);
+        }
+    }
+}
+
+TEST(a_meter_other_than_four_four_reaches_the_score) {
+    struct Expected { const char* id; int beats; int unit; };
+    static const Expected kExpected[] = {
+        {"reading.meter.3", 3, 4}, {"reading.meter.2", 2, 4}, {"reading.meter.68", 6, 8}};
+    for (const auto& expected : kExpected) {
+        const Exercise& exercise = mustFind(expected.id);
+        CHECK_EQ(exercise.recipe.beats, expected.beats);
+        CHECK_EQ(exercise.recipe.beatUnit, expected.unit);
+        const auto built = buildScore(exercise, 3u);
+        const double bar = expected.beats * 4.0 / expected.unit;
+        const auto& last = built.events.back();
+        const double seconds = 60.0 / built.beatsPerMinute;
+        const double end = last.startQuarters + last.durationSeconds / seconds;
+        CHECK_NEAR(std::fmod(end + kQuarterTolerance, bar), kQuarterTolerance, 1e-3);
+    }
+}
+
+TEST(syncopation_puts_a_long_note_off_the_beat) {
+    const Exercise& exercise = mustFind("reading.syncopation");
+    bool sawSyncope = false;
+    for (unsigned seed = 1; seed <= 40 && !sawSyncope; ++seed) {
+        const auto built = buildScore(exercise, seed);
+        for (std::size_t index = 0; index + 1 < built.events.size(); ++index) {
+            const double intoBeat = std::fmod(built.events[index].startQuarters, 1.0);
+            if (std::fabs(intoBeat - 0.5) < kQuarterTolerance &&
+                std::fabs(quartersOf(built, index) - 1.0) < kQuarterTolerance) {
+                sawSyncope = true;
+            }
+        }
+    }
+    CHECK(sawSyncope);
+}
+
+TEST(a_pickup_exercise_waits_for_the_last_beat) {
+    const auto built = buildScore(mustFind("reading.pickup"), 5u);
+    CHECK(built.events[0].isRest);
+    CHECK(!built.events[1].isRest);
+    CHECK_NEAR(built.events[1].startQuarters, 3.0, kQuarterTolerance);
+    CHECK_NEAR(built.events[2].startQuarters, 4.0, kQuarterTolerance);
 }

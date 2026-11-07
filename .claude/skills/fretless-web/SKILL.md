@@ -17,7 +17,7 @@ bindings. Everything a player sees is React.
 ```bash
 pnpm install                       # once; pnpm 12, Node >= 22
 pnpm build:core                    # Emscripten → packages/core/dist (needs C:\Users\Usuario\emsdk)
-pnpm test                          # WASM harness (159 cases) + vitest core (15) + vitest web (651); API: 44 em apps/api
+pnpm test                          # WASM harness (177 cases) + vitest core (15) + vitest web (651); API: 44 em apps/api
 pnpm typecheck                     # tsc in both packages
 pnpm --filter @fretless/web test:e2e:aulas   # professora + admin + aluno in three contexts against a throwaway API
                                    # on 3410 (PGlite temp) and vite on 4180; muted; see docs/testes.md (~45 s)

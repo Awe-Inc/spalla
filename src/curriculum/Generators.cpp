@@ -40,11 +40,12 @@ private:
 };
 
 // ── Rhythm vocabulary ──────────────────────────────────────────────────────
-// Each cell is a list of quarter-note durations. Cells are whole numbers of
-// beats so they can be laid end to end without leaving a bar half full.
+// Each cell is a list of quarter-note durations, negative for a rest. Cells are
+// whole numbers of beats so they can be laid end to end without leaving a bar
+// half full. Exercise ids index this table, so it only ever grows at the end.
 struct RhythmCell {
     const char*                name;
-    std::array<double, 16>     durations;   ///< 0 terminates
+    std::array<double, 16>     durations;   ///< 0 terminates, negative is a rest
 };
 
 constexpr RhythmCell kRhythms[] = {
@@ -64,25 +65,38 @@ constexpr RhythmCell kRhythms[] = {
                                  0.5, 0.25, 0.25, 0.5, 0.25, 0.25}}},
     {"Compasso composto, 6/8", {{0.5, 0.5, 0.5, 0.5, 0.5, 0.5}}},
     {"Semibreves",             {{4}}},
+    {"Colcheia e pausa",       {{0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5}}},
+    {"Semínima e pausa",       {{1, -1, 1, -1}}},
+    {"Anacruse",               {{-3, 1, 3, -1}}},
+    {"Síncope de semicolcheia", {{0.25, 0.5, 0.25, 0.25, 0.5, 0.25,
+                                 0.25, 0.5, 0.25, 0.25, 0.5, 0.25}}},
 };
 constexpr int kRhythmCount = static_cast<int>(std::size(kRhythms));
 
 // ── Sight-reading grades ──────────────────────────────────────────────────
-// Each grade widens exactly one thing at a time: first the rhythm vocabulary,
-// then the interval size, then the range. Widening two at once is how a
-// "graded" reading course stops being graded.
+// Each grade widens exactly one thing against the one before it: colcheias, then
+// thirds, then fifths, then dots, then rests, then sixteenths, then wide leaps.
+// Widening two at once is how a "graded" reading course stops being graded. The
+// last two are side roads from the dotted grade, not further steps up it.
 struct ReadingGrade {
     const char* label;
-    double      durations[6];   ///< pool to draw from; 0 terminates
+    double      durations[8];   ///< pool to draw from; 0 ends it, negative is a rest
     int         maxLeap;        ///< in scale degrees
     int         leapPercent;
+    int         syncopePercent;
 };
 
 constexpr ReadingGrade kGrades[] = {
-    {"graus conjuntos, semínimas e mínimas", {2, 1, 1, 1, 0, 0},   1,  0},
-    {"graus e terças, com colcheias",   {2, 1, 1, 0.5, 0.5, 0},    2, 25},
-    {"saltos até a quinta, pontuados",  {1.5, 1, 1, 0.5, 0.5, 2},  4, 35},
-    {"semicolcheias e saltos largos",   {1, 0.5, 0.5, 0.25, 0.25, 1.5}, 6, 45},
+    {"graus conjuntos, semínimas e mínimas", {2, 1, 1, 1},                 1,  0,  0},
+    {"graus conjuntos, com colcheias",  {2, 1, 1, 0.5, 0.5},               1,  0,  0},
+    {"graus e terças",                  {2, 1, 1, 0.5, 0.5},               2, 25,  0},
+    {"saltos até a quinta",             {2, 1, 1, 0.5, 0.5},               4, 35,  0},
+    {"pontuados",                       {2, 1.5, 1, 1, 0.5, 0.5},          4, 35,  0},
+    {"pausas",                          {2, 1.5, 1, 1, 0.5, 0.5, -1, -0.5}, 4, 35, 0},
+    {"semicolcheias",                   {1.5, 1, 0.5, 0.5, 0.25, 0.25, -1, -0.5}, 4, 35, 0},
+    {"saltos largos",                   {1.5, 1, 0.5, 0.5, 0.25, 0.25, -1, -0.5}, 6, 45, 0},
+    {"compasso composto",               {3, 1.5, 1, 0.5, 0.5, 0.5},        2, 25,  0},
+    {"síncopes",                        {2, 1.5, 1, 1, 0.5, 0.5},          4, 35, 30},
 };
 constexpr int kGradeCount = static_cast<int>(std::size(kGrades));
 
@@ -168,13 +182,17 @@ void buildScaleInto(ScoreBuilder& builder, const Recipe& recipe) {
     for (int pass = 0; pass < std::max(1, recipe.repeats); ++pass) {
         if (recipe.bow == BowPattern::Acceleration) {
             // Galamian's acceleration: the same pitches, taken 1, 2, 3, 4, 6
-            // and 8 to a bow. Speed is a bowing problem long before it is a
+            // and 8 to a bow. The bow keeps its length and speed, so every step
+            // fits more notes into it: the left hand ends up eight times faster
+            // than it began. Speed is a bowing problem long before it is a
             // left-hand one, and this is the exercise that says so.
             static constexpr int kSteps[] = {1, 2, 3, 4, 6, 8};
+            constexpr double kNotesInFirstValue = 4.0;
+            const double bowQuarters = recipe.noteQuarters * kNotesInFirstValue;
             for (const int span : kSteps) {
                 builder.bow(span);
                 for (const int midi : pitches) {
-                    builder.note(midi, recipe.noteQuarters);
+                    builder.note(midi, bowQuarters / span);
                 }
                 builder.fillBar();
             }
@@ -214,9 +232,29 @@ void buildStringCrossingInto(ScoreBuilder& builder, const Recipe& recipe) {
     const int low  = score::kOpenStringMidi[lowString];
     const int high = score::kOpenStringMidi[highString];
 
-    // Four shapes, hardest last: alternating, doubled, bariolage (the return
-    // to the same string that makes the arm change direction twice per beat),
-    // and a rocking figure.
+    applyBow(builder, recipe.bow);
+
+    // Real bariolage: a line walking up the lower string with the open upper
+    // string answering every note, so the arm rocks while the hand moves. The
+    // walk reaches the unison, which is what Bach's version keeps coming to.
+    if (recipe.pattern == kCrossingBariolage) {
+        static constexpr int kWalk[] = {0, 2, 4, 5, 7, 5, 4, 2};
+        for (int pass = 0; pass < std::max(1, recipe.repeats); ++pass) {
+            for (const int offset : kWalk) {
+                for (int group = 0; group < 2; ++group) {
+                    builder.note(low + offset, recipe.noteQuarters);
+                    builder.note(high, recipe.noteQuarters);
+                }
+            }
+        }
+        builder.note(low, recipe.noteQuarters * 4.0);
+        builder.fillBar();
+        return;
+    }
+
+    // Four shapes, hardest last: alternating, doubled, there and back (the
+    // return to the same string that makes the arm change direction twice per
+    // group), and its mirror.
     static constexpr int kShapes[4][4] = {
         {0, 1, 0, 1},
         {0, 0, 1, 1},
@@ -225,7 +263,6 @@ void buildStringCrossingInto(ScoreBuilder& builder, const Recipe& recipe) {
     };
     const auto& shape = kShapes[std::clamp(recipe.pattern, 0, 3)];
 
-    applyBow(builder, recipe.bow);
     for (int pass = 0; pass < std::max(1, recipe.repeats); ++pass) {
         for (const int which : shape) {
             builder.note(which == 0 ? low : high, recipe.noteQuarters);
@@ -344,15 +381,62 @@ void buildRhythmInto(ScoreBuilder& builder, const Recipe& recipe) {
     const int midi = recipe.tonicMidi;
 
     applyBow(builder, recipe.bow);
+    builder.marks(recipe.marks);
     for (int pass = 0; pass < std::max(2, recipe.repeats); ++pass) {
         for (const double duration : cell.durations) {
-            if (duration <= 0.0) {
+            if (duration == 0.0) {
                 break;
             }
-            builder.note(midi, duration);
+            if (duration < 0.0) {
+                builder.rest(-duration);
+            } else {
+                builder.note(midi, duration);
+            }
         }
     }
     builder.fillBar();
+}
+
+void buildDoubleStopInto(ScoreBuilder& builder, const Recipe& recipe) {
+    // One string stays open so only one finger can be wrong, and the fingered
+    // intervals are the consonant ones, because the ear can hear those lock.
+    const int lowerString = std::clamp(recipe.string, 0, score::kStringCount - 2);
+    const int low  = score::kOpenStringMidi[lowerString];
+    const int high = score::kOpenStringMidi[lowerString + 1];
+
+    static constexpr int kUnderOpen[] = {0, 2, 4, 2};
+    static constexpr int kOverOpen[]  = {0, 2, 5, 2};
+
+    for (int pass = 0; pass < std::max(1, recipe.repeats); ++pass) {
+        if (recipe.pattern == kDoubleStopOpen) {
+            builder.doubleStop(low, high, recipe.noteQuarters);
+            builder.doubleStop(low, high, recipe.noteQuarters);
+        } else {
+            const bool fingerBelow = recipe.pattern == kDoubleStopFingerBelow;
+            for (const int offset : (fingerBelow ? kUnderOpen : kOverOpen)) {
+                builder.doubleStop(fingerBelow ? low + offset : low,
+                                   fingerBelow ? high : high + offset,
+                                   recipe.noteQuarters);
+            }
+        }
+        builder.fillBar();
+    }
+    builder.doubleStop(low, high, recipe.noteQuarters);
+    builder.fillBar();
+}
+
+/// A duration may not hide the beat: anything shorter than a beat stays inside
+/// its beat, and anything longer starts on one. Rhythm written against the
+/// pulse is what a reader has to learn to see, so it is never there by accident.
+bool sitsOnTheBeat(double duration, double intoBeat, double beat, double left) {
+    constexpr double kTolerance = 1e-6;
+    if (duration > left + kTolerance) {
+        return false;
+    }
+    if (duration >= beat - kTolerance) {
+        return intoBeat <= kTolerance;
+    }
+    return intoBeat + duration <= beat + kTolerance;
 }
 
 void buildPieceInto(ScoreBuilder& builder, const Recipe& recipe) {
@@ -412,27 +496,72 @@ void buildSightReadingInto(ScoreBuilder& builder, const Recipe& recipe, Rng& rng
 
     const double barQuarters = static_cast<double>(recipe.beats) * 4.0 /
                                static_cast<double>(recipe.beatUnit);
+    // Compound meter is felt in dotted quarters, so that is what a beat is here.
+    const double beat = (recipe.beatUnit == 8 && recipe.beats % 3 == 0) ? 1.5 : 1.0;
 
     int pool = 0;
-    while (pool < 6 && grade.durations[pool] > 0.0) {
+    while (pool < 8 && grade.durations[pool] != 0.0) {
         ++pool;
     }
 
     int index = static_cast<int>(pitches.size()) / 2;
     const int bars = std::max(2, recipe.bars);
 
+    const auto step = [&] {
+        const int leap = recipe.stepwiseOnly
+            ? 1
+            : (rng.chance(grade.leapPercent) ? 1 + rng.below(grade.maxLeap) : 1);
+        index += rng.chance(50) ? leap : -leap;
+        index = std::clamp(index, 0, static_cast<int>(pitches.size()) - 1);
+    };
+
+    if (recipe.pickupQuarters > 0.0) {
+        builder.rest(barQuarters - recipe.pickupQuarters);
+        builder.note(pitches[static_cast<std::size_t>(index)], recipe.pickupQuarters);
+    }
+
+    bool mayRest = recipe.pickupQuarters > 0.0;
     for (int bar = 0; bar < bars; ++bar) {
         double left = barQuarters;
         while (left > 1e-6) {
-            double duration = grade.durations[rng.below(pool)];
-            if (duration > left) {
-                duration = left;      // never spill a note across the bar line
+            const double intoBeat = std::fmod(barQuarters - left, beat);
+
+            constexpr double kSyncopeQuarters = 2.0;
+            if (grade.syncopePercent > 0 && intoBeat <= 1e-6 && left >= kSyncopeQuarters &&
+                !(bar == bars - 1 && left <= kSyncopeQuarters) &&
+                rng.chance(grade.syncopePercent)) {
+                for (const double part : {0.5, 1.0, 0.5}) {
+                    step();
+                    builder.note(pitches[static_cast<std::size_t>(index)], part);
+                }
+                left -= kSyncopeQuarters;
+                mayRest = true;
+                continue;
             }
+
+            constexpr int kDrawsBeforeGivingUp = 12;
+            double drawn = 0.0;
+            bool found = false;
+            for (int draw = 0; draw < kDrawsBeforeGivingUp && !found; ++draw) {
+                drawn = grade.durations[rng.below(pool)];
+                found = sitsOnTheBeat(std::fabs(drawn), intoBeat, beat, left);
+            }
+            if (!found) {
+                drawn = std::min(left, beat - intoBeat);
+            }
+            const double duration = std::fabs(drawn);
 
             // The last bar lands on the tonic: an exercise that stops in mid
             // air teaches the ear that phrases do not need to resolve.
             const bool finalNote = (bar == bars - 1) &&
                                    (left - duration <= 1e-6);
+            if (drawn < 0.0 && mayRest && !finalNote) {
+                builder.rest(duration);
+                left -= duration;
+                mayRest = false;
+                continue;
+            }
+            mayRest = true;
             if (finalNote) {
                 const int tonicClass = ((recipe.fifths * 7) % 12 + 12) % 12;
                 int best = index;
@@ -449,11 +578,7 @@ void buildSightReadingInto(ScoreBuilder& builder, const Recipe& recipe, Rng& rng
                 }
                 index = best;
             } else {
-                const int leap = recipe.stepwiseOnly
-                    ? 1
-                    : (rng.chance(grade.leapPercent) ? 1 + rng.below(grade.maxLeap) : 1);
-                index += rng.chance(50) ? leap : -leap;
-                index = std::clamp(index, 0, static_cast<int>(pitches.size()) - 1);
+                step();
             }
 
             builder.note(pitches[static_cast<std::size_t>(index)], duration);
@@ -602,6 +727,13 @@ int fifthsFor(int tonicMidi, ScaleType type) noexcept {
         default:
             break;
     }
+    // Past six flats the sharp spelling is the one in print: C# minor, not Db
+    // minor, which would need eight flats.
+    constexpr int kFlattestWrittenKey = -6;
+    constexpr int kAroundTheCircle = 12;
+    if (fifths < kFlattestWrittenKey) {
+        fifths += kAroundTheCircle;
+    }
     return std::clamp(fifths, -7, 7);
 }
 
@@ -683,6 +815,7 @@ score::Score buildScore(const Exercise& exercise, std::uint32_t seed) {
         case ExerciseKind::DroneInterval:  buildDroneIntervalInto(builder, recipe); break;
         case ExerciseKind::Rhythm:         buildRhythmInto(builder, recipe); break;
         case ExerciseKind::SightReading:   buildSightReadingInto(builder, recipe, rng); break;
+        case ExerciseKind::DoubleStop:     buildDoubleStopInto(builder, recipe); break;
         case ExerciseKind::IntervalReading:buildIntervalReadingInto(builder, recipe, rng); break;
         case ExerciseKind::Reference:      break;   // a card, not a drill
     }

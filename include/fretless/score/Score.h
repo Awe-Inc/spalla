@@ -51,6 +51,9 @@ inline constexpr const char* kStringName[kStringCount] = {"Sol", "Ré", "Lá", "
 /// Equal-tempered frequency of a MIDI note, A4 = 440 Hz.
 [[nodiscard]] float midiToFrequency(int midi) noexcept;
 
+/// The period a fifth or a fourth shares, when it is one a violin could sound.
+[[nodiscard]] float sharedPeriodHz(float lowHz, float highHz) noexcept;
+
 /// Scientific pitch notation for `midi`, spelled with sharps when `fifths` is
 /// zero or positive and with flats when it is negative — the same accidental
 /// the player will see on the staff. Writes at most 5 bytes including the NUL.

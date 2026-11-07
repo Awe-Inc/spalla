@@ -35,6 +35,15 @@ public:
     /// whatever the time signature says.
     ScoreBuilder& note(int midi, double quarters);
     ScoreBuilder& rest(double quarters);
+
+    /// Two strings at once. The staff and the pitch check both read the upper
+    /// note as the event's own and the lower one as its chord extra, the same
+    /// shape the MusicXML parser produces for a printed double stop.
+    ScoreBuilder& doubleStop(int lowerMidi, int upperMidi, double quarters);
+
+    /// `NoteMark` bits for every note appended from here on. 0 clears them.
+    ScoreBuilder& marks(std::uint16_t value)  { marks_ = value; return *this; }
+
     ScoreBuilder& notes(std::initializer_list<int> midis, double quarters);
 
     /// Appends `midi` `count` times. The commonest shape in a drill.
@@ -62,6 +71,8 @@ private:
         double start    = 0.0;
         int    bowSpan  = 1;
         int    bowSlot  = 0;
+        int    lowerMidi = -1;
+        std::uint16_t marks = 0;
     };
 
     std::string title_;
@@ -75,6 +86,7 @@ private:
     double             cursorQuarters_ = 0.0;
     int                bowSpan_        = 1;
     int                bowCounter_     = 0;
+    std::uint16_t      marks_          = 0;
 };
 
 }  // namespace fretless::curriculum

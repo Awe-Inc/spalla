@@ -11,6 +11,20 @@ float midiToFrequency(int midi) noexcept {
     return 440.0f * std::pow(2.0f, static_cast<float>(midi - 69) / 12.0f);
 }
 
+float sharedPeriodHz(float lowHz, float highHz) noexcept {
+    constexpr float kLowestHeardHz = 170.0f;
+    constexpr float kHowClose = 0.012f;
+    const float ratio = highHz / lowHz;
+    for (int below = 2; below <= 3; ++below) {
+        const float above = std::round(ratio * static_cast<float>(below));
+        if (std::fabs(ratio - above / static_cast<float>(below)) <= ratio * kHowClose) {
+            const float shared = lowHz / static_cast<float>(below);
+            return shared >= kLowestHeardHz ? shared : 0.0f;
+        }
+    }
+    return 0.0f;
+}
+
 void writeNoteName(char* out, std::size_t outSize, int midi, int fifths) noexcept {
     if (out == nullptr || outSize == 0) {
         return;

@@ -81,6 +81,7 @@ enum class ExerciseKind : std::uint8_t {
     Rhythm,           ///< one pitch, a rhythm vocabulary
     SightReading,     ///< generated fresh each attempt, from a seed
     IntervalReading,  ///< staff-reading drill: landmarks and steps
+    DoubleStop,       ///< two strings at once, one of them open
     /// Not playable. A card that describes something outside the app — a
     /// volume of a printed method — and says what prepares it. Without this,
     /// a syllabus can only mention what it happens to be able to generate.
@@ -126,6 +127,10 @@ struct Recipe {
     /// SightReading. Both index tables in Generators.cpp.
     int pattern = 0;
 
+    /// `score::NoteMark` bits printed on every note: how a stroke study says
+    /// which stroke it is, when the rhythm alone cannot.
+    std::uint16_t marks = 0;
+
     // ── Repertoire ────────────────────────────────────────────────────────
     /// Index into the embedded melody table. -1 for generated exercises.
     int pieceIndex = -1;
@@ -137,6 +142,8 @@ struct Recipe {
     int  highMidi     = 81;
     int  bars         = 8;
     bool stepwiseOnly = false;
+    /// Quarters of pickup before the first full bar. 0 starts on the downbeat.
+    double pickupQuarters = 0.0;
 };
 
 // ───────────────────────────────────────────────────────────────────────────

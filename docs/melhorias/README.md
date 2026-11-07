@@ -74,7 +74,7 @@ Correções no currículo e no planner sem conteúdo novo. **Ids de exercício n
 | P20 | "De memória" alcançável (opção no Tocar), limiares 80/90/95 com papel claro, repertório cabe na sessão de 25 min | M |
 | P17 (parte) | Clique do 6/8 na semínima pontuada; progressão de bpm das semicolcheias coerente | P |
 
-## Fase 5 — Conteúdo novo (precisa de pesquisa no `violin-pedagogy`)
+## Fase 5 — Conteúdo novo — feita em 06/11
 
 | # | O quê | Esf. |
 |---|---|---|

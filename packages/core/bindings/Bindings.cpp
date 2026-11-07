@@ -204,6 +204,7 @@ const char* kindName(curriculum::ExerciseKind kind) {
         case ExerciseKind::Rhythm:          return "rhythm";
         case ExerciseKind::SightReading:    return "sight-reading";
         case ExerciseKind::IntervalReading: return "interval-reading";
+        case ExerciseKind::DoubleStop:      return "double-stop";
         case ExerciseKind::Reference:       return "reference";
     }
     return "unknown";
