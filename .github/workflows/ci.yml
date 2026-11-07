@@ -48,6 +48,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Lint
+        run: pnpm --filter @fretless/web lint
+
       - name: Testes
         run: pnpm test
 

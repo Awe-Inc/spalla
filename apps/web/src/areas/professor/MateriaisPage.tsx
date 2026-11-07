@@ -7,9 +7,10 @@ import { useApiData } from "@/api/useApiData";
 import { FormError, formatDate, LoadState, Notice } from "@/account/ui";
 import { Badge, FIELD_CLASS, TextAreaField, TextField } from "@/design/fields";
 import { Button, buttonClass, Card, EmptyState, PageHeader } from "@/design/components";
+import { startsWithPdfSignature } from "@/data/sheets";
 
 import { safeExternalUrl } from "@/areas/aulas/lessons";
-import { formatBytes, looksLikePdf, MATERIAL_KIND_LABELS, MAX_PDF_BYTES } from "./teaching";
+import { formatBytes, MATERIAL_KIND_LABELS, MAX_PDF_BYTES } from "./teaching";
 
 function ClassChecklist({ classes, selected, onChange }: { classes: TeacherClass[]; selected: string[]; onChange: (ids: string[]) => void }) {
   if (classes.length === 0) return <p className="text-caption text-ink-muted">Sem turmas ainda. O material fica guardado e pode ser anexado a tarefas de alunos individuais depois.</p>;
@@ -45,7 +46,7 @@ function NewMaterialForm({ classes, onCreated, onCancel }: { classes: TeacherCla
     if (kind === "pdf") {
       if (!file) throw new Error("Escolha um arquivo PDF.");
       if (file.size > MAX_PDF_BYTES) throw new Error(`O PDF tem ${formatBytes(file.size)}; o limite é ${formatBytes(MAX_PDF_BYTES)}.`);
-      if (!(await looksLikePdf(file))) throw new Error("Esse arquivo não é um PDF.");
+      if (!(await startsWithPdfSignature(file))) throw new Error("Esse arquivo não é um PDF.");
       const form = new FormData();
       form.append("title", title.trim() || file.name.replace(/\.pdf$/i, ""));
       form.append("classIds", classIds.join(","));

@@ -1,7 +1,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState, type ChangeEvent } from "react";
 
-import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, db } from "@/data/db";
 import { importPieceFile, removePiece } from "@/data/importPiece";

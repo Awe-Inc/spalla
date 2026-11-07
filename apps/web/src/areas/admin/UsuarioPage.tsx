@@ -2,9 +2,9 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { can, useAccount } from "@/account/store";
-import { api, errorMessage } from "@/api/client";
+import { api } from "@/api/client";
 import type { AdminUserDetail, Role } from "@/api/types";
-import { useApiData } from "@/api/useApiData";
+import { useAction, useApiData } from "@/api/useApiData";
 import { formatDate, formatDateTime, FormError, LoadState, Notice, RequireAccount } from "@/account/ui";
 import { Badge, TextField } from "@/design/fields";
 import { Button, Card, PageHeader } from "@/design/components";
@@ -16,22 +16,13 @@ interface SectionProps {
   onChanged: () => void;
 }
 
-function useAction() {
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function useNotifiedAction() {
+  const { pending, error, run: runAction } = useAction();
   const [message, setMessage] = useState<string | null>(null);
 
   async function run(action: () => Promise<string | null>) {
-    setPending(true);
-    setError(null);
     setMessage(null);
-    try {
-      setMessage(await action());
-    } catch (cause) {
-      setError(errorMessage(cause));
-    } finally {
-      setPending(false);
-    }
+    setMessage((await runAction(action)) ?? null);
   }
 
   return { pending, error, message, run };
@@ -40,7 +31,7 @@ function useAction() {
 function ProfileForm({ user, onChanged }: SectionProps) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
-  const action = useAction();
+  const action = useNotifiedAction();
   const changed = name.trim() !== user.name || email.trim().toLowerCase() !== user.email;
 
   function submit(event: FormEvent) {
@@ -72,7 +63,7 @@ function ProfileForm({ user, onChanged }: SectionProps) {
 function RolesForm({ user, onChanged }: SectionProps) {
   const roles = useApiData((signal) => api.get<Role[]>("/admin/roles", signal), []);
   const [selected, setSelected] = useState<string[]>(user.roles);
-  const action = useAction();
+  const action = useNotifiedAction();
   const changed = selected.length !== user.roles.length || selected.some((key) => !user.roles.includes(key));
 
   function toggle(key: string, on: boolean) {
@@ -122,7 +113,7 @@ function RolesForm({ user, onChanged }: SectionProps) {
 function AccessCard({ user, onChanged }: SectionProps) {
   const me = useAccount((state) => state.user);
   const isSelf = me?.id === user.id;
-  const action = useAction();
+  const action = useNotifiedAction();
   const [resetCode, setResetCode] = useState<{ code: string; expiresInHours: number } | null>(null);
 
   function setStatus(status: "active" | "suspended") {
@@ -190,7 +181,7 @@ function DeleteCard({ user }: { user: AdminUserDetail }) {
   const me = useAccount((state) => state.user);
   const navigate = useNavigate();
   const [confirmText, setConfirmText] = useState("");
-  const action = useAction();
+  const action = useNotifiedAction();
 
   if (me?.id === user.id) return null;
 

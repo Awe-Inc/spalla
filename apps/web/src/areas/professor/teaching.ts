@@ -20,17 +20,6 @@ export const MATERIAL_KIND_LABELS: Record<MaterialKind, string> = {
   pdf: "PDF",
 };
 
-const PDF_SIGNATURE = "%PDF-";
-
-export async function looksLikePdf(file: Blob): Promise<boolean> {
-  const head = new Uint8Array(await file.slice(0, PDF_SIGNATURE.length).arrayBuffer());
-  return String.fromCharCode(...head) === PDF_SIGNATURE;
-}
-
-export function todayIso(now: Date = new Date()): string {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
-
 export function formatDueOn(dueOn: string | null): string {
   if (!dueOn) return "Sem prazo";
   const [year, month, day] = dueOn.split("-");

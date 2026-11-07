@@ -539,3 +539,13 @@ send never post the same results twice. The session planner (`planSession`) assi
 - **Espaço do metrônomo lia `isRunning` velho e iniciava de novo** (06/11). Sintoma: CI falhou só lá (`clock.stop` nunca
   chamado), passou aqui. Causa: o `keydown` fica num efeito, e entre o `await start()` e o efeito rodar o ouvinte ainda
   tem o estado antigo. Regra: atalho que alterna estado depois de `await` lê um ref, não o estado da renderização.
+- **Fones "confirmados uma vez" só valiam até recarregar** (06/11). Causa: `headphonesConfirmedAt` ficou fora do
+  `partialize`, e o teste da tela não recarregava. Regra: campo novo de Configurações entra em `SETTINGS_FIELDS`
+  (`app/settings.ts`, o tipo obriga) e "lembra" se testa com `useSettings.persist.rehydrate()`.
+- **`sanitizeSettings` descarta o valor que não passa no validador** (06/11). Regra: ao aceitar valor novo em um campo
+  (som, tema, vista), atualizar o validador em `SETTINGS_FIELDS`, ou o valor salvo volta ao padrão ao recarregar.
+- **Boas-vindas: meta que não salva não prende o aluno** (06/11). `try/finally` com `void finish()` deixava rejeição sem
+  tratamento. Regra: a tela segue, e a meta se ajusta depois em Configurações.
+- **E2E falhava só na máquina, em rodadas soltas** (06/11). Sintoma: `tocar.spec.ts:36` e `rolagem-pdf.spec.ts:30` sem
+  achar o primeiro elemento, e passavam com um worker só. Causa provável: 8 workers no servidor de dev estouravam os
+  5 s de `expect` carregando o WASM. Regra: `expect.timeout` de 20 s em `playwright.config.ts`; não baixar.

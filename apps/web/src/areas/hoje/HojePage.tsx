@@ -138,7 +138,7 @@ interface Notice {
   to?: string;
 }
 
-function useNotices(today: string): Notice[] {
+function useNotices(): Notice[] {
   const lessonTasks = useLiveQuery(() => db.lessonTasks.toArray(), []) ?? [];
   const assignments = useClassAssignments();
   const announcements = useClassAnnouncements();
@@ -181,7 +181,7 @@ function SuzukiReviewsToday({ today }: { today: string }) {
 
 export function HojePage() {
   const today = useTodayPlan();
-  const notices = useNotices(today.today);
+  const notices = useNotices();
   const allDone = today.progress.total > 0 && today.progress.done === today.progress.total;
   const frozenToday = today.stats.frozenDays.includes(today.today);
   const [bonusError, setBonusError] = useState(false);

@@ -3,8 +3,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
-import { completeAssignmentsAfterRun } from "@/account/classAssignments";
-import { syncPracticeInBackground } from "@/account/practiceSync";
 import { externalValue } from "@/app/externalValue";
 import { useSettings } from "@/app/settings";
 import { useTodayBlock } from "@/areas/hoje/useTodayPlan";
@@ -12,28 +10,27 @@ import { DRONE_A4_MIDI } from "@/audio/drone";
 import { usePitchInput } from "@/audio/usePitchInput";
 import { useListen } from "@/audio/useListen";
 import { CoreErrorNotice } from "@/core/CoreErrorNotice";
-import { db, recordSectionRun } from "@/data/db";
-import { recordLoopCompleted, saveRun, type RunOutcome } from "@/data/progress";
+import { db } from "@/data/db";
 import { lastCleanBpm } from "@/data/repetitions";
 import { readPracticeRequest } from "@/data/sections";
-import { Button, ConfirmButton, HeadphoneNotice, InlineError } from "@/design/components";
+import { HeadphoneNotice, InlineError } from "@/design/components";
 import { displayNoteName } from "@/music/noteNames";
 
 import { fromState, offersNextBlock, tocarOrigin } from "./origin";
-import { autoSlowdown, slowdownSentence, type Slowdown } from "./autoSlowdown";
-import { ListenSoundPicker } from "./ListenSoundPicker";
+import { slowdownSentence } from "./autoSlowdown";
 import { LiveClock, LiveRunPanel } from "./LiveRunPanel";
 import { readLiveRun, type LiveRun } from "./liveRun";
 import { ResultScreen } from "./ResultScreen";
-import { ScoreView } from "./ScoreView";
-import { isTypingTarget, shortcutFor } from "./shortcuts";
 import { BPM_STEP } from "./tempo";
 import { TocarControls } from "./TocarControls";
+import { TocarHeader } from "./TocarHeader";
+import { TocarIdle } from "./TocarIdle";
 import { useAccompaniment } from "./useAccompaniment";
 import { LEAD_IN_SECONDS, useSession } from "./useSession";
-import { advanceWithSyntheticPlayer, isSyntheticPlayerRequested, useSyntheticPlayer } from "./useSyntheticPlayer";
-
-const LOOP_RESTART_DELAY_MS = 1200;
+import { useRunRecording } from "./useRunRecording";
+import { useRunTicker } from "./useRunTicker";
+import { isSyntheticPlayerRequested, useSyntheticPlayer } from "./useSyntheticPlayer";
+import { useTocarShortcuts } from "./useTocarShortcuts";
 
 export function TocarPage() {
   const { exerciseId, pieceId, librarySlug } = useParams();
@@ -55,23 +52,13 @@ export function TocarPage() {
   const naming = useSettings((state) => state.noteNaming);
   const headphonesConfirmedAt = useSettings((state) => state.headphonesConfirmedAt);
   const confirmHeadphones = useSettings((state) => state.confirmHeadphones);
-  const isAutoSlowdownOn = useSettings((state) => state.autoSlowdown);
   const [live] = useState(() => externalValue<LiveRun | null>(null));
   const [snapshot, setSnapshot] = useState<LiveRun | null>(null);
-  const [slowdown, setSlowdown] = useState<Slowdown | null>(null);
-  const slowedRunRef = useRef(false);
-  const [outcome, setOutcome] = useState<RunOutcome | null>(null);
-  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const { goal, nextBlock } = useTodayBlock(resultId ?? null);
   const origin = tocarOrigin(useLocation().state, Boolean(exercise));
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [droneOn, setDroneOn] = useState(false);
   const [fromMemory, setFromMemory] = useState(false);
-  const startedAtRef = useRef<number | null>(null);
-  const savedRunRef = useRef(false);
-  const savedLoopRef = useRef(false);
   const tempoAppliedRef = useRef<PracticeSession | null>(null);
-  const shortcutRef = useRef<((event: KeyboardEvent) => void) | null>(null);
   const pastResults = useLiveQuery(() => (resultId ? db.results.where("exerciseId").equals(resultId).toArray() : []), [resultId]);
   const cleanBpm = pastResults === undefined ? undefined : lastCleanBpm(pastResults);
 
@@ -96,6 +83,31 @@ export function TocarPage() {
     [live],
   );
 
+  useRunTicker({
+    session,
+    isListening,
+    isSynthetic,
+    takeFrames,
+    onFrame: (songTime) => accompaniment.sync(songTime),
+    onPublish: (running) => publishRun(running, live.get()),
+  });
+
+  const { slowdown, clearSlowdown, outcome, completedTasks, saveError, startRun } = useRunRecording({
+    session,
+    score,
+    resultId: resultId ?? null,
+    limits,
+    snapshot,
+    loop,
+    bpm,
+    setBpm,
+    droneOn,
+    fromMemory,
+    accompaniment,
+    stopInput,
+    onLoopRestart: (running) => publishRun(running, null),
+  });
+
   useEffect(() => {
     setDroneOn(exerciseDrone > 0);
   }, [exerciseDrone]);
@@ -114,110 +126,12 @@ export function TocarPage() {
     if (request.bpm === null && cleanBpm !== null) setBpm(cleanBpm);
   }, [session, cleanBpm, searchParams, setBpm]);
 
-  useEffect(() => {
-    if (!session || !isListening) return;
-    let handle = 0;
-    let last = performance.now();
-    const tick = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      if (isSynthetic) {
-        advanceWithSyntheticPlayer(session, dt);
-      } else {
-        const frames = takeFrames();
-        if (frames.length === 0) {
-          session.update(dt, null);
-        } else {
-          const slice = dt / frames.length;
-          for (const frame of frames) session.update(slice, frame);
-        }
-      }
-      const state = session.state;
-      if (state === "countdown" || state === "playing") accompaniment.sync(session.songTime);
-      publishRun(session, live.get());
-      handle = requestAnimationFrame(tick);
-    };
-    handle = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(handle);
-  }, [session, isListening, isSynthetic, takeFrames, accompaniment, live, publishRun]);
-
-  useEffect(() => {
-    if (!score || !limits || snapshot?.state !== "finished" || slowedRunRef.current) return;
-    slowedRunRef.current = true;
-    const next = isAutoSlowdownOn ? autoSlowdown(score, snapshot.judgements, snapshot.stats, bpm, limits) : null;
-    setSlowdown(next);
-    if (next) setBpm(next.bpm);
-  }, [snapshot, score, limits, bpm, isAutoSlowdownOn, setBpm]);
-
-  useEffect(() => {
-    if (!session || snapshot?.state !== "finished" || !loop) return;
-    if (!savedLoopRef.current) {
-      savedLoopRef.current = true;
-      void recordLoopCompleted();
-      if (resultId && startedAtRef.current !== null) {
-        recordSectionRun({
-          pieceKey: resultId,
-          firstIndex: loop.firstIndex,
-          lastIndex: loop.lastIndex,
-          accuracyPct: session.stats.accuracyPct,
-          bpm: Math.round(session.score.beatsPerMinute),
-          durationSeconds: (Date.now() - startedAtRef.current) / 1000,
-          playedAt: Date.now(),
-        }).catch(() => setSaveError("O trecho não foi salvo neste aparelho."));
-      }
-    }
-    const timer = window.setTimeout(() => {
-      slowedRunRef.current = false;
-      savedLoopRef.current = false;
-      startedAtRef.current = Date.now();
-      session.restart();
-      accompaniment.rewind(-LEAD_IN_SECONDS);
-      session.start();
-      publishRun(session, null);
-    }, LOOP_RESTART_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [snapshot?.state, session, loop, accompaniment, resultId, publishRun]);
-
-  useEffect(() => {
-    if (!score || !resultId || !limits || loop || snapshot?.state !== "finished" || savedRunRef.current || startedAtRef.current === null) return;
-    savedRunRef.current = true;
-    const durationSeconds = (Date.now() - startedAtRef.current) / 1000;
-    saveRun({
-      exerciseId: resultId,
-      stats: snapshot.stats,
-      judgements: snapshot.judgements,
-      bpm,
-      writtenBpm: limits.writtenBpm,
-      durationSeconds,
-      withDrone: droneOn,
-      fromMemory,
-      playedAt: Date.now(),
-    })
-      .then((saved) => {
-        setOutcome(saved);
-        return completeAssignmentsAfterRun(resultId)
-          .then((completed) => setCompletedTasks(completed.map((assignment) => `Tarefa de ${assignment.teacherName} concluída: ${assignment.title}`)))
-          .catch(() => undefined)
-          .finally(() => void syncPracticeInBackground());
-      })
-      .catch(() => setSaveError("O resultado não foi salvo neste aparelho. As estrelas valem só por agora."));
-    accompaniment.stopDrone();
-    stopInput();
-  }, [snapshot, score, resultId, limits, bpm, loop, droneOn, fromMemory, stopInput, accompaniment]);
-
   async function begin() {
     if (!session) return;
     listen.stop();
     if (!isListening && !(isSynthetic ? startSynthetic() : await startMic())) return;
     session.restart();
-    startedAtRef.current = Date.now();
-    savedRunRef.current = false;
-    savedLoopRef.current = false;
-    slowedRunRef.current = false;
-    setSlowdown(null);
-    setOutcome(null);
-    setCompletedTasks([]);
-    setSaveError(null);
+    startRun();
     accompaniment.rewind(-LEAD_IN_SECONDS);
     accompaniment.startDrone();
     session.start();
@@ -240,7 +154,7 @@ export function TocarPage() {
 
   function keepTempo(previous: number) {
     setBpm(previous);
-    setSlowdown(null);
+    clearSlowdown();
   }
 
   function repeatHardest(range: MeasureRange) {
@@ -261,66 +175,35 @@ export function TocarPage() {
   const isFinished = snapshot?.state === "finished";
   const canBegin = score !== null && !needsHeadphones && mic.status.status !== "starting";
 
-  useEffect(() => {
-    shortcutRef.current = (event: KeyboardEvent) => {
-      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || isTypingTarget(event.target)) return;
-      const action = shortcutFor(event.key, { isRunning, isFinished });
-      if (!action) return;
-      event.preventDefault();
-      if (action === "toggle") {
-        if (isRunning) stopRun();
-        else if (canBegin) void begin();
-      } else if (action === "again") {
-        if (canBegin) void begin();
-      } else if (action === "listen") {
-        if (isHearing) listen.stop();
-        else void listen.play();
-      } else {
-        setBpm(bpm + (action === "faster" ? BPM_STEP : -BPM_STEP));
-      }
-    };
+  useTocarShortcuts({ isRunning, isFinished }, (action) => {
+    if (action === "toggle") {
+      if (isRunning) stopRun();
+      else if (canBegin) void begin();
+    } else if (action === "again") {
+      if (canBegin) void begin();
+    } else if (action === "listen") {
+      if (isHearing) listen.stop();
+      else void listen.play();
+    } else {
+      setBpm(bpm + (action === "faster" ? BPM_STEP : -BPM_STEP));
+    }
   });
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => shortcutRef.current?.(event);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   return (
     <div data-theme="dark" className="grid min-h-dvh grid-rows-[auto_1fr_auto] gap-4 bg-canvas px-4 py-4 text-ink md:px-8">
-      <header className="flex items-center justify-between gap-4">
-        <div className="grid gap-0.5">
-          <p className="sr-only" aria-live="polite">
-            {isRunning ? `Passada começou a ${bpm} bpm.` : snapshot?.state === "finished" ? "Passada terminada." : ""}
-          </p>
-          <h1 className="text-heading font-semibold">{exercise?.title ?? score?.title ?? "Carregando…"}</h1>
-          {exercise ? <p className="text-caption text-ink-subtle">{exercise.subtitle}</p> : null}
-          {loop ? (
-            <p className="text-caption text-primary">
-              Repetindo compassos {loop.firstIndex + 1}–{loop.lastIndex + 1}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          {loop && snapshot ? <Button onClick={stopLoop}>Parar repetição</Button> : null}
-          {isRunning && !loop ? (
-            <>
-              <Button icon="voltar" onClick={() => void begin()}>
-                Recomeçar
-              </Button>
-              <Button onClick={stopRun}>Parar</Button>
-            </>
-          ) : null}
-          {isRunning ? (
-            <ConfirmButton label="Sair" variant="ghost" question="Descartar esta passada?" confirmLabel="Sair" onConfirm={leave} />
-          ) : (
-            <Button variant="ghost" onClick={leave}>
-              Sair
-            </Button>
-          )}
-        </div>
-      </header>
+      <TocarHeader
+        title={exercise?.title ?? score?.title ?? "Carregando…"}
+        subtitle={exercise?.subtitle ?? null}
+        loop={loop}
+        bpm={bpm}
+        isRunning={isRunning}
+        isFinished={isFinished}
+        hasRun={snapshot !== null}
+        onStopLoop={stopLoop}
+        onRestart={() => void begin()}
+        onStop={stopRun}
+        onLeave={leave}
+      />
 
       <main className="grid content-center gap-6">
         {error ? <InlineError title="Não dá para tocar isso agora." nextStep={error} /> : null}
@@ -364,30 +247,16 @@ export function TocarPage() {
         ) : null}
 
         {isIdle && score ? (
-          <section className="grid justify-items-center gap-4 text-center">
-            <ScoreView
-              score={score}
-              songTime={listen.status === "tocando" ? listen.songTime : -LEAD_IN_SECONDS}
-              currentNoteIndex={listen.status === "tocando" ? listen.currentNoteIndex : 0}
-              judgements={[]}
-            />
-            {exercise ? <p className="max-w-prose text-ink-muted">{exercise.howTo}</p> : null}
-            <p className="text-caption text-ink-subtle">
-              {score.noteCount} notas · {bpm} bpm
-              {cleanBpm ? ` · último limpo: ${cleanBpm} bpm` : ""}
-            </p>
-            <p className="hidden text-caption text-ink-subtle lg:block">Espaço começa e para · R toca de novo · L ouve · setas mudam o bpm</p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <ListenSoundPicker />
-              <Button variant="secondary" onClick={() => (isHearing ? listen.stop() : void listen.play())} disabled={listen.status === "carregando"} aria-pressed={listen.status === "tocando"}>
-                {listen.status === "carregando" ? "Carregando…" : listen.status === "tocando" ? "Parar" : "Ouvir"}
-              </Button>
-              <Button variant="primary" onClick={() => void begin()} disabled={needsHeadphones || mic.status.status === "starting"}>
-                {mic.status.status === "starting" ? "Abrindo microfone…" : "Começar"}
-              </Button>
-            </div>
-            {!listen.usesSamples ? <p className="text-caption text-ink-subtle">Sem internet para baixar o violino: tocando com um som sintético.</p> : null}
-          </section>
+          <TocarIdle
+            score={score}
+            howTo={exercise?.howTo ?? null}
+            listen={listen}
+            bpm={bpm}
+            cleanBpm={cleanBpm ?? null}
+            canStart={!needsHeadphones && mic.status.status !== "starting"}
+            isOpeningMic={mic.status.status === "starting"}
+            onBegin={() => void begin()}
+          />
         ) : null}
 
         {score && limits && !isRunning ? (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { localDayKey } from "@/data/db";
 
 import { api, errorMessage } from "@/api/client";
 import type { Lessons, StudentAssignment, StudentMaterial } from "@/api/types";
@@ -11,7 +12,7 @@ import { type ExerciseResult } from "@/data/db";
 import { useResults } from "@/data/useResults";
 import { Button, ButtonLink, EmptyState, PageHeader } from "@/design/components";
 
-import { formatDueOn, ITEM_KIND_LABELS, todayIso } from "../professor/teaching";
+import { formatDueOn, ITEM_KIND_LABELS } from "../professor/teaching";
 import { completionMessage, doneToggleLabel, isOverdue, pendingCount, safeExternalUrl, safePlayPath } from "./lessons";
 
 const MAX_NOTE = 2000;
@@ -93,7 +94,7 @@ function AssignmentCard({ assignment, materials, results, onChanged }: Assignmen
   const [error, setError] = useState<string | null>(null);
   const done = assignment.doneAt !== null;
   const attached = materials.filter((material) => assignment.materialIds.includes(material.id));
-  const overdue = isOverdue(assignment, todayIso());
+  const overdue = isOverdue(assignment, localDayKey(new Date()));
   const progress = assignmentProgress(assignment, results);
 
   async function save(nextDone: boolean) {

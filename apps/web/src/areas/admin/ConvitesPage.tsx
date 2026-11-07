@@ -6,6 +6,7 @@ import type { Invite, Role } from "@/api/types";
 import { useApiData } from "@/api/useApiData";
 import { formatDate, FormError, LoadState, Notice, RequireAccount } from "@/account/ui";
 import { Badge, SelectField, TextField } from "@/design/fields";
+import { COPY_FAILED_MESSAGE, copyToClipboard } from "@/design/clipboard";
 import { Button, Card, EmptyState, PageHeader } from "@/design/components";
 
 import { INVITE_STATE_LABELS, inviteState, type InviteState } from "./admin";
@@ -13,12 +14,7 @@ import { INVITE_STATE_LABELS, inviteState, type InviteState } from "./admin";
 const STATE_TONES: Record<InviteState, "good" | "neutral" | "warn" | "bad"> = { active: "good", used: "neutral", expired: "warn", revoked: "bad" };
 
 async function copyText(text: string): Promise<string> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return "Copiado.";
-  } catch {
-    return "Não deu para copiar. Selecione o texto e copie à mão.";
-  }
+  return (await copyToClipboard(text)) ? "Copiado." : COPY_FAILED_MESSAGE;
 }
 
 function CreateInvite({ onCreated }: { onCreated: (invite: { code: string; roleName: string }) => void }) {

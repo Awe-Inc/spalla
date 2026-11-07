@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from "react-router";
+import { localDayKey } from "@/data/db";
 
 import { api, queryString } from "@/api/client";
 import type { TeacherAssignment } from "@/api/types";
@@ -7,10 +8,10 @@ import { LoadState } from "@/account/ui";
 import { Badge } from "@/design/fields";
 import { ButtonLink, EmptyState, PageHeader } from "@/design/components";
 
-import { audienceLabel, formatDueOn, todayIso } from "./teaching";
+import { audienceLabel, formatDueOn } from "./teaching";
 
 function AssignmentRow({ assignment }: { assignment: TeacherAssignment }) {
-  const overdue = assignment.dueOn !== null && assignment.dueOn < todayIso() && assignment.done < assignment.recipients;
+  const overdue = assignment.dueOn !== null && assignment.dueOn < localDayKey(new Date()) && assignment.done < assignment.recipients;
   return (
     <li>
       <Link to={`/professor/tarefas/${assignment.id}`} className="grid gap-2 rounded-lg bg-surface p-5 shadow-card transition-colors duration-fast ease-spalla hover:bg-surface-soft sm:grid-cols-[1fr_auto] sm:items-center">

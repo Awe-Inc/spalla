@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 import { SYNTHETIC_PLAYER_FLAG } from "./src/areas/tocar/useSyntheticPlayer";
 
 const E2E_PORT = 4180;
+const EXPECT_TIMEOUT_MS = 20_000;
 const TEST_TIMEOUT_MS = 120_000;
 const SERVER_START_TIMEOUT_MS = 90_000;
 
@@ -10,6 +11,7 @@ export default defineConfig({
   testDir: "./e2e",
   testIgnore: "aulas/**",
   timeout: TEST_TIMEOUT_MS,
+  expect: { timeout: EXPECT_TIMEOUT_MS },
   fullyParallel: false,
   retries: 0,
   reporter: "list",

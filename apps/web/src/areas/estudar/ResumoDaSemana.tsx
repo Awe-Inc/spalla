@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { copyToClipboard } from "@/design/clipboard";
 
 import { weekSummaryLines, type WeekSummary } from "@/data/weekSummary";
 
@@ -16,12 +17,7 @@ export function ResumoDaSemana({ summary, titleOf }: { summary: WeekSummary; tit
   }, [copied]);
 
   async function copy() {
-    try {
-      await navigator.clipboard.writeText([`Resumo da semana · ${period}`, ...lines].join("\n"));
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
+    setCopied(await copyToClipboard([`Resumo da semana · ${period}`, ...lines].join("\n")));
   }
 
   return (

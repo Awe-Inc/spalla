@@ -7,6 +7,7 @@ import { useApiData } from "@/api/useApiData";
 import { signupLink } from "@/account/links";
 import { FormError, formatDate, formatDateTime, LoadState, Notice } from "@/account/ui";
 import { Badge, TextAreaField, TextField } from "@/design/fields";
+import { COPY_FAILED_MESSAGE, copyToClipboard } from "@/design/clipboard";
 import { Button, ButtonLink, Card, PageHeader } from "@/design/components";
 
 function inviteLink(code: string): string {
@@ -19,12 +20,8 @@ function CodeCard({ klass, onChanged }: { klass: TeacherClassDetail; onChanged: 
 
   async function copy(text: string, done: string) {
     setError(null);
-    try {
-      await navigator.clipboard.writeText(text);
-      setMessage(done);
-    } catch {
-      setError("Não deu para copiar. Selecione o texto e copie à mão.");
-    }
+    if (await copyToClipboard(text)) setMessage(done);
+    else setError(COPY_FAILED_MESSAGE);
   }
 
   async function regenerate() {

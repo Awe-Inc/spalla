@@ -94,7 +94,7 @@ Correções no currículo e no planner sem conteúdo novo. **Ids de exercício n
 | E18 E19 E20 | Metrônomo lembra o bpm, tap tempo, pulso visual, Espaço; fones confirmados uma vez; "Ouvir" só para reprodução | M |
 | Q22 Q23 | `role` em barras e anel, `alert` em erro de campo, Menu com Home/End/Tab, estante sem `window.confirm` | P |
 
-## Fase 7 — Higiene
+## Fase 7 — Higiene — feita em 06/11, menos a compactação do A7
 
 | # | O quê | Esf. |
 |---|---|---|
@@ -102,6 +102,8 @@ Correções no currículo e no planner sem conteúdo novo. **Ids de exercício n
 | Q21 | Configurações com `version` e validação no `persist` | P |
 | Q24 Q25 | Duplicatas (`todayIso`, `looksLikePdf`, `useAction`, clipboard); TocarPage, ContaPage e PlanosPage abaixo de 300 linhas; script `lint` no `apps/web` | M |
 | A7 A14 | Compactação de `results` antigos; worklet agrupa frames | M |
+
+A14 feito: 2 frames por mensagem, sem teste com microfone real. **A7 não feito, decisão do dono:** medalhas, maestria, `saveRun`, CSV, backup e o cursor do `practiceSync` leem `results` inteiro, então apagar ou resumir tira medalha e histórico sem volta, e o ganho é pequeno (estimativa, não medida: cerca de 5 MB por ano com 50 passadas por dia; PDFs e gravações pesam mais).
 
 ## Regras de execução
 - Cada fase fecha com `tsc -b`, `vitest`, `vite build` e E2E verdes, `code-review` no diff, commit e push.

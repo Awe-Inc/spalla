@@ -14,7 +14,7 @@ import {
   type PageLayout,
   type PageSystem,
 } from "@/notation/pageLayout";
-import { positionY, toneFor, type NoteTone, type StaffGeometry } from "@/notation/staffLayout";
+import { toneFor, type NoteTone, type StaffGeometry } from "@/notation/staffLayout";
 
 import { canvasPixelRatio, useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
 import type { FrameSource } from "./liveRun";

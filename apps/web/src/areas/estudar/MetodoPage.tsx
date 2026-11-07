@@ -1,6 +1,5 @@
 import type { CurriculumModule } from "@fretless/core";
 
-import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
 import { bestResultsByExercise, type ExerciseResult } from "@/data/db";
 import { useResults } from "@/data/useResults";

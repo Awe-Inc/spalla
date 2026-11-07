@@ -1,5 +1,6 @@
-import { loadCore, type PitchTracker } from "@fretless/core";
+import { loadCore, type PitchFrame, type PitchTracker } from "@fretless/core";
 
+import { FrameBatch } from "./frameBatch";
 import type { WorkletInbound, WorkletOutbound, WorkletOptions } from "./messages";
 
 const DEFAULT_HOP_FRAMES = 512;
@@ -9,13 +10,17 @@ class PitchProcessor extends AudioWorkletProcessor {
   #hop: Float32Array;
   #filled = 0;
   #running = true;
+  #batch = new FrameBatch();
 
   constructor(options: AudioWorkletNodeOptions) {
     super();
     const processorOptions = options.processorOptions as WorkletOptions;
     this.#hop = new Float32Array(processorOptions.hopFrames ?? DEFAULT_HOP_FRAMES);
     this.port.onmessage = (event: MessageEvent<WorkletInbound>) => {
-      if (event.data.type === "stop") this.#running = false;
+      if (event.data.type === "stop") {
+        this.#running = false;
+        this.#postFrames(this.#batch.flush());
+      }
       if (event.data.type === "gain" && this.#tracker) this.#tracker.setInputGain(event.data.value);
     };
     loadCore({ wasmModule: processorOptions.wasmModule, wasmBinary: processorOptions.wasmBinary })
@@ -32,6 +37,10 @@ class PitchProcessor extends AudioWorkletProcessor {
     this.port.postMessage(message);
   }
 
+  #postFrames(frames: PitchFrame[]): void {
+    if (frames.length > 0) this.#post({ type: "frames", frames });
+  }
+
   override process(inputs: Float32Array[][]): boolean {
     const channel = inputs[0]?.[0];
     if (!this.#tracker || !channel) return this.#running;
@@ -44,7 +53,8 @@ class PitchProcessor extends AudioWorkletProcessor {
       if (this.#filled === this.#hop.length) {
         const blockEndTime = currentTime + (offset - channel.length) / sampleRate;
         const frame = this.#tracker.process(this.#hop, blockEndTime);
-        this.#post({ type: "frame", frame });
+        const full = this.#batch.add(frame);
+        if (full) this.#postFrames(full);
         this.#filled = 0;
       }
     }

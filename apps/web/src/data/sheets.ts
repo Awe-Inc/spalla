@@ -5,7 +5,7 @@ import { describeStorageError } from "./storageErrors";
 
 export const MAX_SHEET_FILE_BYTES = 64 * 1024 * 1024;
 const PDF_MIME = "application/pdf";
-const PDF_MAGIC = "%PDF";
+const PDF_SIGNATURE = "%PDF-";
 const PDF_HEADER_WINDOW = 1024;
 
 export type SheetImportOutcome = { ok: true; sheet: StoredSheet } | { ok: false; error: string };
@@ -16,7 +16,12 @@ export function isPdfFile(file: { name: string; type: string }): boolean {
 
 export function hasPdfHeader(bytes: Uint8Array): boolean {
   const head = String.fromCharCode(...bytes.subarray(0, PDF_HEADER_WINDOW));
-  return head.includes(PDF_MAGIC);
+  return head.includes(PDF_SIGNATURE);
+}
+
+export async function startsWithPdfSignature(file: Blob): Promise<boolean> {
+  const head = new Uint8Array(await file.slice(0, PDF_SIGNATURE.length).arrayBuffer());
+  return String.fromCharCode(...head) === PDF_SIGNATURE;
 }
 
 export function sheetTitle(fileName: string): string {

@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import { openClassTasks, useClassAssignments } from "@/account/classAssignments";
 import { useSettings } from "@/app/settings";

@@ -117,13 +117,10 @@ export function BoasVindasPage() {
   const isLast = step === STEPS.length - 1;
 
   async function finish() {
-    try {
-      void requestPersistentStorage();
-      await setDailyGoal(goalXp);
-    } finally {
-      settings.completeOnboarding();
-      await navigate("/", { replace: true });
-    }
+    void requestPersistentStorage();
+    await setDailyGoal(goalXp).catch(() => undefined);
+    settings.completeOnboarding();
+    await navigate("/", { replace: true });
   }
 
   return (

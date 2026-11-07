@@ -133,8 +133,10 @@ export class PitchInput {
             clearTimeout(timer);
             reject(new Error(message.message));
           }
-          if (message.type === "frame") {
-            for (const listener of this.#listeners) listener(message.frame);
+          if (message.type === "frames") {
+            for (const frame of message.frames) {
+              for (const listener of this.#listeners) listener(frame);
+            }
           }
         };
       });

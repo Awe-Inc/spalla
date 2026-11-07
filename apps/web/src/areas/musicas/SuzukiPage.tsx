@@ -1,7 +1,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useSearchParams } from "react-router";
 
-import { CoreErrorNotice } from "@/core/CoreErrorNotice";
 import { useCore } from "@/core/useCore";
 import { db, localDayKey, type StoredSuzukiPiece } from "@/data/db";
 import {

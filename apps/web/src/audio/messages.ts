@@ -11,5 +11,5 @@ export type WorkletInbound = { type: "stop" } | { type: "gain"; value: number };
 
 export type WorkletOutbound =
   | { type: "ready"; requiredSamples: number; sampleRate: number }
-  | { type: "frame"; frame: PitchFrame }
+  | { type: "frames"; frames: PitchFrame[] }
   | { type: "error"; message: string };

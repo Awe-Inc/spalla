@@ -1,6 +1,6 @@
 import type { Table } from "dexie";
 
-import { db, DEFAULT_USER_STATS, joinSplitConcertos, type StoredSuzukiPiece } from "./db";
+import { db, DEFAULT_USER_STATS, joinSplitConcertos, localDayKey, type StoredSuzukiPiece } from "./db";
 
 export const BACKUP_VERSION = 3;
 
@@ -161,7 +161,7 @@ export function restoreSentence(summary: RestoreSummary): string {
 }
 
 export function backupFileName(now = new Date()): string {
-  return `spalla-backup-${now.toISOString().slice(0, 10)}.json`;
+  return `spalla-backup-${localDayKey(now)}.json`;
 }
 
 const REVOKE_URL_DELAY_MS = 10_000;

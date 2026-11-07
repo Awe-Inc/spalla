@@ -2,8 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { Subdivision } from "@/audio/clickTrack";
-import type { ListenSound } from "@/audio/listenSounds";
+import { LISTEN_SOUNDS, type ListenSound } from "@/audio/listenSounds";
 import type { ClickSound } from "@/audio/metronome";
+import { TEMPO_MAX_BPM, TEMPO_MIN_BPM } from "@/audio/tempoClock";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type NoteNaming = "latin" | "letters";
@@ -66,6 +67,78 @@ interface SettingsState extends PracticeAudioPrefs {
   setPracticeAudio: (prefs: Partial<PracticeAudioPrefs>) => void;
 }
 
+export const SETTINGS_VERSION = 1;
+
+type SettingsAction = { [K in keyof SettingsState]: SettingsState[K] extends (...args: never[]) => unknown ? K : never }[keyof SettingsState];
+type PersistedSettings = Omit<SettingsState, SettingsAction>;
+type FieldCheck = (value: unknown) => boolean;
+
+const MIN_INPUT_GAIN = 0.25;
+const MAX_INPUT_GAIN = 4;
+const LAST_WEEKDAY = 6;
+
+const isBoolean: FieldCheck = (value) => typeof value === "boolean";
+const isString: FieldCheck = (value) => typeof value === "string";
+const isTimestamp: FieldCheck = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
+const isInteger: FieldCheck = (value) => Number.isInteger(value);
+const isVolume = isBetween(0, 1);
+
+function isBetween(min: number, max: number): FieldCheck {
+  return (value) => typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+}
+
+function isOneOf(options: readonly unknown[]): FieldCheck {
+  return (value) => options.includes(value);
+}
+
+function orNull(check: FieldCheck): FieldCheck {
+  return (value) => value === null || check(value);
+}
+
+function isSkippedPieces(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const { day, ids } = value as Partial<SkippedPieces>;
+  return typeof day === "string" && Array.isArray(ids) && ids.every(isString);
+}
+
+const SETTINGS_FIELDS: Record<keyof PersistedSettings, FieldCheck> = {
+  theme: isOneOf(["system", "light", "dark"]),
+  noteNaming: isOneOf(["latin", "letters"]),
+  inputDeviceId: orNull(isString),
+  headphonesConfirmedAt: orNull(isTimestamp),
+  routineId: isInteger,
+  onboardedAt: orNull(isTimestamp),
+  inputGain: isBetween(MIN_INPUT_GAIN, MAX_INPUT_GAIN),
+  staffScale: isOneOf(STAFF_SCALES),
+  playView: isOneOf(PLAY_VIEWS),
+  pageStyle: isOneOf(PAGE_STYLES),
+  readingGuide: isOneOf(READING_GUIDES),
+  accent: isOneOf(["padrao", "sepia"]),
+  lessonWeekday: orNull((value) => isInteger(value) && isBetween(0, LAST_WEEKDAY)(value)),
+  skippedPieces: isSkippedPieces,
+  metronomeOn: isBoolean,
+  metronomeBpm: isBetween(TEMPO_MIN_BPM, TEMPO_MAX_BPM),
+  metronomeSubdivision: isOneOf([1, 2, 3, 4]),
+  metronomeVolume: isVolume,
+  metronomeSound: isOneOf(["madeira", "digital", "suave"]),
+  droneVolume: isVolume,
+  listenVolume: isVolume,
+  listenSound: isOneOf(LISTEN_SOUNDS),
+  autoSlowdown: isBoolean,
+};
+
+const SETTINGS_KEYS = Object.keys(SETTINGS_FIELDS) as (keyof PersistedSettings)[];
+
+function pickPersisted(state: SettingsState): PersistedSettings {
+  return Object.fromEntries(SETTINGS_KEYS.map((key) => [key, state[key]])) as unknown as PersistedSettings;
+}
+
+export function sanitizeSettings(stored: unknown): Partial<PersistedSettings> {
+  if (typeof stored !== "object" || stored === null) return {};
+  const fields = stored as Record<string, unknown>;
+  return Object.fromEntries(SETTINGS_KEYS.filter((key) => SETTINGS_FIELDS[key](fields[key])).map((key) => [key, fields[key]])) as Partial<PersistedSettings>;
+}
+
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
@@ -87,7 +160,7 @@ export const useSettings = create<SettingsState>()(
       setLessonWeekday: (lessonWeekday) => set({ lessonWeekday }),
       setRoutine: (routineId) => set({ routineId }),
       completeOnboarding: () => set({ onboardedAt: Date.now() }),
-      setInputGain: (inputGain) => set({ inputGain: Math.max(0.25, Math.min(4, inputGain)) }),
+      setInputGain: (inputGain) => set({ inputGain: Math.max(MIN_INPUT_GAIN, Math.min(MAX_INPUT_GAIN, inputGain)) }),
       setStaffScale: (staffScale) => set({ staffScale }),
       setPlayView: (playView) => set({ playView }),
       setPageStyle: (pageStyle) => set({ pageStyle }),
@@ -110,30 +183,10 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "fretless-settings",
-      partialize: ({ theme, noteNaming, inputDeviceId, routineId, onboardedAt, inputGain, staffScale, playView, pageStyle, readingGuide, accent, lessonWeekday, skippedPieces, metronomeOn, metronomeBpm, metronomeSubdivision, metronomeVolume, metronomeSound, droneVolume, listenVolume, listenSound, autoSlowdown }) => ({
-        theme,
-        lessonWeekday,
-        skippedPieces,
-        noteNaming,
-        inputDeviceId,
-        routineId,
-        onboardedAt,
-        inputGain,
-        staffScale,
-        playView,
-        pageStyle,
-        readingGuide,
-        accent,
-        metronomeOn,
-        metronomeBpm,
-        metronomeSubdivision,
-        metronomeVolume,
-        metronomeSound,
-        droneVolume,
-        listenVolume,
-        listenSound,
-        autoSlowdown,
-      }),
+      version: SETTINGS_VERSION,
+      migrate: (persisted) => persisted as PersistedSettings,
+      merge: (persisted, current) => ({ ...current, ...sanitizeSettings(persisted) }),
+      partialize: pickPersisted,
     },
   ),
 );
