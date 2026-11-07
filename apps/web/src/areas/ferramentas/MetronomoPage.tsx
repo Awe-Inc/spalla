@@ -54,6 +54,7 @@ export function MetronomoPage() {
   const [live, setLive] = useState<{ measure: number; bpm: number } | null>(null);
   const [beat, setBeat] = useState<number | null>(null);
   const clockRef = useRef<TempoClock | null>(null);
+  const isRunningRef = useRef(false);
   const tapsRef = useRef<number[]>([]);
 
   useEffect(() => {
@@ -90,8 +91,9 @@ export function MetronomoPage() {
   }
 
   async function toggle() {
-    if (isRunning) {
+    if (isRunningRef.current) {
       clockRef.current?.stop();
+      isRunningRef.current = false;
       setIsRunning(false);
       setLive(null);
       setBeat(null);
@@ -104,6 +106,7 @@ export function MetronomoPage() {
       clockRef.current = clock;
     }
     await clockRef.current.start();
+    isRunningRef.current = true;
     setIsRunning(true);
   }
 

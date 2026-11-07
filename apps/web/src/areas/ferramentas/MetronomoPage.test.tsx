@@ -73,6 +73,17 @@ describe("MetronomoPage", () => {
     await waitFor(() => expect(clock.stop).toHaveBeenCalled());
   });
 
+  it("stops on a press that arrives right after the start, before the page rendered", async () => {
+    show();
+    fireEvent.keyDown(window, { key: " " });
+    await Promise.resolve();
+    await Promise.resolve();
+    fireEvent.keyDown(window, { key: " " });
+    expect(clock.start).toHaveBeenCalledOnce();
+    expect(clock.stop).toHaveBeenCalledOnce();
+    await screen.findByRole("button", { name: "Começar" });
+  });
+
   it("leaves the space bar alone on a held key and inside a control", () => {
     show();
     fireEvent.keyDown(window, { key: " ", repeat: true });

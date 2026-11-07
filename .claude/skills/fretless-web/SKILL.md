@@ -536,3 +536,6 @@ send never post the same results twice. The session planner (`planSession`) assi
 - **`noteErrors`: `event.string` é a corda sugerida e pode ser -1** (06/11). Regra: a frase omite "na corda" nesse caso.
   O limite de 0,12 s para "ritmo" é conservador por causa da latência do microfone e ainda não foi calibrado com violino
   real; não baixar sem medir.
+- **Espaço do metrônomo lia `isRunning` velho e iniciava de novo** (06/11). Sintoma: CI falhou só lá (`clock.stop` nunca
+  chamado), passou aqui. Causa: o `keydown` fica num efeito, e entre o `await start()` e o efeito rodar o ouvinte ainda
+  tem o estado antigo. Regra: atalho que alterna estado depois de `await` lê um ref, não o estado da renderização.
