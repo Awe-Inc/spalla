@@ -238,6 +238,7 @@ apps/web/src/music/noteNames.ts  Latin note names and cents formatting for the s
 apps/web/src/notation/staffLayout.ts  pure staff geometry (positions, beams, slurs, window; optional `xAt` replaces the time axis), tested
 apps/web/src/notation/pageLayout.ts   pure page layout: greedy line breaks by measure, justified lines, header room, pages by height, reading x per system, tested
 apps/web/src/notation/highwayLayout.ts  pure lane geometry; reuses the staff TimeAxis so both views line up, tested
+apps/web/src/notation/tuplets.ts      tuplets found from the durations (the score carries no tuplet field): spans of 1, 2 or 4 quarters, "3"/"6", number outside the beam or a bracket, tested
 apps/web/src/areas/tocar/ScrollingStaff.tsx  canvas that draws the score scrolling into the playhead
 ```
 
@@ -280,6 +281,14 @@ send never post the same results twice. The session planner (`planSession`) assi
 - No comments in TypeScript. What needs explaining goes in this file.
 
 ## Armadilhas
+
+- **Semínima de tercina saía como colcheia com feixe, e a nota que abre o compasso caía no compasso anterior** (13/11,
+  Aceleração). Sintoma: três notas de 2/3 de semínima ganhavam feixe e bandeira; e a primeira nota do compasso 19
+  vinha como "tempo 5" do 18, então o feixe de tercina pegava notas de dois compassos. Causa: `beamCount` lia 2/3 como
+  colcheia pontuada (leitura `- DOT_SHIFT`), e a soma de terços dava 71.99999999999994 em vez de 72 no
+  `ScoreBuilder`. Regra: `beamCount(2/3)` é 0 (C++ e TS iguais, `staffLayout.test` e `test_beaming`); todo `floor` de
+  posição em compasso leva um epsilon (`kBarSnap`, como o `kQuarterEpsilon` do `Beaming.cpp`). O
+  `tuplets.core.test` roda a Aceleração de verdade e exige um feixe por tercina de colcheias.
 
 - **Tarefa marcada como feita sumia sem aviso, e o retorno da professora ficava escondido** (30/10, achado pelo e2e de
   aulas). Sintoma: o aluno clicava "Marcar como feita", a tarefa desaparecia da lista e o retorno só aparecia depois de

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { buildGeometry } from "@/notation/staffLayout";
 
-import { drawNote, type Palette } from "./staffPaint";
+import { drawNote, drawTuplets, type Palette } from "./staffPaint";
 
 const PALETTE: Palette = { paper: "#fff", ink: "#000", inkMuted: "#333", inkSubtle: "#666", barline: "#999", current: "#00f", inTune: "#0f0", close: "#ff0", off: "#f00", mono: "monospace", sans: "sans-serif", music: "serif" };
 
@@ -20,6 +20,14 @@ function scoreWith(overrides: Partial<ScoreEvent>): Score {
 }
 
 const geometry = buildGeometry(800, 200, 0);
+
+function quarterTriplets(): Score {
+  const third = 2 / 3;
+  const base = scoreWith({}).events[0];
+  if (!base) throw new Error("sem nota base");
+  const events = [0, 1, 2].map((at) => ({ ...base, startQuarters: at * third, startSeconds: at * third * 0.5, durationSeconds: third * 0.5, noteName: "G4" }));
+  return { ...scoreWith({}), events, beatsPerMinute: 120 } as Score;
+}
 
 describe("marcas desenhadas na nota", () => {
   it("escreve a dinâmica e o pizz. da nota", () => {
@@ -43,5 +51,21 @@ describe("marcas desenhadas na nota", () => {
     drawNote(withMark.ctx, scoreWith({ ...rest, marks: "fermata" }), 0, geometry, PALETTE, "upcoming");
     drawNote(without.ctx, scoreWith(rest), 0, geometry, PALETTE, "upcoming");
     expect(withMark.arc.mock.calls.length).toBeGreaterThan(without.arc.mock.calls.length);
+  });
+});
+
+describe("tercinas na pauta", () => {
+  it("escreve o 3 e desenha o colchete das semínimas de tercina", () => {
+    const { ctx, fillText } = canvasSpy();
+    const lineTo = vi.mocked(ctx.lineTo);
+    drawTuplets(ctx, quarterTriplets(), [0, 1, 2], geometry, PALETTE);
+    expect(fillText.mock.calls.map(([text]) => text)).toEqual(["3"]);
+    expect(lineTo.mock.calls.length).toBe(4);
+  });
+
+  it("tercina fora das notas visíveis não é desenhada", () => {
+    const { ctx, fillText } = canvasSpy();
+    drawTuplets(ctx, quarterTriplets(), [], geometry, PALETTE);
+    expect(fillText).not.toHaveBeenCalled();
   });
 });

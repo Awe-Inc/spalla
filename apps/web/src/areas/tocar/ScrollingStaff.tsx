@@ -6,7 +6,7 @@ import { barlineTimes, buildGeometry, noteX, toneFor, visibleEventIndices, visib
 
 import { useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
 import type { FrameSource } from "./liveRun";
-import { drawBeams, drawExpressions, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
+import { drawBeams, drawExpressions, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, drawTuplets, fillRect, readPalette, type Palette } from "./staffPaint";
 
 const STAFF_LEFT = 8;
 
@@ -58,6 +58,7 @@ export function drawStaff(ctx: CanvasRenderingContext2D, size: CanvasSize, palet
     drawNote(ctx, props.score, index, geometry, palette, toneFor(index, props.currentNoteIndex, props.judgements));
   }
   drawBeams(ctx, props.score, visible, geometry, palette);
+  drawTuplets(ctx, props.score, visible, geometry, palette);
   drawSlurs(ctx, props.score, visible, geometry, palette);
   const seen = visibleWindow(geometry);
   drawExpressions(ctx, props.score.expressions, seen.start, seen.end, geometry, palette);

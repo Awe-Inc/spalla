@@ -18,7 +18,7 @@ import { toneFor, type NoteTone, type StaffGeometry } from "@/notation/staffLayo
 
 import { canvasPixelRatio, useFramePainter, type CanvasSize, type FramePaint } from "./canvas";
 import type { FrameSource } from "./liveRun";
-import { drawBeams, drawExpressions, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, fillRect, readPalette, type Palette } from "./staffPaint";
+import { drawBeams, drawExpressions, drawKeyAccidentals, drawNote, drawSlurs, drawStaffLines, drawTuplets, fillRect, readPalette, type Palette } from "./staffPaint";
 
 interface PageStaffProps {
   score: Score;
@@ -172,6 +172,7 @@ function drawSystem(ctx: CanvasRenderingContext2D, props: PageDrawProps, system:
     drawNote(ctx, systemScore, index, geometry, palette, guideTone(props.readingGuide, index, props.currentNoteIndex, props.judgements));
   }
   drawBeams(ctx, systemScore, indices, geometry, palette);
+  drawTuplets(ctx, systemScore, indices, geometry, palette);
   drawSlurs(ctx, systemScore, indices, geometry, palette);
   drawExpressions(ctx, score.expressions, system.startSeconds, system.endSeconds, geometry, palette);
 }

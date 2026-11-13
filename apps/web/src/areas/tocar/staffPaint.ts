@@ -30,6 +30,7 @@ import {
   type NoteTone,
   type StaffGeometry,
 } from "@/notation/staffLayout";
+import { findTuplets, layoutTuplet, type TupletMark, type TupletSpan } from "@/notation/tuplets";
 
 export interface Palette {
   paper: string;
@@ -458,6 +459,40 @@ export function drawBeams(ctx: CanvasRenderingContext2D, score: Score, visible: 
         i = end + 1;
       }
     }
+  }
+}
+
+function tupletBeam(score: Score, span: TupletSpan, geometry: StaffGeometry): BeamGroupLayout | null {
+  const group = beamGroupOf(score.beamGroups, span.first);
+  if (!group || group.last < span.last) return null;
+  return beamLayoutFor(score, group, geometry);
+}
+
+function drawTupletBracket(ctx: CanvasRenderingContext2D, mark: TupletMark, gap: number, geometry: StaffGeometry, color: string): void {
+  const middle = (mark.x0 + mark.x1) / 2;
+  const hook = geometry.spacing * 0.5 * (mark.above ? 1 : -1);
+  strokeLine(ctx, mark.x0, mark.y + hook, mark.x0, mark.y, 1, color);
+  strokeLine(ctx, mark.x0, mark.y, middle - gap, mark.y, 1, color);
+  strokeLine(ctx, middle + gap, mark.y, mark.x1, mark.y, 1, color);
+  strokeLine(ctx, mark.x1, mark.y, mark.x1, mark.y + hook, 1, color);
+}
+
+export function drawTuplets(ctx: CanvasRenderingContext2D, score: Score, visible: number[], geometry: StaffGeometry, palette: Palette): void {
+  const firstVisible = visible[0];
+  const lastVisible = visible[visible.length - 1];
+  if (firstVisible === undefined || lastVisible === undefined) return;
+  const size = Math.round(geometry.spacing * 1.2);
+  for (const span of findTuplets(score)) {
+    if (span.last < firstVisible) continue;
+    if (span.first > lastVisible) break;
+    const mark = layoutTuplet(score, span, geometry, tupletBeam(score, span, geometry));
+    if (mark.x1 < -OFFSCREEN_MARGIN || mark.x0 > geometry.width + OFFSCREEN_MARGIN) continue;
+    if (mark.bracket) drawTupletBracket(ctx, mark, size * 0.7, geometry, palette.ink);
+    ctx.font = `italic 700 ${size}px ${palette.music}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = palette.ink;
+    ctx.fillText(mark.label, (mark.x0 + mark.x1) / 2, mark.y);
   }
 }
 
