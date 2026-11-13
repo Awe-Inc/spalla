@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 
 namespace fretless::score {
 namespace {
@@ -77,15 +78,23 @@ int beamCount(double quarters) noexcept {
     const double dotShift    = std::log2(1.5);
     const double readings[3] = {logLength, logLength + dotShift, logLength - dotShift};
 
-    double bestDistance = 1.0;
-    int    beams        = 1;
-    for (const double reading : readings) {
-        const double nearest  = std::round(reading);
-        const double distance = std::abs(reading - nearest);
+    double bestDistance   = 1.0;
+    int    beams          = 1;
+    bool   quarterTriplet = false;
+    for (std::size_t r = 0; r < std::size(readings); ++r) {
+        const double nearest  = std::round(readings[r]);
+        const double distance = std::abs(readings[r] - nearest);
         if (distance < bestDistance) {
-            bestDistance = distance;
-            beams        = static_cast<int>(nearest);
+            bestDistance   = distance;
+            beams          = static_cast<int>(nearest);
+            quarterTriplet = r == 2 && nearest <= 0.0;
         }
+    }
+    // A quarter-note triplet (2/3) is shorter than kShortestUnbeamed but is a
+    // quarter on paper; the other readings below one beam (a double-dotted
+    // eighth, say) still keep their flag.
+    if (quarterTriplet) {
+        return 0;
     }
     return std::clamp(beams, 1, kMaxBeams);
 }

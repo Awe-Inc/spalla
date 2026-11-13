@@ -72,6 +72,8 @@ TEST(beam_count_follows_the_nominal_note) {
     CHECK_EQ(beamCount(0.375), 2);
     CHECK_EQ(beamCount(1.0 / 3.0), 1);
     CHECK_EQ(beamCount(1.0 / 6.0), 2);
+    CHECK_EQ(beamCount(2.0 / 3.0), 0);
+    CHECK_EQ(beamCount(0.875), 1);
     CHECK_EQ(beamCount(0.0), 0);
 }
 

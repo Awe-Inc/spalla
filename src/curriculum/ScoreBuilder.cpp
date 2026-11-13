@@ -123,14 +123,18 @@ score::Score ScoreBuilder::build() const {
         event.isRest          = (entry.midi < 0);
         event.midi            = entry.midi;
 
-        const double bar = (barQuarters > 0.0) ? entry.start / barQuarters : 0.0;
+        // Starts built by adding thirds drift just under the bar line
+        // (71.99999999999994 for 72), so without the snap the note that opens
+        // a bar after triplets is filed as beat 5 of the bar before.
+        constexpr double kBarSnap = 1e-6;
+        const double bar = (barQuarters > 0.0) ? entry.start / barQuarters + kBarSnap : 0.0;
         event.measure = static_cast<int>(std::floor(bar)) + 1;
         if (static_cast<std::size_t>(event.measure) <= out.measures.size()) {
             event.measureIndex = event.measure - 1;
         }
-        event.beat    = static_cast<float>(
-            (entry.start - std::floor(bar) * barQuarters) *
-            static_cast<double>(beatUnit_) / 4.0 + 1.0);
+        event.beat    = static_cast<float>(std::max(
+            1.0, (entry.start - std::floor(bar) * barQuarters) *
+                     static_cast<double>(beatUnit_) / 4.0 + 1.0));
 
         if (!event.isRest) {
             event.bowSpan         = static_cast<std::uint8_t>(

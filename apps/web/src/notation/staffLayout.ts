@@ -14,6 +14,7 @@ const MAX_BEAMS = 4;
 const HOLLOW_HEAD_QUARTERS = 1.75;
 const STEMLESS_QUARTERS = 3.5;
 const DOT_SHIFT = Math.log2(1.5);
+const TRIPLET_READING = 2;
 
 export type NoteTone = "upcoming" | "current" | "unjudged" | Grade;
 
@@ -124,14 +125,17 @@ export function beamCount(quarters: number): number {
   const readings = [logLength, logLength + DOT_SHIFT, logLength - DOT_SHIFT];
   let bestDistance = 1;
   let beams = 1;
-  for (const reading of readings) {
+  let quarterTriplet = false;
+  readings.forEach((reading, at) => {
     const nearest = Math.round(reading);
     const distance = Math.abs(reading - nearest);
     if (distance < bestDistance) {
       bestDistance = distance;
       beams = nearest;
+      quarterTriplet = at === TRIPLET_READING && nearest <= 0;
     }
-  }
+  });
+  if (quarterTriplet) return 0;
   return Math.max(1, Math.min(MAX_BEAMS, beams));
 }
 

@@ -98,6 +98,8 @@ describe("beamCount", () => {
     expect(beamCount(0.25)).toBe(2);
     expect(beamCount(0.375)).toBe(2);
     expect(beamCount(1 / 3)).toBe(1);
+    expect(beamCount(2 / 3)).toBe(0);
+    expect(beamCount(0.875)).toBe(1);
   });
 });
 

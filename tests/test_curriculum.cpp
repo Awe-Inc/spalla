@@ -1039,6 +1039,16 @@ TEST(acceleration_keeps_the_bow_and_shortens_the_notes) {
     }
 }
 
+TEST(a_note_that_opens_a_bar_after_triplets_belongs_to_that_bar) {
+    const auto built = buildScore(mustFind("bowing.accel"), 1u);
+    for (const auto& event : built.events) {
+        CHECK(event.beat >= 1.0f);
+        CHECK(event.beat < static_cast<float>(built.beatsPerMeasure) + 1.0f);
+        const auto& bar = built.measures[static_cast<std::size_t>(event.measureIndex)];
+        CHECK(event.startQuarters > bar.startQuarters - kQuarterTolerance);
+    }
+}
+
 TEST(real_bariolage_walks_one_string_under_an_open_one) {
     for (int lower = 0; lower < 3; ++lower) {
         const std::string name = std::string("warmup.bariolage.") + "GDA"[lower];

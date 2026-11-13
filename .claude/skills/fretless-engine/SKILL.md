@@ -183,6 +183,15 @@ up to a bar.
 
 ## Armadilhas
 
+- **Positions summed from thirds drift under the bar line.** In Aceleração the
+  note that opens bar 19 started at 71.99999999999994 quarters, so `floor`
+  filed it as beat 5 of bar 18 and the beam and tuplet logic grouped notes
+  across the barline. `ScoreBuilder` adds `kBarSnap` before the floor and
+  clamps the beat to >= 1; `a_note_that_opens_a_bar_after_triplets_belongs_to_that_bar`
+  holds it. Any new `floor(position / span)`: add the epsilon. Same day:
+  `beamCount(2/3)` returns 0 (a quarter triplet has no beam or flag), mirrored
+  in the web `staffLayout.ts`.
+
 - **A note's tail must not eat the next note.** Every note under ~0.36 s was a
   Miss even when played perfectly (OpenScore songs at 72 bpm scored 21% with the
   synthetic player): the window stayed open until end + 180 ms, counted the next
